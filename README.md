@@ -132,6 +132,85 @@ open one is outlined.
 
 **[How it works — layout, astronomy, the vigilance state machine, the tests →](docs/DESIGN.md)**
 
+## MFD-24-Mars
+
+The same instrument, one planet over: a separate face that installs **beside** MFD-24 and keeps a
+rover's time instead of yours. Built for the operators and the incurably curious — Mars has no
+time zones, no METAR and no moon worth marking, so the dial carries what a rover's day actually
+runs on.
+
+| Perseverance, sol 1959, midnight up |
+|---|
+| ![](docs/screenshots/mars.png) |
+
+*Captured on the watch, on charge, with live ephemerides. The hour hand runs the rover's own
+**Local Mean Solar Time** — a sol is 24 h 39 m 35 s, and the scale stretches with it. The shaded
+band is that sol's daylight with −6° twilight shoulders, and the hand's tip is the sun's place on
+its daily arc: it enters the band at the moment of physical sunrise and leaves it at physical
+sunset, which is why there is no separate sun mark.*
+
+<details>
+<summary><b>Why the hour hand is the sun — the arithmetic, for the incurably curious</b></summary>
+
+<br>
+
+The dial keeps the rover's Local Mean Solar Time, from the Mars Sol Date:
+
+```
+MSD  = (JD_TT − 2451549.5) / 1.0274912517 + 44796 − 0.0009626
+MTC  = 24 h × frac(MSD)                      mean solar time at Mars's 0° meridian
+LMST = MTC + λE / 15                         λE — the rover's east longitude, degrees
+```
+
+The hour hand's angle is the linear map `θ(t) = LMST(t) / 24 × 360°`, and the daylight band's
+edges are **the same map applied to the sunrise and sunset instants**. Substitute `t = t_rise`
+and the two expressions coincide — the hand stands on the dawn edge at the moment of physical
+sunrise not approximately but by construction, to the accuracy of the underlying model
+(Allison & McEwen 2000, good to seconds).
+
+The same identity is the proof that a separate sun dot cannot exist on this dial. Any mark that
+touches the dawn edge at sunrise, touches the dusk edge at sunset, and moves continuously
+between them is forced, by the linearity of the same map, to coincide with the hand at every
+instant — it could only restate the hand. The *true* sun does differ from the hand, by Mars's
+equation of time,
+
+```
+EOT = 2.861° sin 2Ls − 0.071° sin 4Ls + 0.002° sin 6Ls − (ν − M)      ≈ ±50 min over a Mars year
+```
+
+— but a true-sun dot then misses the band's edges by exactly that amount at the horizons,
+because the band lives in mean time. One of the two pictures had to be chosen, and this dial
+chose the one whose geometry closes. The twilight shoulders are the same construction, six
+degrees lower.
+
+</details>
+
+| | |
+|---|---|
+| **Rover clock** | `PERSEVERANCE` or `CURIOSITY` in the editor. The dial, the daylight, the comm windows and the mission sol all follow the choice — and switching glides the whole dial the short way round the sol, exactly the way the Earth face crosses a time zone. |
+| **Mars daylight** | Sunrise, sunset and twilight from the Allison & McEwen (2000) chain, the algorithm NASA's Mars24 clock runs. Mars's eccentric orbit swings its equation of time through ±50 minutes; no Earth arithmetic would do. |
+| **Direct-to-Earth line** | The inner edge of the tick ring marks when Earth stands above 10° at the rover — pure celestial mechanics, computed offline. In solar conjunction the line thins to a hairline and the readout flies `CONJ`: the geometry holds, the corona is in the way. |
+| **Relay line** | The outer edge marks orbiter passes over the rover — MRO, Odyssey, MAVEN and TGO, each switchable — from JPL Horizons ephemerides fetched six-hourly and cached per site. Each orbiter stands or falls on its own: MAVEN's published trajectory currently ends in March 2026, so it contributes nothing and says so rather than being quietly dropped. When none can be had the face flies `NO EPHEMERIS` rather than drawing an empty sky. |
+| **Light time** | `SOL 4994` and, behind a ground-station dish, `15:42` — the one-way light time to Earth in real minutes and seconds, live. |
+
+**Both comm lines are a view from Mars, taken from the rover's own point on it: where Earth and
+where the orbiters stand in *that* sky, above *that* horizon.** They are windows of visibility and
+nothing more. They do not know whether a Deep Space Network antenna is booked for the pass, whether
+the orbiter has a relay session planned over the site, what the rover's power and thermal budget
+allow, or what the skyline actually looks like from inside a crater — the horizon is taken as flat
+and the threshold as a plain 10°. So the line says *the geometry allows it*, which is the half of
+the question a watch on a wrist can answer honestly and offline; the other half lives in mission
+planning, changes daily, and is not published in any form a dial could trust.
+
+Everything else — the duty arc (moved inside, onto the hour hand's point), the vigilance monitor,
+the incident record — works unchanged, in the rover's own time. What it deliberately lacks:
+weather, the site lock, both sky marks and the unit rows — a rover has no METAR, Earth's moon is
+not in its sky, and on a mean-time dial the only sun that touches the band's edges at the real
+sunrise and sunset is the hour hand itself.
+
+Build it from the same tree — `./gradlew :app:assembleMarsRelease` produces
+`app-mars-release.apk` — and sideload it exactly like the Earth face.
+
 <details>
 <summary><b>Footnotes — the step count, the hardware it needs, and what it weighs</b></summary>
 
@@ -197,4 +276,7 @@ GPL-3.0-or-later — see [LICENSE](LICENSE). Naval bases and heliports are deriv
 (© OpenStreetMap contributors, **ODbL**), so any index built from them carries that licence too;
 airports, ports and spaceports are curated in this repository. Weather from
 [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) and
-[aviationweather.gov](https://aviationweather.gov/) (US NOAA, public domain).
+[aviationweather.gov](https://aviationweather.gov/) (US NOAA, public domain). The Mars face
+fetches relay ephemerides from [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) (NASA/JPL,
+public domain) and keeps Mars solar time after Allison & McEwen (2000), the algorithm behind
+NASA GISS's Mars24 clock.

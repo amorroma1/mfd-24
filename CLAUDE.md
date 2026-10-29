@@ -167,6 +167,55 @@ repositioning; their tags remain. Settings reset on update: the schema changed f
 
 ---
 
+## The mars branch
+
+**Published 2026-08-24**: the branch `mars` is on the remote as **one squashed commit** on top
+of `main` — the user's call, made explicitly; the same one-commit discipline as `main`, so
+amend/re-squash rather than stacking commits before any future publish. The pre-squash
+development history (19 commits) is kept **locally only** on `mars-pre-squash-2026-08-24`,
+never pushed. No release object exists for the Mars face yet; the updater fields
+(`mars-v` / `app-mars-release.apk`) are in place for when one does, and the repo-global
+`releases/latest` gap is **closed**: `ReleaseCheck` reads the release *list* and each flavor
+filters to its own prefix and asset, taking the highest version numerically — so neither face
+can eclipse the other's updates, and drafts, prereleases and asset-less releases are skipped
+rather than announced. Pinned in `ReleaseCheckTest` with both faces in one payload.
+
+The face: `mars` flavor, `com.avdesign.mfd24.mars`, "MFD-24-Mars", installs beside the Earth
+face. Verified on the watch through 2026-08-24: rover-local LMST (AM2000, `astro/MarsSolarTime`),
+mission sols (`SOL 4994` for Curiosity checks out), the daylight band with −6° twilight
+shoulders (no sun mark on Mars, by choice with the user: on a mean-time dial the only
+edge-touching sun is the hour hand itself, so a mark either restates the hand or hangs an
+equation-of-time clear of the band — see DESIGN.md), the DTE line against live Horizons to
+~0.15°, relay passes for MRO/Odyssey/TGO, the
+light time behind its dish (`15:42`, SI minutes — light time owes nothing to any planet's
+rotation), rover switching with the full-dial glide (the rover meridian is the frame offset
+through `DialTransition`, whose day is now a parameter), the dial-top flip, and the duty ring
+at 0.605 r. The third-hue rule was seen flipping live: green lume turned both comm lines red.
+
+Facts paid for on first contact, all in code and tests:
+
+- **Horizons wants Mars site longitude west-positive** and the latitude planetographic; the
+  Sun-at-LTST-noon check in `EarthSkyTest` pins the convention.
+- **JPL's 2026 certificate chains to Sectigo Root R46**, absent from the API 30 trust store.
+  The mars flavor carries that public root as a domain-scoped anchor for `ssd.jpl.nasa.gov`
+  only (`src/mars/res/xml/network_security_config.xml`, fingerprint inside). Do not widen it.
+- **MAVEN's published ephemeris ends 2026-03-01.** "No ephemeris for target" is a distinct
+  parse answer (`NO_COVERAGE`): the spacecraft contributes empty windows for a day instead of
+  holding the whole relay line in `NO EPHEMERIS`. The notice means "cannot compute", never
+  "one orbiter's file ran out".
+- **The relay cache is per site and never reused across rovers** — a pass over Jezero is not a
+  pass over Gale. A rover switch or relay toggle enqueues one expedited fetch
+  (`MarsEphemerisWorker.fetchNow`); the six-hourly schedule alone left `NO EPHEMERIS` standing
+  for hours.
+
+Validity is per instant, not per fetch: `relayValid` holds only while every enabled satellite's
+table reaches past now. The Earth daylight path is gated off the mars flavor
+(`TelemetryRepository.refreshDaylight`); `MarsCommRepository` owns the band there. The mars APK
+ships without `poi_v1.bin` and CI asserts the absence. Not yet exercised on hardware: always-on
+with the comm lines, and a real solar conjunction (next ~January 2028).
+
+---
+
 ## Releasing
 
 **One release object, one tag, one commit.** As of 2026-08-22 the repository carries a single
@@ -462,8 +511,9 @@ the editor can sit open. Unclamped, a past start falls through `schedule()` into
 start with the chime — indistinguishable from a mis-tap. `BookableStartTest` pins the floor.
 
 **The updater trusts the platform, and only the platform.** `update/ReleaseCheck` asks
-`releases/latest` (flavor-scoped via `UPDATE_TAG_PREFIX`/`UPDATE_ASSET` buildConfig fields, so an
-Earth watch never sees a Mars build), compares versions numerically per component — a string
+the release *list* and filters to its own flavor (via `UPDATE_TAG_PREFIX`/`UPDATE_ASSET`
+buildConfig fields, so an Earth watch never sees a Mars build, and — since the list replaced the
+repo-global `releases/latest` — neither face's newest can hide the other's), compares versions numerically per component — a string
 compare buries `2.10.0` under `2.9.1` — and `UpdateInstaller` streams the APK into a
 `PackageInstaller` session: the system prompt confirms, the package manager enforces the signing
 key. One cached build in `cache/updates/`, pruned to the latest. The daily check rides
@@ -513,32 +563,6 @@ notification per release; and `ABOUT → RELEASES` names the version and opens `
 in a browser, at a readable size. Two seconds with a phone beat two minutes of scrolling a wall of
 text on a 1.2-inch screen, which is what the old screen was.
 
-**What the always-on sensor gate was worth, measured.** Two runs on one wrist, before and after
-`isVisible && !isAmbient`:
-
-| | on battery | rate | our heart-rate sensor time |
-|---|---|---|---|
-| before | 15 h 29 m, 100 → 77 % | 1.48 %/h | **15 h 25 m** (99.6 % of the run) |
-| after | 2 d 7 h 13 m, 100 → 27 % | **1.32 %/h** | **1 h 31 m** (2.7 %) |
-
-Eleven per cent of battery for thirty-six times less sensor, and the gap between those two figures
-is the lesson: the power model does not know what the optical sensor costs here — our uid was
-blamed for 3.1 mA·h while holding the LED on for fifteen hours, and the rest sat in `idle` and
-`unaccounted`. **Read the sensor *times*, not the per-uid table.** Sensor handles are decimal in
-`batterystats` and hex in `sensorservice`: 100 is 0x64 heart rate, 105 is 0x69 step counter, 108
-is 0x6c the off-body detector.
-
-**Verify an install by its hash, not by its version.** `com.avdesign.mfd24` reported 2.7.0 /
-`versionCode` 19 on the watch — matching the release — and was a *different build of the same
-version*: `ef515a13…` against the published `df5ecb4a…`, differing in `classes.dex`,
-`resources.arsc`, the manifest and the baseline profile. Nothing was wrong with it and nothing
-said so either.
-
-```powershell
-$path = (adb -s <dev> shell "pm path <pkg>") -replace "package:",""
-adb -s <dev> shell "sha256sum $path"      # against the SHA-256 in the release notes
-```
-
 **A release build is the only place minification bugs live.** Selecting the steps slot crashed the
 face on the watch while every emulator check passed, because debug builds are not minified. R8
 renamed the fields proto-lite looks up by name, Health Services' client threw inside a static
@@ -549,44 +573,15 @@ needed: keep rules in `proguard-rules.pro` for the protobuf and Health Services 
 the dial when a fallback is one line below. **Anything reflective has to be exercised on a release
 APK before it ships** — that is now the rule.
 
-**The platform's daily step total is not merely unreachable on this watch — it is wrong.**
-Settled on 2026-08-30 on the wellness face, which counts for itself as well and could therefore be
-compared: Health Services logged `STEPS_DAILY supported: true; provider offers 11 passive types`
-and delivered **44 steps** for a day in which the same watch's hardware counter, read
-quarter-hour by quarter-hour, had counted **8604**. Not the day, not the time since the
-subscription, not anything — it binds, claims support, and produces a number with no relation to
-the wrist. Where a face has its own record it should prefer it; the duty face has none, so
-`DailySteps` stays there as the only thing available, with the counter-and-baseline path beneath
-it. **This closes the open question these notes carried from 2.5.0.**
-
-**Reopened on 2026-10-09: the subscription was being renewed at every screen-on.** `SensorSlots`
-registered and cleared the passive callback with the screen, like the LED-backed sensors — three
-`daily steps from the platform` lines per glance in the log — and the README's own footnote
-records that this watch reports its daily total *since the subscription began*. A subscription a
-few minutes old cannot hold more than a few minutes of steps: 44 is what that looks like, and so
-is the 14 seen on 9 October beside a recorder tick of +14. So the verdict above rests on an
-observation that two explanations fit, which is exactly the standard the next paragraph sets.
-The registration now stands for as long as the slot is on (`SensorSlots.followPlatformSteps`;
-only `release()` at the face's destruction clears it), and the experiment is a day on the duty
-face against TicHealth, which reads the same hub. A match keeps the provider. A divergence by
-orders of magnitude retires it, and the counter path — already written, tested, and covered by
-the same `ACTIVITY_RECOGNITION` the provider needs — takes the row on `main` and `mars`. Forums
-were read first and settle nothing: on this very model other apps disagree with TicHealth by
-tens of steps, not thousands, and the Wear OS 3 passive-listener complaints on record (Fossil
-Gen 6, Galaxy Watch 5) are about silence and stale data, not about wrong totals.
-
-**Settled on 2026-10-13: the provider reports the day.** The clean day on the duty face was cut
-short by a reboot, but the reboot handed over a cleaner test. At 18:04 the duty face was switched
-away and back, which clears the subscription and makes a fresh one, and the fresh one answered
-**2226** at once — the same figure the dial had been showing — where a provider that counted
-from the subscription would have said 0, as it did on the morning of 11 October when the day
-itself held 0. In the same minute the wellness recorder, restarted beside it, read the hardware
-counter at **2459 since the 21:42 reboot**; the 233 between them are the evening before
-midnight, which is exactly the difference between "since boot" and "today". So the 44 of 30
-August was the renewed subscription and nothing else, the provider stays, and `DailySteps`
-needs no replacing. Two things learned on the way: `adb logcat -G 1M` does not survive a reboot,
-and the wellness recorder does not either unless the wellness face is the active one — under
-another face nothing restarts it after boot (see the smarthome notes).
+**The platform's daily step total is not reachable on this watch.** The Health Services passive
+subscription binds (confirmed in `dumpsys activity services …healthservices`: our package is the
+calling client) and then delivers nothing, so what the row shows is our own count since the slot
+was switched on — the user walked seven steps and saw seven, with a real daily total far higher.
+2.6.4 logs the provider's advertised capabilities and every value it does deliver, which is the
+evidence needed before deciding whether the dependency earns its place. What is certain either
+way: from the next local midnight the counter-and-baseline path is exact, because the boundary is
+recorded; only the installation day is unknowable, and a zero invented on that day is no longer
+published.
 
 **And the evidence that looks like it settles this does not — a mistake made and corrected on
 2026-08-22.** Minutes after 2.7.0 was installed the log read
@@ -779,14 +774,11 @@ life of the face has the same trap.
 
 **The sensor slots run only while the screen is on — and always-on does not count.**
 `watchState.isVisible` stays true in ambient: the face is on the screen, dimmed, once a minute.
-Gating the slots on visibility alone left the heart-rate LED lit around the clock, and the watch
-said so plainly — `dumpsys batterystats` blamed the face for **15 h 25 m of sensor 0x64 out of
-15 h 29 m on battery**, with the screen interactive for eleven minutes of it, and
-`dumpsys sensorservice` showed the PPG running at 66.7 ms. The gate is `isVisible && !isAmbient`,
-in both the style callback and the collector. When reading that dump: batterystats prints sensor
-handles in decimal, `sensorservice` in hex — 100 is 0x64 heart rate, 105 is 0x69 step counter,
-108 is 0x6c the off-body detector. Found on the wellness face on 2026-08-26 and carried to every
-flavour the same day, because the code is shared and so was the bug.
+Gating the slots on visibility alone left the heart-rate LED lit around the clock — `batterystats`
+blamed the face for **15 h 25 m of sensor 0x64 out of 15 h 29 m on battery**, with the screen
+interactive for eleven minutes of it. The gate is `isVisible && !isAmbient`, in both the style
+callback and the collector. Found on the wellness face on 2026-08-26 and carried to every flavour
+the same day, because the code is shared and so was the bug.
 
 **The original rule, which the above is the correct expression of:** `SensorSlots.configure` is driven from
 `MfdWatchFaceService`, from both the style (via `onSensorSlots`, reported on a change only) and
@@ -1065,9 +1057,7 @@ watch is not debuggable and `run-as` is therefore unavailable there. Write-then-
   read the **first** figure the row shows. Everything observed so far fits both answers — see the
   steps entry in the invariants for why 480 was not the proof it looked like. Until it is run, the
   row is documented as "steps today as this watch understands them" and the fallback carries the
-  honest promise. **Answered on 2026-10-13: the day.** A subscription made fresh at 18:04 reported
-  2226 at once, the day's figure, where "since the subscription" would have been 0. See the
-  settled entry in the invariants.
+  honest promise.
 
 - **FGS start from a background uid is refused on API 31+.** Seen directly on the API 36
   emulator: with the app not TOP, `startForegroundService` throws

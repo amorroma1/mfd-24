@@ -39,10 +39,8 @@ import kotlinx.coroutines.launch
  *
  * ### What it costs
  * A passive subscription is the platform's own aggregation — the sensor is already running for the
- * system's step count — so this adds no hardware. It is registered while the STEPS slot is on
- * and kept through the screen's sleeping: a registration renewed at every glance holds only the
- * minutes since the last one on a provider that counts from the subscription, which is what the
- * duty face was doing until 2026-10-09. See `SensorSlots.followPlatformSteps`.
+ * system's step count — so this adds no hardware. It is registered while the STEPS slot is on and
+ * the screen is awake, and dropped with it, like every other reading here.
  */
 class DailySteps(context: Context) {
 

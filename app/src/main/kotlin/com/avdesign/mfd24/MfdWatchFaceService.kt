@@ -20,6 +20,9 @@ import androidx.wear.watchface.WatchFaceType
 import androidx.wear.watchface.WatchState
 import androidx.wear.watchface.style.CurrentUserStyleRepository
 import androidx.wear.watchface.style.UserStyleSchema
+import com.avdesign.mfd24.astro.PlanetMode
+import com.avdesign.mfd24.data.MarsCommRepository
+import com.avdesign.mfd24.data.MarsEphemerisWorker
 import com.avdesign.mfd24.data.TelemetryRepository
 import com.avdesign.mfd24.data.SensorSlots
 import com.avdesign.mfd24.data.TelemetryWorker
@@ -48,6 +51,9 @@ class MfdWatchFaceService : WatchFaceService() {
     private lateinit var watchShift: WatchShiftController
     private lateinit var vigilance: VigilanceMonitor
     private lateinit var sensorSlots: SensorSlots
+
+    /** Present only on the mars flavor; everything else leaves it null. */
+    private var marsComm: MarsCommRepository? = null
 
     /** Last slots asked for, so a visibility change can re-apply them without the renderer. */
     private var slotLeft = 0
@@ -88,7 +94,15 @@ class MfdWatchFaceService : WatchFaceService() {
         watchShift = WatchShiftController.get(this)
         vigilance = VigilanceMonitor.get(this)
         sensorSlots = SensorSlots(this)
-        if (!TelemetryWorker.scheduleIfUnlocked(this)) {
+        if (BuildConfig.WORLD == PlanetMode.ID_MARS) {
+            // The Mars face has no location, no site and no weather, so the telemetry worker's
+            // whole pipeline would be a half-hourly no-op; its sky comes from arithmetic and,
+            // for the relay line, its own ephemeris fetch.
+            marsComm = MarsCommRepository.get(this)
+            if (!MarsEphemerisWorker.scheduleIfUnlocked(this)) {
+                registerUnlockReceiver()
+            }
+        } else if (!TelemetryWorker.scheduleIfUnlocked(this)) {
             registerUnlockReceiver()
         }
     }
@@ -118,13 +132,13 @@ class MfdWatchFaceService : WatchFaceService() {
             runCatching { unregisterReceiver(batteryReceiver) }
             batteryRegistered = false
         }
-        sensorSlots.release()
+        sensorSlots.stop()
         serviceScope.cancel()
         super.onDestroy()
     }
 
     override fun createUserStyleSchema(): UserStyleSchema =
-        StyleSchema.create(resources)
+        StyleSchema.create(resources, PlanetMode.fromOptionId(BuildConfig.WORLD))
 
     override suspend fun createWatchFace(
         surfaceHolder: SurfaceHolder,
@@ -158,6 +172,19 @@ class MfdWatchFaceService : WatchFaceService() {
                     slotRight = right
                     sensorSlots.configure(left, right, slotsWanted(watchState))
                 }
+            },
+            marsComm = marsComm?.state,
+            // Same headless rule as the weather: a preview's style must not re-aim the
+            // process-wide ephemeris side.
+            onRoverSelected = if (headless) {
+                { }
+            } else {
+                { index -> marsComm?.setRover(index) }
+            },
+            onRelayMask = if (headless) {
+                { }
+            } else {
+                { mask -> marsComm?.setRelayMask(mask) }
             },
             descriptions = FaceDescriptions(
                 onDuty = getString(R.string.a11y_on_duty),
@@ -203,7 +230,13 @@ class MfdWatchFaceService : WatchFaceService() {
             }
             serviceScope.launch {
                 watchState.isVisible.collect { visible ->
-                    if (visible == true) refreshOpportunistically()
+                    if (visible == true) {
+                        // Each face refreshes what it actually runs on: Earth its telemetry,
+                        // Mars its sky — cheap arithmetic, and screen-on is when stale daylight
+                        // or windows would otherwise be seen.
+                        marsComm?.refreshLocal(System.currentTimeMillis())
+                        if (BuildConfig.WORLD == PlanetMode.ID_EARTH) refreshOpportunistically()
+                    }
                 }
             }
         }
@@ -274,7 +307,12 @@ class MfdWatchFaceService : WatchFaceService() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 if (intent.action != Intent.ACTION_USER_UNLOCKED) return
-                if (TelemetryWorker.scheduleIfUnlocked(context)) {
+                val scheduled = if (BuildConfig.WORLD == PlanetMode.ID_MARS) {
+                    MarsEphemerisWorker.scheduleIfUnlocked(context)
+                } else {
+                    TelemetryWorker.scheduleIfUnlocked(context)
+                }
+                if (scheduled) {
                     runCatching { context.unregisterReceiver(this) }
                     unlockReceiver = null
                 }

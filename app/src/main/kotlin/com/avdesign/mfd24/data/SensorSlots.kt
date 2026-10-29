@@ -39,9 +39,6 @@ import java.util.concurrent.TimeUnit
  * not this face was installed. That matters for the first day of every new wearer — walk four
  * thousand steps, install the face, and a self-counted row would say `0`.
  *
- * That subscription is the one thing here that does *not* follow the screen: it stands for as
- * long as the slot is on. See [followPlatformSteps] for what renewing it at every glance cost.
- *
  * The counter path below is the fallback for builds with no Health Services.
  * [Sensor.TYPE_STEP_COUNTER] counts from the last reboot, so steps for the day need the counter's
  * value at the day's start subtracted, and that has to be kept somewhere a reboot cannot lose — so
@@ -107,8 +104,7 @@ class SensorSlots(context: Context) : SensorEventListener {
      * Which kinds to feed, and whether to be running at all.
      *
      * Called on a style change and on every visibility change, so it has to be cheap and idempotent
-     * when nothing has moved. The platform's step subscription follows the style alone, through
-     * [followPlatformSteps]; only the raw sensors follow the screen.
+     * when nothing has moved.
      */
     fun configure(leftKind: Int, rightKind: Int, visible: Boolean) {
         val wantLeft = Kind.of(leftKind)
@@ -116,51 +112,12 @@ class SensorSlots(context: Context) : SensorEventListener {
         val changed = wantLeft != left || wantRight != right
         left = wantLeft
         right = wantRight
-        followPlatformSteps((left == Kind.STEPS || right == Kind.STEPS) && permitted(Kind.STEPS))
         val shouldListen = visible && (left != Kind.OFF || right != Kind.OFF)
         if (shouldListen && (!listening || changed)) {
             stop()
             start()
         } else if (!shouldListen && listening) {
             stop()
-        }
-    }
-
-    /**
-     * The platform's daily total, subscribed to while the STEPS slot is on — and only then.
-     *
-     * Once per style, not once per screen-on. A passive registration is meant to stand: it is
-     * the platform's own accumulation, costs no hardware, and the figure it holds is the one the
-     * next callback brings. It used to be registered and cleared with the screen like the
-     * LED-backed sensors, and that is the likeliest reading of the 44-against-8604 measurement
-     * of 30 August: the README's own footnote records that this watch reports its "daily" total
-     * *since the subscription began*, and a subscription renewed at every glance cannot hold
-     * more than the minutes since the last one. Whether that is the whole story is what a day
-     * on the duty face against TicHealth decides — the subscription now has a day to fill.
-     *
-     * Permission is part of "wanted": the editor is where it is asked for, and a slot without
-     * it shows dashes rather than a provider refusing in the log once a minute.
-     */
-    private fun followPlatformSteps(wanted: Boolean) {
-        if (wanted && !stepsFromPlatform) {
-            // The platform's own total first. Only if it will not give one does the raw
-            // counter — and this app's own baseline arithmetic — come into it at all.
-            stepsFromPlatform = dailySteps.start { steps ->
-                // The platform answered: it owns this row from here on. The fallback is
-                // cancelled and the counter, if it had already been brought up, is dropped.
-                if (!platformDelivered) {
-                    platformDelivered = true
-                    handler.removeCallbacks(stepsFallback)
-                    manager?.getDefaultSensor(Kind.STEPS.type)?.let { sensor ->
-                        runCatching { manager?.unregisterListener(this, sensor) }
-                    }
-                }
-                state.stepsToday = steps
-            }
-        } else if (!wanted && stepsFromPlatform) {
-            dailySteps.stop()
-            stepsFromPlatform = false
-            platformDelivered = false
         }
     }
 
@@ -175,15 +132,26 @@ class SensorSlots(context: Context) : SensorEventListener {
                 Log.d(TAG, "${kind.name} not permitted")
                 continue
             }
-            if (kind == Kind.STEPS && stepsFromPlatform) {
-                // The platform owns the row (see followPlatformSteps). Until it has actually
-                // delivered, the counter is armed behind it as before; once it has, nothing
-                // here needs a sensor.
-                if (!platformDelivered) {
+            if (kind == Kind.STEPS) {
+                // The platform's own total first. Only if it will not give one does the raw
+                // counter — and this app's own baseline arithmetic — come into it at all.
+                stepsFromPlatform = dailySteps.start { steps ->
+                    // The platform answered: it owns this row from here on. The fallback is
+                    // cancelled and the counter, if it had already been brought up, is dropped.
+                    if (!platformDelivered) {
+                        platformDelivered = true
+                        handler.removeCallbacks(stepsFallback)
+                        manager?.getDefaultSensor(Kind.STEPS.type)?.let { sensor ->
+                            runCatching { manager?.unregisterListener(this, sensor) }
+                        }
+                    }
+                    state.stepsToday = steps
+                }
+                if (stepsFromPlatform) {
                     handler.postDelayed(stepsFallback, PLATFORM_GRACE_MILLIS)
                     any = true
+                    continue
                 }
-                continue
             }
             val sensor = sensorManager.getDefaultSensor(kind.type) ?: continue
             // SENSOR_DELAY_UI rather than anything faster: none of these change quickly, and the
@@ -194,18 +162,16 @@ class SensorSlots(context: Context) : SensorEventListener {
         listening = any
     }
 
-    /** The raw sensors down with the screen; the platform subscription stands. */
     fun stop() {
         if (!listening) return
         manager?.unregisterListener(this)
         handler.removeCallbacks(stepsFallback)
+        if (stepsFromPlatform) {
+            dailySteps.stop()
+            stepsFromPlatform = false
+        }
+        platformDelivered = false
         listening = false
-    }
-
-    /** Everything down, the standing subscription included: the face itself is going away. */
-    fun release() {
-        stop()
-        followPlatformSteps(false)
     }
 
     private fun permitted(kind: Kind): Boolean {
