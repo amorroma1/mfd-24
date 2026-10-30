@@ -881,7 +881,12 @@ physical layer, `minimodem --rx 1200` on the receive side; async framing, not AX
 needed). Read-only by construction. The QR encoder is `export/QrCode.kt`, written in-repo rather
 than pulled in: byte mode, level L, versions 1-20, mask 0 fixed — the log is bounded, so the
 encoder is bounded to match. Verified end to end: a screenshot of the on-watch screen decodes
-with zbar, CRC and all. `Afsk.kt` keeps phase continuous across the tone switch and a whole
+with zbar, CRC and all. **The QR and the sound are built separately** — `LogPacket.fitting` for
+the code, `build` for the tones — because the code's ceiling is 858 bytes and a line with a pulse
+and its reference is 51: twelve such lines overflowed the encoder, which threw inside `onCreate`
+and took the face's process down with the export screen. The QR now keeps the newest entries that
+fit and its `END` line says `END 14 OF 32`; the sound carries everything. `LogPacketTest` pins the
+boundary against the encoder itself, from the shipped constants. `Afsk.kt` keeps phase continuous across the tone switch and a whole
 number of samples per bit (48 kHz / 1200 Bd = 40); `AfskTest` demodulates the signal with a
 Goertzel detector and reads the text back.
 

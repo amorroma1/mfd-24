@@ -263,6 +263,9 @@ object QrCode {
 
     internal const val MAX_VERSION = 20
 
+    /** The most a payload can be and still be drawn: version 20 at level L, byte mode. */
+    val MAX_BYTES: Int get() = byteCapacity(MAX_VERSION)
+
     /**
      * The 15-bit format word for level L, mask 0: BCH(15,5) over 0x537, XOR 0x5412. Precomputed
      * because it is the only one this encoder ever emits; [QrCodeTest] re-derives it.
