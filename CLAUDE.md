@@ -8,7 +8,7 @@ them. Assume the README has been read.
 
 ## Where things stand
 
-Last updated 2026-08-22, on `main` at **2.7.0** (`versionCode` 19), which is also what is published.
+Last updated 2026-10-30, on `main` at **2.8.1** (`versionCode` 21), which is also what is published.
 `main` sitting ahead of the release is the normal state between publishes — see **Releasing**.
 
 **The product split.** The multitool became one focused product: one face, one audience. The
