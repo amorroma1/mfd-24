@@ -34,6 +34,12 @@ l'aeroporto o il porto più vicino, le ore di luce rimanenti.
   turno, e il turno successivo lo azzera. In opzione il polso
   durante il controllo mancato, letto contro l'ultimo polso in movimento. Fuori dal polso si
   sospende — e il quadrante lo dichiara.
+- **Esportazione del registro** — `EXPORT LOG` mette il registro sui due canali che un orologio
+  ha davvero: un codice QR per la fotocamera del telefono e il suono — Bell 202 AFSK, 1200 Bd,
+  8N1, dall'altra parte `minimodem --rx 1200`. Il registro tiene gli ultimi 32 incidenti del
+  turno in corso, al massimo 30 giorni; il turno successivo lo svuota. Il suono porta sempre
+  tutto il registro; il QR porta le voci più recenti che entrano nel codice — tutte e 32 senza
+  polso, circa 14 con — e la sua riga `END` lo dice: `END 14 OF 32`. Sola lettura: nulla importa.
 - **Nadir** — le ore fra alba e tramonto alla propria posizione, calcolate offline, giorno e notte
   polari compresi.
 - **Marca solare e lunare** — il sole e la luna sull'anello delle ore, al loro vero angolo orario;

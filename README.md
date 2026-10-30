@@ -253,6 +253,29 @@ switched off, suspended by a loose strap, or delayed by the platform's own doze 
 log covers **one watch** — starting another empties it, so anything worth keeping leaves via
 `EXPORT LOG` first. Nothing here substitutes for a device a regulator has approved.
 
+<details>
+<summary><b>Exporting the incident log — two channels, and their limits</b></summary>
+
+`EXPORT LOG`, in the vigilance section, puts the log on the two channels a watch actually has: a
+**QR code** for the phone camera already pointed at it, and **sound** — Bell 202 AFSK, 1200 Bd,
+8N1, the physical layer APRS uses, so the receiving end is `minimodem --rx 1200` held to the case.
+Both carry the same plain-text packet: a header, the instrument's callsign, a `WATCH` line with the
+shift's start, end and length, one incident per line in Zulu time — with `HR` and `BASE … AT` when
+`LOG PULSE` is on — and an `END` line carrying the count and a CRC32 of everything above it, so a
+blurred photograph or a noisy recording fails loudly rather than quietly losing a line.
+
+- **The log holds the newest 32 incidents of the current watch**, for 30 days at most. Starting the
+  next watch empties it; export first.
+- **The sound always carries the whole log** — eighteen seconds of tones at the ceiling. The
+  transmission starts when the screen opens and replays on a tap.
+- **The QR carries the newest entries that fit** the largest code a 1.2-inch screen can show: all
+  32 when the lines are bare instants, about 14 when every line carries a pulse and its reference.
+  A truncated code says so — its `END` line reads `END 14 OF 32`, never `END 14`. For every line
+  of a log that long, use the sound.
+- **Read-only.** There is no import path, so nothing that reads a packet can write the record.
+
+</details>
+
 ## Build
 
 ```
