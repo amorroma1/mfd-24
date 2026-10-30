@@ -34,6 +34,12 @@ METAR-Kürzeln, den nächstgelegenen Flugplatz oder Hafen und das verbleibende T
   nennt deren Eckdaten, und die nächste Wache leert es. Optional
   mit dem Puls während des unbeantworteten Checks, gegen den letzten Puls in Bewegung gelesen.
   Abseits des Handgelenks pausiert der Monitor — und das Blatt sagt es.
+- **Export des Protokolls** — `EXPORT LOG` legt das Protokoll auf die beiden Kanäle, die eine Uhr
+  wirklich hat: einen QR-Code für die Handykamera und Ton — Bell 202 AFSK, 1200 Bd, 8N1, am
+  anderen Ende `minimodem --rx 1200`. Das Protokoll hält die letzten 32 Vorfälle der laufenden
+  Wache, höchstens 30 Tage; die nächste Wache leert es. Der Ton trägt immer das ganze Protokoll;
+  der QR-Code trägt die neuesten Einträge, die in den Code passen — alle 32 ohne Puls, etwa 14
+  mit — und seine `END`-Zeile sagt es: `END 14 OF 32`. Nur lesend: nichts wird importiert.
 - **Nadir** — die Stunden zwischen Sonnenauf- und -untergang an der eigenen Position, offline
   berechnet, Polartag und Polarnacht inklusive.
 - **Sonnen- und Mondmarke** — Sonne und Mond auf dem Stundenring, an ihrem wahren Stundenwinkel;
