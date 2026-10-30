@@ -284,10 +284,18 @@ the same bytes on the two channels a wrist actually has:
   It is there for the case where the phone is the thing that is missing: a handheld radio held to
   the case, and the log arrives wherever that radio does.
 
-Both carry one packet, built once by `LogPacket.build()`, so a photograph and a recording of the
-same export cannot disagree. Its `END` line carries the entry count and a CRC32 of everything above
-it, which is what makes a blurred photograph or a noisy recording fail loudly rather than quietly
-lose a line. The transfer is **read-only by construction**: there is no import path, so nothing
+Both carry the same lines in the same order, built by `LogPacket`, so a photograph and a recording
+of the same export cannot disagree about anything they both hold. The `END` line carries the entry
+count and a CRC32 of everything above it, which is what makes a blurred photograph or a noisy
+recording fail loudly rather than quietly lose a line.
+
+They do not always carry the same *number* of lines. The sound has no ceiling worth naming — the
+full log is eighteen seconds of tones — but the largest code the encoder draws holds 858 bytes, and
+a line with a pulse and its reference is 51 of them. So the QR keeps the **newest** entries that
+fit — all thirty-two when the lines are bare instants, about fourteen when every one carries a
+pulse and a reference — and says so: its `END` line reads `END 14 OF 32`, never `END 14`, so a
+photograph cannot pass for the whole record. Anyone who needs every line of a log that long has the
+sound for it. The transfer is **read-only by construction**: there is no import path, so nothing
 that reads a packet can write the record.
 
 The packet's second line names the instrument: a **callsign** derived from a salted SHA-256 of the

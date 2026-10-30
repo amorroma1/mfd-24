@@ -34,6 +34,12 @@ météo en abrégés METAR, l'aérodrome ou le port le plus proche, et les heure
   cours — il porte les paramètres du quart et le quart suivant le remet à zéro. En option,
   le pouls pendant le contrôle manqué, comparé au dernier pouls relevé en mouvement. Se suspend
   hors du poignet — et le cadran le dit.
+- **Export du journal** — `EXPORT LOG` met le journal sur les deux canaux qu'une montre possède
+  vraiment : un QR code pour l'appareil photo du téléphone, et un son — Bell 202 AFSK, 1200 Bd,
+  8N1, `minimodem --rx 1200` à l'autre bout. Le journal garde les 32 derniers incidents du quart
+  en cours, 30 jours au plus ; le quart suivant l'efface. Le son porte toujours tout le journal ;
+  le QR porte les entrées les plus récentes qui tiennent dans le code — les 32 sans pouls, environ
+  14 avec — et sa ligne `END` le dit : `END 14 OF 32`. Lecture seule : rien n'importe.
 - **Nadir** — les heures entre lever et coucher du soleil à votre position, calculées hors ligne,
   jour polaire et nuit polaire compris.
 - **Marques solaire et lunaire** — le soleil et la lune sur l'anneau des heures, à leur véritable
