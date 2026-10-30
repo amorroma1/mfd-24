@@ -66,9 +66,12 @@ object IncidentLog {
     /**
      * Ceiling on the log.
      *
-     * It bounds the string in prefs and the array the renderer walks once a frame, and it is
-     * comfortably more than a single watch can produce: at the shortest interval and the longest
-     * shift, an operator who answered nothing at all would record about a dozen.
+     * It bounds the string in prefs and the array the renderer walks once a frame. It is *not* a
+     * bound on a watch: a cycle at the shortest interval — five minutes, the thirty-second window,
+     * the five-minute SOS — is about ten and a half minutes, so a wearer who clears every incident
+     * the moment it stands could fill this in six hours, and a tester checking what a full log
+     * does will fill it on purpose. What the ceiling promises is only that the newest thirty-two
+     * are kept; the export's QR says how many of those it carried.
      */
     const val MAX_ENTRIES: Int = 32
 
