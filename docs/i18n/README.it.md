@@ -11,7 +11,7 @@ droni, ufficiali di servizio. Un giro della lancetta delle ore al giorno, il pro
 disegnato come un arco di quel giorno, un monitor «uomo morto» che passa all'SOS e lascia una
 registrazione, e la telemetria di cui un turno di guardia vive davvero.
 
-Tutto funziona offline tranne il meteo. Nessuna app companion, nessun account, nessuna analitica.
+Tutto funziona offline, tranne il meteo e il controllo quotidiano delle release. Nessuna app companion, nessun account, nessuna analitica.
 GPL.
 
 | Interattivo | Always-on |
@@ -32,8 +32,9 @@ quadrante interattivo, attenuato, senza il cursore dei secondi e senza il velo d
 |---|---|
 | **Quadrante 24 h** | Un giro al giorno. Mezzogiorno in alto o mezzanotte in alto. I minuti su un anello proprio; il secondo è un cursore che scatta, così nulla spazza il quadrante. |
 | **Timer di turno** | Avvio immediato o prenotato. Un arco copre le ore di servizio e si attenua mentre vengono servite; `DUTY: 04:40 REM` conta alla rovescia. Entrambi i confini suonano e vibrano a schermo spento. Un turno concluso si cancella da sé un'ora dopo. |
-| **Monitor di vigilanza** | Spento per impostazione predefinita. Ogni 5/10/15 min vuole un segno di vita; trenta secondi dopo suona l'SOS a raffiche e lascia `MAN DOWN` con l'istante Zulu sul quadrante. In opzione: il polso durante il controllo mancato, contro l'ultima lettura del quadrante stesso prima di esso. |
-| **Zulu + gruppo data-orario** | `Z 22AUG 12:16`, l'ora in cui si scrive una voce di giornale. |
+| **Monitor di vigilanza** | Spento per impostazione predefinita. Ogni 5/10/15 min vuole un segno di vita; trenta secondi dopo suona l'SOS a raffiche e lascia `MAN DOWN` con l'istante Zulu sul quadrante. In opzione: il polso durante il controllo mancato, accanto all'ultimo che lo slot della frequenza cardiaca ha preso mentre vi muovevate — annotato una volta al minuto, conservato per un giorno. |
+| **Esportazione del registro** | Il registro degli incidenti lascia l'orologio in due modi: un **codice QR** per la fotocamera di un telefono e il **suono** — Bell 202 AFSK, 1200 Bd, `minimodem --rx 1200` dall'altra parte. Il suono porta tutto; il QR porta le righe più recenti che entrano in un codice da 1,2 pollici, e lo dice (`END 14 OF 32`). |
+| **Zulu + gruppo data-orario** | `Z 11NOV 13:05`, l'ora in cui si scrive una voce di giornale. |
 | **Meteo** | Temperatura, condizione in stile METAR e QNH. In un aeroporto è il **METAR proprio** di quel campo; ovunque altrove Open-Meteo. Aggiornato ogni 30 minuti. |
 | **Aggancio sito a 5 km** | Nomina l'aeroporto, il porto, l'eliporto o la base di lancio più vicini fra 9 649 siti in un indice di bordo da 194 KB. I siti militari sono disegnati nel colore d'accento. |
 | **Nadir, sole e luna** | Le ore di luce ombreggiate sull'anello delle ore, calcolate offline. Il sole e la luna stanno al loro vero angolo orario — puntate una marca verso l'astro stesso e il quadrante è una **bussola**. La luna porta la sua fase reale. |
@@ -43,10 +44,19 @@ quadrante interattivo, attenuato, senza il cursore dei secondi e senza il velo d
 
 ## In azione
 
-| Un controllo mancato, riconosciuto tardi | Attraversando i fusi orari | Il risveglio |
+| Un controllo mancato, riconosciuto tardi | Da JFK a Heathrow, tutto il volo | Il risveglio |
 |---|---|---|
-| ![](../media/mandown.gif) | ![](../media/glide.gif) | ![](../media/wake.gif) |
-| L'SOS è rimasto senza risposta: `MAN DOWN`, l'istante Zulu, un segno sull'arco. Un tocco risponde con `TAP AGAIN`; un secondo, entro un secondo, lo cancella — una manica non può. | La scala delle ore scivola per la via più breve intorno al giorno; la lancetta dei minuti prende solo ciò che resta dentro l'ora. Il tempo di servizio rimanente non cambia mai. | Arriva solo la luce. L'always-on veste le stesse tinte, così non c'è nulla da dissolvere. |
+| ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
+| L'SOS è rimasto senza risposta: `MAN DOWN`, l'istante Zulu, un segno sull'arco. Un tocco risponde con `TAP AGAIN`; un secondo, entro un secondo, lo cancella — una manica non può. | BA 178 dell'11 novembre 2026, l'orario reale, in 36 secondi: un turno di otto ore avviato al gate, il sito e il suo METAR spariti cinque minuti dopo la rotazione, la cabina a 790 hPa, il tramonto sull'Atlantico, `EGLL` di ritorno in finale corto, e le lancette passate a Londra a terra. | Arriva solo la luce. L'always-on porta le stesse tinte, quindi non c'è nulla da dissolvere. |
+
+*Il volo dura 36 secondi di proposito — una giornata intera per chi vuole vederne una; il suolo
+va lento e l'oceano veloce. Il solo atterraggio, a piena velocità:
+[landing.gif](../media/landing.gif). Due cose che la gente chiede: le lancette cambiano fuso solo
+dopo l'atterraggio, perché un orologio prende il fuso dal telefono e il telefono trova una rete a
+terra; e sull'oceano la marca del sole sta a destra della banda del giorno — la marca è il vero
+angolo orario del sole, la banda è il giorno nel fuso dell'orologio, e lo scarto fra le due è
+esattamente il ritardo del fuso, che la scivolata chiude. Polso, pressione di cabina e batteria
+sono messi in scena sull'emulatore; la posizione, il meteo e l'astronomia sono del quadrante stesso.*
 
 ## Installazione
 
@@ -59,7 +69,11 @@ adb connect 192.168.1.50:41234
 adb install -r app-earth-release.apk
 ```
 
-Poi scegliere MFD-24 nel selettore di quadranti dell'orologio.
+Poi scegliere MFD-24 nel selettore di quadranti dell'orologio. Niente computer? Un telefono può
+eseguire la stessa stretta di mano ADB:
+**[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+o **[Bugjaeger](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug)**, entrambi
+di terzi, entrambi spiegati passo per passo nella guida.
 **[Guida completa — tre percorsi, da « solo un telefono » alla compilazione dal sorgente →](INSTALL.it.md)**
 
 <details>

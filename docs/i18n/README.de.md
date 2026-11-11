@@ -11,7 +11,7 @@ Drohnenbesatzungen, Diensthabende. Eine Umdrehung des Stundenzeigers pro Tag, di
 Bogen auf diesem Tag, ein Totmann-Monitor, der zum SOS eskaliert und einen Eintrag hinterlässt, und
 die Telemetrie, mit der eine Wache tatsächlich läuft.
 
-Alles funktioniert offline, außer dem Wetter. Keine Begleit-App, kein Konto, keine Analytik. GPL.
+Alles funktioniert offline, außer dem Wetter und der täglichen Release-Prüfung. Keine Begleit-App, kein Konto, keine Analytik. GPL.
 
 | Interaktiv | Always-on |
 |---|---|
@@ -31,8 +31,9 @@ interaktive Blatt, gedimmt, ohne den Sekundencursor und ohne die Hintergrundtön
 |---|---|
 | **24-h-Zifferblatt** | Eine Umdrehung pro Tag. Mittag oben oder Mitternacht oben. Die Minuten auf ihrem eigenen Ring; die Sekunde ist ein Cursor, der von Strich zu Strich springt — nichts wischt über das Blatt. |
 | **Wachen-Timer** | Sofort starten oder vorbestellen. Ein Bogen spannt die Dienststunden auf und verblasst, während sie abgeleistet werden; `DUTY: 04:40 REM` zählt herunter. Beide Grenzen piepen und vibrieren, auch bei dunklem Display. Eine beendete Wache räumt sich eine Stunde später selbst ab. |
-| **Vigilanz-Monitor** | Standardmäßig aus. Alle 5/10/15 Minuten verlangt er ein Lebenszeichen; dreißig Sekunden später sendet er SOS in Salven und hinterlässt `MAN DOWN` mit dem Zulu-Moment auf dem Blatt. Optional: Ihr Puls während des versäumten Checks, gegen den letzten Wert, den das Blatt davor gelesen hat. |
-| **Zulu + Datum-Zeit-Gruppe** | `Z 22AUG 12:16`, die Uhr, in der ein Logbucheintrag geschrieben wird. |
+| **Vigilanz-Monitor** | Standardmäßig aus. Alle 5/10/15 Minuten verlangt er ein Lebenszeichen; dreißig Sekunden später sendet er SOS in Salven und hinterlässt `MAN DOWN` mit dem Zulu-Moment auf dem Blatt. Optional: Ihr Puls während des versäumten Checks, neben dem letzten, den der Puls-Slot gelesen hat, während Sie in Bewegung waren — einmal pro Minute vermerkt, einen Tag lang aufbewahrt. |
+| **Log-Export** | Das Vorfallsprotokoll verlässt die Uhr auf zwei Wegen: als **QR-Code** für die Handykamera und als **Ton** — Bell 202 AFSK, 1200 Bd, `minimodem --rx 1200` am anderen Ende. Der Ton trägt alles; der QR-Code trägt die neuesten Zeilen, die in einen 1,2-Zoll-Code passen, und sagt es (`END 14 OF 32`). |
+| **Zulu + Datum-Zeit-Gruppe** | `Z 11NOV 13:05`, die Uhr, in der ein Logbucheintrag geschrieben wird. |
 | **Wetter** | Temperatur, Zustand in METAR-Kürzeln und QNH. An einem Flugplatz ist es der **eigene METAR** dieses Platzes; überall sonst Open-Meteo. Alle 30 Minuten aufgefrischt. |
 | **5-km-Ortserkennung** | Nennt den nächstgelegenen Flugplatz, Hafen, Heliport oder die nächste Startanlage aus 9 649 Anlagen in einem 194-KB-Index an Bord. Militärische Anlagen werden in der Akzentfarbe gezeichnet. |
 | **Nadir, Sonne und Mond** | Das Tageslicht als Schattierung über dem Stundenband, offline berechnet. Sonne und Mond stehen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass**. Der Mond trägt seine echte Phase. |
@@ -42,10 +43,20 @@ interaktive Blatt, gedimmt, ohne den Sekundencursor und ohne die Hintergrundtön
 
 ## In Aktion
 
-| Ein versäumter Check, spät quittiert | Zeitzonen überqueren | Aufwachen |
+| Ein versäumter Check, spät quittiert | JFK nach Heathrow, der ganze Flug | Aufwachen |
 |---|---|---|
-| ![](../media/mandown.gif) | ![](../media/glide.gif) | ![](../media/wake.gif) |
-| Das SOS blieb unbeantwortet: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Bogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | Die Stundenskala gleitet den kurzen Weg um den Tag; der Minutenzeiger nimmt nur, was innerhalb der Stunde übrig bleibt. Die verbleibende Dienstzeit ändert sich nie. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
+| ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
+| Das SOS blieb unbeantwortet: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Bogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 36 Sekunden: eine Acht-Stunden-Wache, am Gate gestartet, der Platz und sein METAR fünf Minuten nach dem Abheben weg, die Kabine bei 790 hPa, Sonnenuntergang über dem Atlantik, `EGLL` zurück im Endanflug, und die Zeiger am Boden nach London gewandert. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
+
+*Der Flug dauert mit Absicht 36 Sekunden — ein ganzer Tag für alle, die einem zusehen wollen; am
+Boden geht es langsam, über dem Ozean schnell. Die Landung allein, in voller Geschwindigkeit:
+[landing.gif](../media/landing.gif). Zwei Dinge, nach denen oft gefragt wird: Die Zeiger wechseln
+die Zeitzone erst nach der Landung, weil eine Uhr ihre Zone vom Telefon bezieht und das Telefon
+erst am Boden ein Netz findet; und über dem Ozean steht die Sonnenmarke rechts vom Tageslichtband —
+die Marke ist der wahre Stundenwinkel der Sonne, das Band ist der Tag in der Zone der Uhr, und der
+Abstand zwischen beiden ist genau der Rückstand der Zone, den das Gleiten schließt. Puls,
+Kabinendruck und Akku sind auf dem Emulator inszeniert; Position, Wetter und Astronomie sind die
+des Zifferblatts selbst.*
 
 ## Installation
 
@@ -58,7 +69,10 @@ adb connect 192.168.1.50:41234
 adb install -r app-earth-release.apk
 ```
 
-Dann MFD-24 im Zifferblatt-Wähler der Uhr auswählen.
+Dann MFD-24 im Zifferblatt-Wähler der Uhr auswählen. Kein Rechner? Ein Telefon kann denselben
+ADB-Handschlag ausführen: **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+oder **[Bugjaeger](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug)**, beide
+von Dritten, beide in der Anleitung Schritt für Schritt beschrieben.
 **[Vollständige Anleitung — drei Wege, von „nur ein Telefon“ bis zum Bauen aus dem Quellcode →](INSTALL.de.md)**
 
 <details>

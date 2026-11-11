@@ -26,11 +26,14 @@ MFD-24 只有一种分发方式:[GitHub 发布页](https://github.com/amorroma1/
 
 最平缓的路线:一款免费的 Android 手机应用,替你完成 ADB 握手,并把每一步显示在屏幕上。它是第三方免费软件(Wear Installer 2,作者 Malcolm Bryant / freepoc)—— 不属于本项目,但正是干这件事的常用工具。
 
-1. 在**手机**上从 Google Play 安装 **Wear Installer 2**。
+1. 在**手机**上从 Google Play 安装 **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**。
 2. 在**手机**上从[最新发布](https://github.com/amorroma1/mfd-24/releases/latest)下载 `app-earth-release.apk`。
 3. 在 Wear Installer 2 中跟随向导:它会询问手表的 IP 地址和配对码 —— 两者都在手表的**开发者选项 → 无线调试 → 配对新设备**里。
 4. 指向下载好的 APK,让它完成安装。
 5. 在手表上:长按当前表盘,滑到 **MFD-24**,点它。
+
+**其他手机端安装工具干的是同一件事。**
+[Bugjaeger Mobile ADB](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug)(作者 Roman Sisik)是手机上的通用 ADB 客户端:在它的设备界面里通过 Wi-Fi 与手表配对并连接,再在 **Packages** 标签页中选中存在手机上的 APK,安装到手表。一份带截图的分步说明,虽是为另一款手表应用写的,但对本表盘完全一样:[用 Bugjaeger 安装 Wear OS 应用](https://informer.notion.site/How-to-install-Informer-on-your-watch-using-Bugjaeger-695b267278554ea59d851d723043f88c)。关于在 Wear OS 上侧载的通用讲解,含开发者选项的步骤和 Wear Installer:[9to5Google 的指南](https://9to5google.com/2021/04/17/install-sideload-wear-os-apps/)。无论用哪个工具,它都是路线 2 的 ADB 换了一副更友好的面孔,所以那里的症状表同样适用。
 
 ## 路线 2 —— 一台装有 ADB 的电脑
 

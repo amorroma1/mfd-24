@@ -292,19 +292,42 @@ private fun ConfigScreen(
         val anchor = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == headerKey(id) }
         openSection = if (openSection == id) SECTION_NONE else id
         if (anchor != null) {
+            // Two conventions meet here and they disagree, which is what made the pin throw the
+            // list instead of holding it. `ScalingLazyListItemInfo.offset` is positive when the
+            // item sits *below* the viewport's centre line; `scrollToItem`'s offset is a forward
+            // scroll, so a positive value puts the item *above* it. Handing one to the other
+            // mirrored the header through the centre: SENSORS tapped low on the screen after
+            // DUTY had been open above it came back open at the top, ABOUT tapped shut near the
+            // end dropped to the lower half. It only showed when a section *above* the tapped
+            // one closed — opening rows below a header moves nothing, so the pin never had to
+            // act. The offset is also read unadjusted: the visible one is scaled towards the
+            // edges, and the scroll works in layout pixels.
+            var wanted = anchor.unadjustedOffset
             scope.launch {
                 runCatching {
                     // Re-pinned every frame for a handful of frames rather than once. Correcting
                     // after a single frame still let one frame of the jump reach the screen, and
                     // one frame of a header sliding is exactly what the eye catches; the list also
                     // settles over more than one pass when the section that closed was taller than
-                    // the one that opened. Cheap: it stops as soon as the offset stops moving.
+                    // the one that opened. Cheap: a scroll is issued only when the header is off
+                    // its mark, and the header's index after the reflow is its section number,
+                    // because nothing above it can be open once it has been tapped.
                     repeat(PIN_FRAMES) {
                         withFrameNanos { }
-                        val moved = listState.layoutInfo.visibleItemsInfo
-                            .firstOrNull { it.key == headerKey(id) } ?: return@runCatching
-                        if (moved.offset == anchor.offset) return@runCatching
-                        listState.scrollToItem(moved.index, anchor.offset)
+                        val items = listState.layoutInfo.visibleItemsInfo
+                        // `scrollToItem` will put the list anywhere it is asked, including past
+                        // the top boundary a finger can reach — item 0 is never scrolled below
+                        // the centre line. A header tapped low on the screen, with a tall section
+                        // closing above it, has only two headers left above it and cannot keep
+                        // its place without leaving the top of the screen empty, which the next
+                        // touch would then snap away from: so the mark is lowered by exactly the
+                        // overshoot, and the header moves up by the least the boundary allows.
+                        val first = items.firstOrNull { it.index == 0 }
+                        if (first != null && first.unadjustedOffset > 0) wanted -= first.unadjustedOffset
+                        val moved = items.firstOrNull { it.key == headerKey(id) }
+                        if (moved == null || moved.unadjustedOffset != wanted) {
+                            listState.scrollToItem(id, -wanted)
+                        }
                     }
                 }
             }

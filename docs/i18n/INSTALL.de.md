@@ -48,7 +48,9 @@ Der sanfteste Weg: eine kostenlose Android-App, die den ADB-Handschlag für Sie 
 Schritt anzeigt. Sie ist Freeware von Dritten (Wear Installer 2, von Malcolm Bryant / freepoc) —
 nicht Teil dieses Projekts, aber für genau diese Aufgabe weit verbreitet.
 
-1. Auf dem **Telefon** **Wear Installer 2** aus Google Play installieren.
+1. Auf dem **Telefon**
+   **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+   aus Google Play installieren.
 2. Auf dem **Telefon** `app-earth-release.apk` vom
    [neuesten Release](https://github.com/amorroma1/mfd-24/releases/latest) laden.
 3. In Wear Installer 2 dem Assistenten folgen: Er fragt nach der IP-Adresse der Uhr und dem
@@ -56,6 +58,18 @@ nicht Teil dieses Projekts, aber für genau diese Aufgabe weit verbreitet.
    Gerät koppeln**.
 4. Die geladene APK auswählen und installieren lassen.
 5. Auf der Uhr: langes Drücken auf das aktuelle Zifferblatt, zu **MFD-24** wischen, antippen.
+
+**Andere Installer auf dem Telefon erledigen dieselbe Aufgabe.**
+[Bugjaeger Mobile ADB](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug) (von
+Roman Sisik) ist ein allgemeiner ADB-Client für das Telefon: auf seinem Gerätebildschirm die Uhr
+über WLAN koppeln und verbinden, dann im Reiter **Packages** die auf dem Telefon gespeicherte APK
+auswählen und auf die Uhr installieren. Eine Schritt-für-Schritt-Anleitung mit Screenshots, für
+eine andere Uhren-App geschrieben, aber für diese identisch:
+[eine Wear-OS-App mit Bugjaeger installieren](https://informer.notion.site/How-to-install-Informer-on-your-watch-using-Bugjaeger-695b267278554ea59d851d723043f88c).
+Ein allgemeiner Rundgang durch das Sideloading auf Wear OS, mit den Schritten zu den
+Entwickleroptionen und Wear Installer: [die Anleitung von 9to5Google](https://9to5google.com/2021/04/17/install-sideload-wear-os-apps/).
+Welches Werkzeug auch immer: Es ist das ADB von Weg 2 mit freundlicherem Gesicht, also gilt die
+Symptomtabelle dort auch hier.
 
 ## Weg 2 — ein Rechner mit ADB
 

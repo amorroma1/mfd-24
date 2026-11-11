@@ -63,8 +63,8 @@ android {
         // Bump both for every published release. versionCode is what the platform compares when
         // deciding whether an APK is an update, so a release that forgets it cannot be installed
         // over its predecessor.
-        versionCode = 22
-        versionName = "2.9.0"
+        versionCode = 23
+        versionName = "2.9.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // The app's own strings are English only — the six translated documents are documentation,

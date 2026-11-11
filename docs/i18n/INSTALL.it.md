@@ -48,7 +48,9 @@ Il percorso più dolce: un'app Android gratuita che esegue la stretta di mano AD
 ogni passo. È freeware di terzi (Wear Installer 2, di Malcolm Bryant / freepoc) — estraneo a
 questo progetto, ma largamente usato esattamente per questo compito.
 
-1. Sul **telefono**, installare **Wear Installer 2** da Google Play.
+1. Sul **telefono**, installare
+   **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+   da Google Play.
 2. Sul **telefono**, scaricare `app-earth-release.apk` dall'
    [ultima release](https://github.com/amorroma1/mfd-24/releases/latest).
 3. In Wear Installer 2 seguire la procedura guidata: chiede l'indirizzo IP dell'orologio e il
@@ -56,6 +58,18 @@ questo progetto, ma largamente usato esattamente per questo compito.
    wireless → Associa nuovo dispositivo**.
 4. Indicargli l'APK scaricato e lasciarlo installare.
 5. Sull'orologio: pressione lunga sul quadrante attuale, scorrere fino a **MFD-24**, toccarlo.
+
+**Altri installatori lato telefono fanno lo stesso lavoro.**
+[Bugjaeger Mobile ADB](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug) (di
+Roman Sisik) è un client ADB generico per il telefono: associare e connettersi all'orologio via
+Wi-Fi dalla sua schermata dei dispositivi, poi nella scheda **Packages** scegliere l'APK salvato
+sul telefono e installarlo sull'orologio. Una guida passo per passo con schermate, scritta per
+un'altra app da orologio ma identica per questa:
+[installare un'app Wear OS con Bugjaeger](https://informer.notion.site/How-to-install-Informer-on-your-watch-using-Bugjaeger-695b267278554ea59d851d723043f88c).
+Una panoramica generale del sideloading su Wear OS, con i passaggi delle opzioni sviluppatore e
+Wear Installer: [la guida di 9to5Google](https://9to5google.com/2021/04/17/install-sideload-wear-os-apps/).
+Qualunque sia lo strumento, è l'ADB del Percorso 2 con un volto più amichevole, quindi la tabella
+dei sintomi di là vale anche qui.
 
 ## Percorso 2 — un computer con ADB
 

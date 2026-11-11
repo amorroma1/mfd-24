@@ -26,11 +26,14 @@ Wear OS 3.0 以降(API 30)が必要です。TicWatch Pro 3 Ultra(454 × 454)で�
 
 いちばん穏やかなルート。ADB のハンドシェイクを代行し、各手順を画面に示してくれる無料の Android アプリです。サードパーティ製フリーウェア(Wear Installer 2、Malcolm Bryant / freepoc 作)であり、本プロジェクトの一部ではありませんが、まさにこの用途で広く使われています。
 
-1. **スマートフォン**に Google Play から **Wear Installer 2** をインストールします。
+1. **スマートフォン**に Google Play から **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)** をインストールします。
 2. **スマートフォン**で[最新リリース](https://github.com/amorroma1/mfd-24/releases/latest)から `app-earth-release.apk` をダウンロードします。
 3. Wear Installer 2 のウィザードに従います。時計の IP アドレスとペアリングコードを求められます — どちらも時計の**開発者向けオプション → ワイヤレスデバッグ → 新しいデバイスとペア設定**にあります。
 4. ダウンロードした APK を指定してインストールさせます。
 5. 時計側:現在の文字盤を長押しし、**MFD-24** までスワイプしてタップします。
+
+**ほかのスマートフォン側インストーラーでも同じことができます。**
+[Bugjaeger Mobile ADB](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug)(Roman Sisik 作)はスマートフォン用の汎用 ADB クライアントです。そのデバイス画面から Wi-Fi 経由で時計とペアリングして接続し、**Packages** タブでスマートフォンに保存した APK を選んで時計へインストールします。スクリーンショット付きの手順解説で、別の時計アプリ向けに書かれたものですが本アプリでもまったく同じです:[Bugjaeger で Wear OS アプリをインストールする](https://informer.notion.site/How-to-install-Informer-on-your-watch-using-Bugjaeger-695b267278554ea59d851d723043f88c)。Wear OS へのサイドロード全般の解説で、開発者向けオプションの手順と Wear Installer を扱ったもの:[9to5Google のガイド](https://9to5google.com/2021/04/17/install-sideload-wear-os-apps/)。ツールが何であれ、それはルート 2 の ADB に親しみやすい顔をつけたものなので、そこにある症状の表がそのまま当てはまります。
 
 ## ルート 2 — ADB の入った PC
 

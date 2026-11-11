@@ -11,7 +11,7 @@ drones, officiers de permanence. Un tour d'aiguille des heures par jour, votre q
 un arc de ce jour, un moniteur « homme mort » qui escalade en SOS et laisse une trace, et la
 télémétrie dont un quart a réellement besoin.
 
-Tout fonctionne hors ligne, sauf la météo. Pas d'application compagnon, pas de compte, pas de
+Tout fonctionne hors ligne, sauf la météo et la vérification quotidienne des versions. Pas d'application compagnon, pas de compte, pas de
 télémétrie vers qui que ce soit. GPL.
 
 | Interactif | Veille active |
@@ -32,8 +32,9 @@ cadran interactif, atténué, sans le curseur des secondes ni le lavis de fond.*
 |---|---|
 | **Cadran 24 h** | Un tour par jour. Midi en haut ou minuit en haut. Les minutes sur leur propre anneau ; la seconde est un curseur qui saute de graduation en graduation, rien ne balaie. |
 | **Minuteur de quart** | Démarrage immédiat ou programmé. Un arc couvre les heures de service et s'atténue à mesure qu'elles sont servies ; `DUTY: 04:40 REM` fait le compte à rebours. Les deux bornes sonnent et vibrent, même écran éteint. Un quart terminé s'efface de lui-même une heure plus tard. |
-| **Moniteur de vigilance** | Désactivé par défaut. Toutes les 5/10/15 min il demande un signe de vie ; trente secondes plus tard il sonne le SOS en salves et laisse `MAN DOWN` avec l'instant Zulu sur le cadran. En option : votre pouls pendant le contrôle manqué, comparé au dernier relevé que le cadran avait pris avant. |
-| **Zulu + groupe date-heure** | `Z 22AUG 12:16`, l'heure dans laquelle s'écrit une entrée de journal. |
+| **Moniteur de vigilance** | Désactivé par défaut. Toutes les 5/10/15 min il demande un signe de vie ; trente secondes plus tard il sonne le SOS en salves et laisse `MAN DOWN` avec l'instant Zulu sur le cadran. En option : votre pouls pendant le contrôle manqué, à côté du dernier relevé que l'emplacement de fréquence cardiaque a pris pendant que vous bougiez — noté une fois par minute, gardé un jour. |
+| **Export du journal** | Le journal d'incidents quitte la montre de deux façons : un **code QR** pour l'appareil photo d'un téléphone et du **son** — Bell 202 AFSK, 1200 Bd, `minimodem --rx 1200` à l'autre bout. Le son emporte tout ; le QR emporte les lignes les plus récentes qui tiennent dans un code de 1,2 pouce, et le dit (`END 14 OF 32`). |
+| **Zulu + groupe date-heure** | `Z 11NOV 13:05`, l'heure dans laquelle s'écrit une entrée de journal. |
 | **Météo** | Température, conditions en abrégés METAR et QNH. Sur un aérodrome, c'est le **METAR du terrain lui-même** ; partout ailleurs, Open-Meteo. Rafraîchie toutes les 30 minutes. |
 | **Verrouillage de site à 5 km** | Nomme l'aérodrome, le port, l'héliport ou la base de lancement le plus proche parmi 9 649 sites d'un index embarqué de 194 Ko. Les sites militaires sont dessinés en couleur d'accent. |
 | **Nadir, soleil et lune** | Les heures de jour ombrées sur l'anneau des heures, calculées hors ligne. Le soleil et la lune sont à leur véritable angle horaire — pointez une marque vers l'astre lui-même et le cadran devient une **boussole**. La lune porte sa phase réelle. |
@@ -43,10 +44,20 @@ cadran interactif, atténué, sans le curseur des secondes ni le lavis de fond.*
 
 ## En action
 
-| Un contrôle manqué, acquitté tard | Changement de fuseau | Réveil |
+| Un contrôle manqué, acquitté tard | De JFK à Heathrow, le vol entier | Réveil |
 |---|---|---|
-| ![](../media/mandown.gif) | ![](../media/glide.gif) | ![](../media/wake.gif) |
-| Le SOS est resté sans réponse : `MAN DOWN`, l'instant Zulu, une marque sur l'arc. Un toucher répond par `TAP AGAIN` ; un second, dans la seconde, l'efface — une manche de veste ne le peut pas. | L'échelle des heures glisse par le chemin le plus court autour du jour ; l'aiguille des minutes ne prend que ce qui reste dans l'heure. Le temps de quart restant ne change jamais. | Seule la lumière arrive. La veille active porte les mêmes teintes, il n'y a donc rien à fondre. |
+| ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
+| Le SOS est resté sans réponse : `MAN DOWN`, l'instant Zulu, une marque sur l'arc. Un toucher répond par `TAP AGAIN` ; un second, dans la seconde, l'efface — une manche de veste ne le peut pas. | BA 178 le 11 novembre 2026, l'horaire réel, en 36 secondes : un quart de huit heures lancé à la porte d'embarquement, le site et son METAR disparus cinq minutes après la rotation, la cabine à 790 hPa, le coucher du soleil sur l'Atlantique, `EGLL` de retour en courte finale, et les aiguilles passées à Londres au sol. | Seule la lumière arrive. L'always-on porte les mêmes teintes, il n'y a donc rien à fondre. |
+
+*Le vol dure 36 secondes à dessein — une journée entière pour qui veut en regarder une ; le sol
+passe lentement et l'océan vite. L'atterrissage seul, à pleine vitesse :
+[landing.gif](../media/landing.gif). Deux choses que l'on nous demande : les aiguilles ne changent
+de fuseau qu'après l'atterrissage, parce qu'une montre prend son fuseau du téléphone et que le
+téléphone trouve un réseau au sol ; et au-dessus de l'océan, la marque du soleil se tient à droite
+de la bande de jour — la marque est le véritable angle horaire du soleil, la bande est le jour dans
+le fuseau de la montre, et l'écart entre les deux est exactement le retard du fuseau, que la
+glissade referme. Le pouls, la pression cabine et la batterie sont mis en scène sur l'émulateur ;
+la position, la météo et l'astronomie sont celles du cadran lui-même.*
 
 ## Installation
 
@@ -59,7 +70,11 @@ adb connect 192.168.1.50:41234
 adb install -r app-earth-release.apk
 ```
 
-Puis choisissez MFD-24 dans le sélecteur de cadrans de la montre.
+Puis choisissez MFD-24 dans le sélecteur de cadrans de la montre. Pas d'ordinateur ? Un téléphone
+peut exécuter la même poignée de main ADB :
+**[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+ou **[Bugjaeger](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug)**, tous deux
+tiers, tous deux détaillés dans le guide.
 **[Guide complet — trois routes, de « un téléphone et rien d'autre » à la compilation depuis le source →](INSTALL.fr.md)**
 
 <details>

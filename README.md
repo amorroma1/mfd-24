@@ -10,7 +10,7 @@ A 24-hour instrument dial for people who stand watches — pilots, mariners, UAV
 officers. One turn of the hour hand per day, your shift drawn as an arc of that day, a dead-man's
 monitor that escalates to SOS and leaves a record, and the telemetry a watch actually runs on.
 
-Everything works offline except the weather. No companion app, no account, no analytics. GPL.
+Everything works offline except the weather and the once-a-day release check. No companion app, no account, no analytics. GPL.
 
 | Interactive | Always-on |
 |---|---|
@@ -30,8 +30,9 @@ dimmed, minus the seconds cursor and the background wash.*
 |---|---|
 | **24-hour dial** | One revolution per day. Noon up or midnight up. Minutes on their own ring; the second is a cursor that steps, so nothing sweeps. |
 | **Watch timer** | Start now or book ahead. An arc spans the hours on duty and dims as they are served; `DUTY: 04:40 REM` counts down. Both boundaries beep and buzz with the screen off. A finished watch clears itself an hour later. |
-| **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optional: your pulse during the missed check, against the dial's own last reading before it. |
-| **Zulu + date-time group** | `Z 22AUG 12:16`, the clock a log entry is written in. |
+| **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optional: your pulse during the missed check, beside the last one the heart-rate slot took while you were moving — noted once a minute, kept for a day. |
+| **Log export** | The incident log leaves the watch two ways: a **QR code** for a phone camera and **sound** — Bell 202 AFSK, 1200 Bd, `minimodem --rx 1200` on the other end. The sound carries everything; the QR carries the newest lines that fit a 1.2-inch code and says so (`END 14 OF 32`). |
+| **Zulu + date-time group** | `Z 11NOV 13:05`, the clock a log entry is written in. |
 | **Weather** | Temperature, METAR-style condition and QNH. At an aerodrome it is that field's **own METAR**; everywhere else Open-Meteo. Refreshed every 30 minutes. |
 | **5 km site lock** | Names the nearest airfield, port, heliport or spaceport from 9,649 sites in a 194 KB on-device index. Military sites are drawn in the accent colour. |
 | **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass**. The moon carries its honest phase. |
@@ -41,10 +42,19 @@ dimmed, minus the seconds cursor and the background wash.*
 
 ## In action
 
-| A missed check, answered late | Crossing time zones | Waking |
+| A missed check, answered late | JFK to Heathrow, the whole flight | Waking |
 |---|---|---|
-| ![](docs/media/mandown.gif) | ![](docs/media/glide.gif) | ![](docs/media/wake.gif) |
-| The SOS went unanswered: `MAN DOWN`, the Zulu moment, a mark on the arc. One tap answers with `TAP AGAIN`; a second, inside a second, clears it — a sleeve cannot. | The hour scale glides the short way round the day; the minute hand only takes what is left inside the hour. Remaining duty time never changes. | Only the light arrives. Always-on wears the same hues, so there is nothing to cross-fade. |
+| ![](docs/media/mandown.gif) | ![](docs/media/flight.gif) | ![](docs/media/wake.gif) |
+| The SOS went unanswered: `MAN DOWN`, the Zulu moment, a mark on the arc. One tap answers with `TAP AGAIN`; a second, inside a second, clears it — a sleeve cannot. | BA 178 on 11 November 2026, the real timetable, in 36 seconds: an eight-hour watch started at the gate, the site and its METAR gone five minutes after rotation, the cabin at 790 hPa, sunset over the Atlantic, `EGLL` back on short final, and the hands moved to London on the ground. | Only the light arrives. Always-on wears the same hues, so there is nothing to cross-fade. |
+
+*The flight runs 36 seconds on purpose — a whole day for whoever wants to watch one; the ground
+goes slowly and the ocean fast. The landing alone, at full speed:
+[landing.gif](docs/media/landing.gif). Two things people ask about: the hands change zone only
+after landing, because a watch takes its zone from the phone and the phone finds a network on
+the ground; and over the ocean the sun mark stands right of the daylight band — the mark is the
+sun's true hour angle, the band is the day in the watch's zone, and the gap between them is
+exactly the zone's lag, which the glide closes. Pulse, cabin pressure and battery are staged on
+the emulator; the position, the weather and the astronomy are the face's own.*
 
 ## Install
 
@@ -57,7 +67,10 @@ adb connect 192.168.1.50:41234
 adb install -r app-earth-release.apk
 ```
 
-Then pick MFD-24 in the watch's own face picker.
+Then pick MFD-24 in the watch's own face picker. No computer? A phone can run the same ADB
+handshake: **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+or **[Bugjaeger](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug)**, both
+third-party, both walked through in the guide.
 **[Full guide — three routes, from a phone-only install to building from source →](docs/INSTALL.md)**
 
 <details>

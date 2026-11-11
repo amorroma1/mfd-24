@@ -45,13 +45,26 @@ The gentlest route: a free Android phone app that runs the ADB handshake for you
 step on screen. It is third-party freeware (Wear Installer 2, by Malcolm Bryant / freepoc) — not
 part of this project, but widely used for exactly this job.
 
-1. On the **phone**, install **Wear Installer 2** from Google Play.
+1. On the **phone**, install
+   **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+   from Google Play.
 2. On the **phone**, download `app-earth-release.apk` from the
    [latest release](https://github.com/amorroma1/mfd-24/releases/latest).
 3. In Wear Installer 2, follow its wizard: it asks for the watch's IP address and the pairing code
    — both are on the watch under **Developer options → Wireless debugging → Pair new device**.
 4. Point it at the downloaded APK and let it install.
 5. On the watch: long-press the current face, swipe to **MFD-24**, tap it.
+
+**Other phone-side installers do the same job.**
+[Bugjaeger Mobile ADB](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug) (by
+Roman Sisik) is a general ADB client for the phone: pair and connect to the watch over Wi-Fi from
+its device screen, then in its **Packages** tab pick the APK saved on the phone and install it to
+the watch. A step-by-step with screenshots, written for another watch app but identical for this
+one: [installing a Wear OS app with Bugjaeger](https://informer.notion.site/How-to-install-Informer-on-your-watch-using-Bugjaeger-695b267278554ea59d851d723043f88c).
+A general walk-through of sideloading on Wear OS, with the developer-options steps and Wear
+Installer: [9to5Google's guide](https://9to5google.com/2021/04/17/install-sideload-wear-os-apps/).
+Whatever the tool, it is the ADB of Route 2 with a friendlier face, so the table of symptoms
+there applies.
 
 ## Route 2 — a computer with ADB
 

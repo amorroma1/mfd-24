@@ -50,7 +50,9 @@ La route la plus douce : une application Android gratuite qui exécute la poign�
 vous et affiche chaque étape. C'est un gratuiciel tiers (Wear Installer 2, de Malcolm Bryant /
 freepoc) — étranger à ce projet, mais largement utilisé pour exactement cette tâche.
 
-1. Sur le **téléphone**, installez **Wear Installer 2** depuis Google Play.
+1. Sur le **téléphone**, installez
+   **[Wear Installer 2](https://play.google.com/store/apps/details?id=org.freepoc.wearinstaller2)**
+   depuis Google Play.
 2. Sur le **téléphone**, téléchargez `app-earth-release.apk` depuis la
    [dernière version](https://github.com/amorroma1/mfd-24/releases/latest).
 3. Dans Wear Installer 2, suivez l'assistant : il demande l'adresse IP de la montre et le code
@@ -58,6 +60,18 @@ freepoc) — étranger à ce projet, mais largement utilisé pour exactement cet
    Associer un appareil**.
 4. Désignez l'APK téléchargé et laissez-le installer.
 5. Sur la montre : appui long sur le cadran actuel, glissez jusqu'à **MFD-24**, touchez-le.
+
+**D'autres installeurs côté téléphone font le même travail.**
+[Bugjaeger Mobile ADB](https://play.google.com/store/apps/details?id=eu.sisik.hackendebug) (de
+Roman Sisik) est un client ADB généraliste pour le téléphone : appairez et connectez la montre en
+Wi-Fi depuis son écran des appareils, puis, dans son onglet **Packages**, choisissez l'APK
+enregistré sur le téléphone et installez-le sur la montre. Un pas-à-pas avec captures d'écran,
+écrit pour une autre application Wear OS mais identique pour celle-ci :
+[installer une application Wear OS avec Bugjaeger](https://informer.notion.site/How-to-install-Informer-on-your-watch-using-Bugjaeger-695b267278554ea59d851d723043f88c).
+Un tour d'horizon général du sideloading sur Wear OS, avec les étapes des options développeur et
+Wear Installer : [le guide de 9to5Google](https://9to5google.com/2021/04/17/install-sideload-wear-os-apps/).
+Quel que soit l'outil, c'est l'ADB de la route 2 sous un visage plus avenant, et le tableau des
+symptômes qui s'y trouve s'applique.
 
 ## Route 2 — un ordinateur avec ADB
 
