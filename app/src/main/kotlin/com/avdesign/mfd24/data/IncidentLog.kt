@@ -12,10 +12,15 @@ package com.avdesign.mfd24.data
  *
  *  - **the incident pulse**, sampled during the thirty-second answer window, between the nudge and
  *    the SOS. That is the operator at the moment they stopped responding.
- *  - **the reference pulse**, the last reading taken while they were demonstrably moving, *and the
- *    instant it was taken*. A number with no baseline beside it says nothing: 48 bpm is an athlete
- *    asleep or a casualty, and only the pair tells them apart. The instant matters for the same
- *    reason — a baseline from four hours ago is a different claim from one from four minutes ago.
+ *  - **the reference pulse**, the last reading the dial itself took before the check went out,
+ *    *and the instant it was taken*. A number with no baseline beside it says nothing: 48 bpm is
+ *    an athlete asleep or a casualty, and only the pair tells them apart. The instant matters for
+ *    the same reason — a baseline from four hours ago is a different claim from one from four
+ *    minutes ago. It is the dial's reading rather than one the monitor takes for itself because
+ *    the monitor used to take one after every sign of life, and on a wrist that keeps moving that
+ *    was the LED on for the whole watch, for a number the next movement overwrote and nothing
+ *    wrote down unless an incident followed. The dial already reads the pulse once a minute in
+ *    always-on; the record borrows that, under [referenceUsable].
  *
  * Every field is optional and absent means absent, never zero: no permission, no setting, or a
  * sensor that never locked on all read as `NO_BPM`, and nothing downstream may present a missing
@@ -38,7 +43,7 @@ data class IncidentRecord(
     val atMillis: Long,
     /** Pulse during the unanswered answer window, or [NO_BPM]. */
     val bpm: Int = NO_BPM,
-    /** Last pulse recorded while the operator was moving, or [NO_BPM]. */
+    /** The dial's last reading before the check went out, or [NO_BPM]. */
     val baselineBpm: Int = NO_BPM,
     /** When that reference pulse was taken, or zero. */
     val baselineAtMillis: Long = 0L,
@@ -175,6 +180,22 @@ object IncidentLog {
      */
     fun belongsToEarlierWatch(incidentMillis: Long, shiftStartMillis: Long): Boolean =
         incidentMillis > 0L && shiftStartMillis > 0L && incidentMillis < shiftStartMillis
+
+    /**
+     * Whether the dial's last pulse can stand as an incident's reference: taken before the check
+     * went out — a reading from inside the answer window is the operator not answering, which is
+     * the incident pulse's job — and no older than [REFERENCE_MAX_AGE_MILLIS], because a watch
+     * that lay on a desk all week still holds last week's number, and its printed instant alone
+     * will not stop a skimming eye.
+     */
+    fun referenceUsable(referenceAtMillis: Long, promptedAtMillis: Long, nowMillis: Long): Boolean =
+        referenceAtMillis > 0L &&
+            promptedAtMillis > 0L &&
+            referenceAtMillis <= promptedAtMillis &&
+            nowMillis - referenceAtMillis <= REFERENCE_MAX_AGE_MILLIS
+
+    /** A reference older than this is not one: a day, which is longer than a watch. */
+    const val REFERENCE_MAX_AGE_MILLIS: Long = 24L * 3_600_000L
 
     /** A plausible pulse from a wrist sensor. Zero means "not locked on", not "no heartbeat". */
     fun plausibleBpm(bpm: Int): Boolean = bpm in MIN_BPM..MAX_BPM

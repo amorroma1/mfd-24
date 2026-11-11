@@ -128,7 +128,8 @@ auch nicht so.
 - **Einmal täglich, außerhalb der Wache, fragt sie GitHub nach etwas Neuerem.** Ein kleiner
   JSON-Körper. **Es wird nie etwas heruntergeladen.** Nie während einer Wache, und
   **ABOUT → RELEASE CHECK** schaltet alles ab.
-- **Eine Benachrichtigung pro Release**, und **ABOUT → RELEASES** nennt das wartende.
+- **Eine Benachrichtigung pro Release**, und **ABOUT → RELEASES** nennt die Version, sobald eine
+  wartet.
 - **Ein Antippen zeigt die Release-Seite als QR-Code.** Ein Telefon darauf richten: Notizen,
   SHA-256 und APK stehen dort, im Browser, in lesbarer Größe.
 - **Dann ganz normal installieren**, von einem Rechner:
@@ -140,7 +141,13 @@ auch nicht so.
 **Warum nicht von der Uhr?** Weil Wear OS es nicht zulässt: die Sitzung wird bestätigt, die
 Plattform fragt nach der Zustimmung, und ihr eigener Installer antwortet *"Install/Uninstall actions
 not supported on Wear"* — geprüft auf dem API-30-Emulator und auf einer TicWatch Pro 3 Ultra mit
-Wear 3.5. Jeder Umweg ist einer gewöhnlichen App verschlossen.
+Wear 3.5. Jeder Umweg ist einer gewöhnlichen App verschlossen, also war der Knopf, der hier einmal
+stand, ein Knopf, der nicht funktionieren konnte, und die Wand aus Release-Notizen daneben eine
+Textwand auf einem 1,2-Zoll-Display. Beide sind weg; der QR-Code hat sie ersetzt.
+
+*(Liegt eine APK schon auf der Uhr: per `adb push` nach `/data/local/tmp/` und
+`adb shell pm install -r /data/local/tmp/…` — dieser Pfad funktioniert, wo `/sdcard` an einer
+SELinux-Verweigerung scheitert.)*
 
 ## Nach der Installation
 
@@ -148,8 +155,8 @@ Wear 3.5. Jeder Umweg ist einer gewöhnlichen App verschlossen.
   was das Zifferblatt braucht, erfragt es dort — den Standort für Wetter, Nadir und die
   Standorterkennung; Sensor-Berechtigungen in dem Moment, in dem ein Slot gewählt wird, der eine
   braucht. Bei der Installation wird nichts angefragt. Die vollständige Berechtigungstabelle steht
-  im [README](../../README.md#permissions).
-- **Updates** kommen von selbst — siehe [Aktualisieren](#aktualisieren) oben; `adb install -r`
+  im [README](README.de.md#permissions).
+- **Updates** melden sich und warten — siehe [Aktualisieren](#aktualisieren) oben; `adb install -r`
   mit dem neuen Release funktioniert weiterhin. Die Einstellungen überleben in beiden Fällen,
   außer bei Releases, die das Einstellungsschema ändern, was die Release-Notizen dann ansagen.
 - **Keine Begleit-App, kein Konto.** Die APK ist das ganze Produkt.

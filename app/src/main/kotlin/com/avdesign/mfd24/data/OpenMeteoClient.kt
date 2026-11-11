@@ -3,13 +3,13 @@
 
 package com.avdesign.mfd24.data
 
-import android.util.Log
-import org.json.JSONObject
+import com.avdesign.mfd24.Diag
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
 import kotlin.math.roundToInt
+import org.json.JSONObject
 
 /** One observation, already scaled into the integer units the renderer works in. */
 data class WeatherSample(
@@ -55,16 +55,16 @@ object OpenMeteoClient {
             }
             val status = connection.responseCode
             if (status !in 200..299) {
-                Log.w(TAG, "Open-Meteo returned HTTP $status")
+                Diag.w(TAG, "Open-Meteo returned HTTP $status")
                 return null
             }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             parse(body, nowMillis)
         } catch (e: IOException) {
-            Log.w(TAG, "Weather fetch failed", e)
+            Diag.w(TAG, "Weather fetch failed", e)
             null
         } catch (e: org.json.JSONException) {
-            Log.w(TAG, "Malformed weather payload", e)
+            Diag.w(TAG, "Malformed weather payload", e)
             null
         } finally {
             connection?.disconnect()

@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
+import com.avdesign.mfd24.Diag
 
 /**
  * The escalation: · · · — — — · · · on the wrist, then the same letters out loud, in bursts that
@@ -75,7 +76,7 @@ class SosSignal(context: Context) {
         // used to swallow, and it is also the only one that has any surprise left in it.
         if (volume > 0) {
             tone = runCatching { ToneGenerator(AudioManager.STREAM_ALARM, volume) }
-                .onFailure { Log.w(TAG, "No tone generator; the wrist will have to do", it) }
+                .onFailure { Diag.w(TAG, "No tone generator; the wrist will have to do", it) }
                 .getOrNull()
             logStreamVolume()
         }
@@ -134,7 +135,7 @@ class SosSignal(context: Context) {
                     if (index % 2 == 1) amplitude else 0
                 }
                 vibrator?.vibrate(VibrationEffect.createWaveform(PATTERN, amplitudes, -1))
-            }.onFailure { Log.w(TAG, "Could not vibrate the pattern", it) }
+            }.onFailure { Diag.w(TAG, "Could not vibrate the pattern", it) }
         }, atMillis)
 
         // Then the audible pair, clear of the buzz that would have masked it.
@@ -167,8 +168,8 @@ class SosSignal(context: Context) {
             val audio = appContext.getSystemService(AudioManager::class.java) ?: return
             val level = audio.getStreamVolume(AudioManager.STREAM_ALARM)
             val max = audio.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-            Log.d(TAG, "alarm stream at $level/$max, tone volume $volume")
-            if (level == 0) Log.w(TAG, "alarm stream is muted; the SOS will only be felt")
+            Diag.d(TAG, "alarm stream at $level/$max, tone volume $volume")
+            if (level == 0) Diag.w(TAG, "alarm stream is muted; the SOS will only be felt")
         }
     }
 

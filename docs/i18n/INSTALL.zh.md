@@ -96,10 +96,12 @@ adb install -r app/build/outputs/apk/earth/debug/app-earth-debug.apk
   adb install -r app-earth-release.apk
   ```
 
-**为什么不能从手表装?** 因为 Wear OS 不允许:会话提交后,平台请求确认,而它自带的安装器回答 *「Install/Uninstall actions not supported on Wear」* —— 在 API 30 模拟器和运行 Wear 3.5 的 TicWatch Pro 3 Ultra 上均已验证。所有绕路对普通应用都是关闭的。
+**为什么不能从手表装?** 因为 Wear OS 不允许:会话提交后,平台请求确认,而它自带的安装器回答 *「Install/Uninstall actions not supported on Wear」* —— 在 API 30 模拟器和运行 Wear 3.5 的 TicWatch Pro 3 Ultra 上均已验证。所有绕路对普通应用都是关闭的,所以过去放在这里的那个按钮是一个不可能起作用的按钮,旁边那堵更新说明的墙则是 1.2 英寸屏幕上的一堵文字墙。两者都已移除;取而代之的是二维码。
+
+*(如果 APK 已经在手表上,用 `adb push` 把它放到 `/data/local/tmp/`,再 `adb shell pm install -r /data/local/tmp/…` —— 这条路径在 `/sdcard` 被 SELinux 拒绝的地方照样可行。)*
 
 ## 安装之后
 
-- **设置**藏在长按表盘、再点铅笔之后。表盘需要的一切都在那里索取 —— 天气、Nadir 和站点锁定所需的定位;在选择需要权限的读数插槽的那一刻索取传感器权限。安装时什么都不要。完整的权限表在 [README](../../README.md#permissions)。
+- **设置**藏在长按表盘、再点铅笔之后。表盘需要的一切都在那里索取 —— 天气、Nadir 和站点锁定所需的定位;在选择需要权限的读数插槽的那一刻索取传感器权限。安装时什么都不要。完整的权限表在 [README](README.zh.md#permissions)。
 - **更新**会自己找上门 —— 见上文[更新](#更新);用新发布版跑 `adb install -r` 也永远可行。两种方式设置都会保留,除非该发布改动了设置模式,而那种情况发布说明会明说。
 - **没有伴侣应用,没有账号。** APK 就是产品的全部。

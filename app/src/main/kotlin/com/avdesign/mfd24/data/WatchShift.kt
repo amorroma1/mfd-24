@@ -8,7 +8,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
+import com.avdesign.mfd24.Diag
 import com.avdesign.mfd24.WatchShiftReceiver
 
 /**
@@ -200,7 +200,7 @@ class WatchShiftController private constructor(context: Context) {
         if (durationMillis <= 0L) return
         apply(nowMillis, nowMillis + durationMillis)
         Alerts.signal(appContext)
-        Log.d(TAG, "watch started for ${durationMillis / 60_000} min")
+        Diag.d(TAG, "watch started for ${durationMillis / 60_000} min")
     }
 
     /**
@@ -220,7 +220,7 @@ class WatchShiftController private constructor(context: Context) {
             return
         }
         apply(startAtMillis, startAtMillis + durationMillis)
-        Log.d(TAG, "watch booked for $startAtMillis, ${durationMillis / 60_000} min")
+        Diag.d(TAG, "watch booked for $startAtMillis, ${durationMillis / 60_000} min")
     }
 
     /** Cancels the shift outright, arc and all. */
@@ -228,7 +228,7 @@ class WatchShiftController private constructor(context: Context) {
         if (!state.hasShift) return
         clear()
         Alerts.signal(appContext)
-        Log.d(TAG, "watch cancelled by the user")
+        Diag.d(TAG, "watch cancelled by the user")
     }
 
     /** Called from the alarm receiver when a booked shift comes due. */
@@ -239,7 +239,7 @@ class WatchShiftController private constructor(context: Context) {
         announcedStart = state.startMillis
         prefs.edit().putLong(KEY_ANNOUNCED_START, announcedStart).apply()
         Alerts.signal(appContext)
-        Log.d(TAG, "watch begins")
+        Diag.d(TAG, "watch begins")
     }
 
     /**
@@ -257,7 +257,7 @@ class WatchShiftController private constructor(context: Context) {
         prefs.edit().putLong(KEY_ANNOUNCED_END, announcedEnd).apply()
         cancelAlarms()
         Alerts.signal(appContext)
-        Log.d(TAG, "watch complete")
+        Diag.d(TAG, "watch complete")
     }
 
     private fun apply(startMillis: Long, endMillis: Long) {
@@ -338,10 +338,10 @@ class WatchShiftController private constructor(context: Context) {
                 // Without the exact-alarm permission a boundary alert can slip by a few minutes.
                 // For a watch chime that is a degradation, not a failure, so take it rather than
                 // pestering the user for a restricted permission.
-                Log.i(TAG, "exact alarms unavailable; watch alerts may be late")
+                Diag.i(TAG, "exact alarms unavailable; watch alerts may be late")
                 manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending)
             }
-        }.onFailure { Log.w(TAG, "Could not schedule a watch alarm", it) }
+        }.onFailure { Diag.w(TAG, "Could not schedule a watch alarm", it) }
     }
 
     private fun cancelAlarms() {

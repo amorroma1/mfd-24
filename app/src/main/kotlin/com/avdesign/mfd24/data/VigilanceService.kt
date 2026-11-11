@@ -24,6 +24,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
+import com.avdesign.mfd24.Diag
 import com.avdesign.mfd24.R
 import kotlin.math.sqrt
 
@@ -92,12 +93,18 @@ class VigilanceService : Service(), SensorEventListener {
 
     private var heartSensor: Sensor? = null
 
-    /** Why the pulse sensor is on, or null when it is off. See [sampleHeartRate]. */
-    private var heartPurpose: Int? = null
+    /** True while the pulse sensor is on for the answer window. See [samplePromptPulse]. */
+    private var heartSampling = false
 
-    /** Last plausible pulse while the operator was demonstrably moving, and when it was taken. */
-    private var baselineBpm = IncidentRecord.NO_BPM
-    private var baselineAtMillis = 0L
+    /**
+     * The reference pulse, taken from the store at the moment the check goes out — not read back
+     * when the incident is recorded thirty seconds later, because the dial's next always-on window
+     * can lock inside the answer window and overwrite the one stored pair with a reading
+     * [IncidentLog.referenceUsable] would then refuse; the reference that existed a minute before
+     * the check would be lost on exactly the path it exists for.
+     */
+    private var referenceBpm = IncidentRecord.NO_BPM
+    private var referenceAtMillis = 0L
 
     /** Pulse during the answer window now open, cleared when the window closes either way. */
     private var promptBpm = IncidentRecord.NO_BPM
@@ -169,7 +176,7 @@ class VigilanceService : Service(), SensorEventListener {
             .onFailure {
                 // See [foregrounded]. Failing loudly here beats a SecurityException later or a
                 // monitor the platform silences the moment the screen goes off.
-                Log.e(TAG, "Could not go foreground; vigilance cannot run", it)
+                Diag.e(TAG, "Could not go foreground; vigilance cannot run", it)
                 stopSelf()
                 return
             }
@@ -307,10 +314,11 @@ class VigilanceService : Service(), SensorEventListener {
         // Batched: the hub collects, the processor sleeps.
         listen(immediate = false)
         scheduleCheck(state.deadlineMillis)
-        // The reference pulse is taken *here*, on the way back to watching — which is the one
-        // moment the operator is known to be conscious, because something they did got us here.
-        // A baseline sampled at any other time is a number with no claim attached to it.
-        sampleHeartRate(PURPOSE_BASELINE, BASELINE_SAMPLE_MILLIS)
+        // No reference pulse is taken here. It used to be — twenty seconds of LED after every sign
+        // of life, "the one moment the operator is known to be conscious" — and since a sign of
+        // life arrives with every accepted movement, on a wrist that keeps moving that was the
+        // sensor re-registered in bursts and the LED on for the whole watch, for a number the next
+        // movement overwrote. The record borrows the dial's own reading instead: recordIncident.
     }
 
     /** The interval is up: ask for a sign of life. */
@@ -325,10 +333,11 @@ class VigilanceService : Service(), SensorEventListener {
         state.periodMillis = PROMPT_WINDOW_MILLIS
         state.deadlineMillis = System.currentTimeMillis() + PROMPT_WINDOW_MILLIS
         // The pulse that matters: taken between the nudge and the SOS, which is the operator at
-        // the moment they stopped answering. Read against the baseline, never on its own.
-        sampleHeartRate(PURPOSE_PROMPT, PROMPT_WINDOW_MILLIS)
+        // the moment they stopped answering. Read against the reference, never on its own.
+        snapshotReference(state.deadlineMillis - PROMPT_WINDOW_MILLIS)
+        samplePromptPulse()
         handler.postDelayed(::escalate, PROMPT_WINDOW_MILLIS)
-        Log.d(TAG, "prompting; ${PROMPT_WINDOW_MILLIS / 1000}s to answer")
+        Diag.d(TAG, "prompting; ${PROMPT_WINDOW_MILLIS / 1000}s to answer")
     }
 
     /** Nobody answered. */
@@ -387,11 +396,23 @@ class VigilanceService : Service(), SensorEventListener {
                 IncidentRecord(
                     atMillis = atMillis,
                     bpm = promptBpm,
-                    baselineBpm = baselineBpm,
-                    baselineAtMillis = baselineAtMillis,
+                    baselineBpm = referenceBpm,
+                    baselineAtMillis = referenceAtMillis,
                 )
             )
         )
+    }
+
+    /**
+     * The dial's last reading, if it can stand as this check's reference: taken before the check
+     * went out and not older than a day — IncidentLog.referenceUsable says why both bounds exist.
+     * Taken now rather than at the incident, for the reason on [referenceBpm].
+     */
+    private fun snapshotReference(promptedAtMillis: Long) {
+        val at = store.referenceAtMillis()
+        val usable = logHeartRate && IncidentLog.referenceUsable(at, promptedAtMillis, promptedAtMillis)
+        referenceBpm = if (usable) store.referenceBpm() else IncidentRecord.NO_BPM
+        referenceAtMillis = if (usable) at else 0L
     }
 
     private fun clearIncident() {
@@ -412,7 +433,7 @@ class VigilanceService : Service(), SensorEventListener {
         if (state.status == VigilanceState.INCIDENT) return
         val wasAlarming = state.status == VigilanceState.ALARM
         arm()
-        if (wasAlarming) Log.d(TAG, "alarm acknowledged")
+        if (wasAlarming) Diag.d(TAG, "alarm acknowledged")
     }
 
     /** Deliberately clearing a recorded incident, and only then going back to watching. */
@@ -446,7 +467,7 @@ class VigilanceService : Service(), SensorEventListener {
     private fun setOnBody(value: Boolean) {
         if (onBody == value) return
         onBody = value
-        Log.d(TAG, if (value) "back on the wrist" else "off the wrist")
+        Diag.d(TAG, if (value) "back on the wrist" else "off the wrist")
         settle()
     }
 
@@ -462,7 +483,7 @@ class VigilanceService : Service(), SensorEventListener {
         state.status = status
         state.deadlineMillis = 0L
         state.periodMillis = 0L
-        Log.d(TAG, "$reason; monitoring suspended")
+        Diag.d(TAG, "$reason; monitoring suspended")
     }
 
     private fun readChargingState(): Boolean {
@@ -499,7 +520,7 @@ class VigilanceService : Service(), SensorEventListener {
             } else {
                 manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
             }
-        }.onFailure { Log.w(TAG, "Could not schedule the vigilance check", it) }
+        }.onFailure { Diag.w(TAG, "Could not schedule the vigilance check", it) }
     }
 
     private fun cancelCheck() {
@@ -585,41 +606,41 @@ class VigilanceService : Service(), SensorEventListener {
     // --- Heart rate ----------------------------------------------------------------------------
 
     /**
-     * Runs the pulse sensor for [windowMillis] and no longer.
+     * Runs the pulse sensor for the answer window and no longer.
      *
      * The optical sensor is an LED pressed against skin: leaving it on for a watch's worth of hours
      * would cost more than everything else this service does put together, and it would be for a
-     * number nobody reads until an incident. So it runs in exactly two windows — the moment after a
-     * confirmed sign of life, and the thirty seconds between the nudge and the SOS — and the rest
-     * of the time it is off.
+     * number nobody reads until an incident. So it runs in exactly one window — the thirty seconds
+     * between the nudge and the SOS — and the rest of the time it is off. The reference that
+     * reading is read against is the dial's own, not a second window of this service's: see
+     * [recordIncident], and [SensorSlots] for what the second window cost.
      *
      * A no-op unless the wearer asked for it: the setting is off by default, and it needs
      * `BODY_SENSORS`, which a watch face cannot request for itself — the editor asks, and until it
      * is granted the row is not offered. Absent hardware, a refused registration and a sensor that
      * never locks on are all the same outcome, and the record says nothing rather than guessing.
      */
-    private fun sampleHeartRate(purpose: Int, windowMillis: Long) {
+    private fun samplePromptPulse() {
         if (!logHeartRate) return
         val sensor = heartSensor ?: return
-        if (heartPurpose == purpose) return
-        stopHeartRate()
+        if (heartSampling) return
         val registered = runCatching {
             sensorManager?.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL) == true
         }.getOrDefault(false)
         if (!registered) {
-            Log.d(TAG, "pulse sensor refused; the record will carry no reading")
+            Diag.d(TAG, "pulse sensor refused; the record will carry no reading")
             return
         }
-        heartPurpose = purpose
+        heartSampling = true
         // Stops itself: the window is the whole point, and a callback that forgets to unregister
         // leaves the LED burning until the next state change happens to notice.
-        handler.postDelayed(heartTimeout, windowMillis)
+        handler.postDelayed(heartTimeout, PROMPT_WINDOW_MILLIS)
     }
 
     private fun stopHeartRate() {
         handler.removeCallbacks(heartTimeout)
-        if (heartPurpose == null) return
-        heartPurpose = null
+        if (!heartSampling) return
+        heartSampling = false
         heartSensor?.let { runCatching { sensorManager?.unregisterListener(this, it) } }
     }
 
@@ -630,14 +651,7 @@ class VigilanceService : Service(), SensorEventListener {
      */
     private fun onHeartRate(bpm: Int) {
         if (!IncidentLog.plausibleBpm(bpm)) return
-        when (heartPurpose) {
-            PURPOSE_BASELINE -> {
-                baselineBpm = bpm
-                baselineAtMillis = System.currentTimeMillis()
-            }
-            PURPOSE_PROMPT -> promptBpm = bpm
-            else -> return
-        }
+        if (heartSampling) promptBpm = bpm
     }
 
     // --- Foreground plumbing -----------------------------------------------------------------
@@ -683,19 +697,6 @@ class VigilanceService : Service(), SensorEventListener {
 
         /** Thirty seconds to answer, per the brief. */
         const val PROMPT_WINDOW_MILLIS = 30_000L
-
-        private const val PURPOSE_BASELINE = 1
-        private const val PURPOSE_PROMPT = 2
-
-        /**
-         * How long the reference pulse is allowed to take.
-         *
-         * A wrist optical sensor needs a few seconds of contact before it reports anything at all,
-         * and this runs after every confirmed sign of life — so it has to be long enough to lock on
-         * and short enough that the LED is off again well before the next check is due, even at the
-         * five-minute interval.
-         */
-        private const val BASELINE_SAMPLE_MILLIS = 20_000L
 
         /** What the monitor watches at until told otherwise; matches the style schema's default. */
         const val DEFAULT_INTERVAL_MILLIS = 10 * 60_000L

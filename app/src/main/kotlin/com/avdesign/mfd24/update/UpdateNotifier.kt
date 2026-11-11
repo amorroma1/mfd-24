@@ -9,8 +9,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import com.avdesign.mfd24.BuildConfig
+import com.avdesign.mfd24.Diag
 import com.avdesign.mfd24.R
 import com.avdesign.mfd24.data.WatchShiftController
 import com.avdesign.mfd24.data.WatchShiftState
@@ -69,7 +69,7 @@ object UpdateNotifier {
         if (UpdateStore.notifiedVersion(context) == release.version) return
         UpdateStore.noteNotified(context, release.version)
         notify(context, release.version)
-        Log.i(TAG, "release ${release.version} announced")
+        Diag.i(TAG, "release ${release.version} announced")
     }
 
     private fun notify(context: Context, version: String) {

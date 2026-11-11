@@ -6,7 +6,6 @@ package com.avdesign.mfd24
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Rect
-import android.util.Log
 import android.view.SurfaceHolder
 import androidx.wear.watchface.CanvasType
 import androidx.wear.watchface.ContentDescriptionLabel
@@ -22,8 +21,8 @@ import com.avdesign.mfd24.astro.MoonState
 import com.avdesign.mfd24.astro.PlanetMode
 import com.avdesign.mfd24.astro.SolarTime
 import com.avdesign.mfd24.data.Alerts
-import com.avdesign.mfd24.data.TelemetryState
 import com.avdesign.mfd24.data.SensorSlots
+import com.avdesign.mfd24.data.TelemetryState
 import com.avdesign.mfd24.data.VigilanceState
 import com.avdesign.mfd24.data.VigilanceStore
 import com.avdesign.mfd24.data.WatchShiftState
@@ -32,19 +31,19 @@ import com.avdesign.mfd24.render.AmbientLayer
 import com.avdesign.mfd24.render.DaylightLayer
 import com.avdesign.mfd24.render.DialLayer
 import com.avdesign.mfd24.render.DialTransition
+import com.avdesign.mfd24.render.DutyArcLayer
 import com.avdesign.mfd24.render.Geometry
 import com.avdesign.mfd24.render.HandsLayer
 import com.avdesign.mfd24.render.SecondsMarker
 import com.avdesign.mfd24.render.TelemetryLayer
 import com.avdesign.mfd24.render.WakeTransition
-import com.avdesign.mfd24.render.DutyArcLayer
 import com.avdesign.mfd24.style.Palette
 import com.avdesign.mfd24.style.StyleSchema
+import java.time.ZonedDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import java.time.ZonedDateTime
 
 /**
  * Canvas renderer for MFD-24.
@@ -87,6 +86,11 @@ class MfdRenderer(
     private val onVigilanceRequest: (Boolean, Long, Int, Int, Boolean, Long, Long) -> Unit,
     /** Which reading each slot beside the hub wants, as SensorSlots.Kind ordinals. */
     private val onSensorSlots: (Int, Int) -> Unit,
+    /**
+     * Once per minute of always-on, from the ambient frame: the one per-minute clock a watch face
+     * has in Doze, and what drives the pulse slot's window. See `SensorSlots.ambientMinute`.
+     */
+    private val onAmbientMinute: () -> Unit,
     /** Resolved strings for the spoken labels — a Renderer has no Context to resolve its own. */
     private val descriptions: FaceDescriptions,
 ) : Renderer.CanvasRenderer2<MfdRenderer.Assets>(
@@ -188,6 +192,9 @@ class MfdRenderer(
     private var sensorRight: Int = SensorSlots.Kind.OFF.ordinal
 
     private var lastSensorLeft = -1
+
+    /** The epoch minute the last ambient frame reported; -1 while interactive. */
+    private var lastAmbientMinute = -1L
     private var lastSensorRight = -1
 
     private var lastVigilanceRequest: Boolean? = null
@@ -220,7 +227,7 @@ class MfdRenderer(
     private val scope = CoroutineScope(Dispatchers.Main.immediate)
 
     init {
-        Log.d(TAG, "ambient: lowBit=$lowBitAmbient burnInProtection=$burnInProtection")
+        Diag.d(TAG, "ambient: lowBit=$lowBitAmbient burnInProtection=$burnInProtection")
         applyStyle(currentUserStyleRepository.userStyle.value)
         scope.launch {
             currentUserStyleRepository.userStyle.collect { style ->
@@ -235,6 +242,7 @@ class MfdRenderer(
     override fun onDestroy() {
         scope.cancel()
         dialLayer.recycle()
+        handsLayer.recycle()
         super.onDestroy()
     }
 
@@ -346,6 +354,18 @@ class MfdRenderer(
         // See [IDLE_FRAME_PERIOD_MS].
         val ambientNow = renderParameters.drawMode == DrawMode.AMBIENT
         wake.update(epochMillis, ambientNow)
+
+        // Reported once per minute, not once per frame: a window's own invalidate() draws a second
+        // ambient frame inside the same minute, and that frame must not open another window.
+        if (ambientNow) {
+            val minute = epochMillis / 60_000L
+            if (minute != lastAmbientMinute) {
+                lastAmbientMinute = minute
+                onAmbientMinute()
+            }
+        } else {
+            lastAmbientMinute = -1L
+        }
         setFrameRate(
             if (transition.animating || wake.active) {
                 ANIMATING_FRAME_PERIOD_MS
@@ -732,7 +752,7 @@ class MfdRenderer(
             frameSymbol,
         )
 
-        handsLayer.drawHourMinute(canvas, geometry, p, hourAngle, minuteAngle)
+        handsLayer.drawHourMinute(canvas, geometry, p, hourAngle, minuteAngle, layoutGeneration)
         handsLayer.drawHub(
             canvas, geometry, p, vigilanceCore, vigilanceAlarm, vigilanceSuspended
         )

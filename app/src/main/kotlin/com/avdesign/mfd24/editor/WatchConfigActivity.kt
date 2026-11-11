@@ -4,37 +4,23 @@
 package com.avdesign.mfd24.editor
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,30 +28,11 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -75,37 +42,27 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
-import androidx.wear.compose.material.Colors
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import androidx.wear.watchface.editor.EditorSession
-import androidx.wear.watchface.style.UserStyleSetting
 import com.avdesign.mfd24.BuildConfig
+import com.avdesign.mfd24.Diag
 import com.avdesign.mfd24.R
-import com.avdesign.mfd24.export.LogExportActivity
-import com.avdesign.mfd24.export.RepoLinkActivity
-import com.avdesign.mfd24.update.ReleaseLinkActivity
-import com.avdesign.mfd24.update.UpdateStore
 import com.avdesign.mfd24.data.SensorSlots
 import com.avdesign.mfd24.data.TelemetryRepository
 import com.avdesign.mfd24.data.TelemetryState
-import com.avdesign.mfd24.data.WatchShiftController
-import com.avdesign.mfd24.data.IncidentRecord
 import com.avdesign.mfd24.data.VigilanceMonitor
 import com.avdesign.mfd24.data.VigilanceStore
+import com.avdesign.mfd24.data.WatchShiftController
 import com.avdesign.mfd24.data.WatchShiftState
-import com.avdesign.mfd24.render.WakeTransition
+import com.avdesign.mfd24.export.LogExportActivity
+import com.avdesign.mfd24.export.RepoLinkActivity
 import com.avdesign.mfd24.style.Palette
 import com.avdesign.mfd24.style.StyleSchema
+import com.avdesign.mfd24.update.ReleaseLinkActivity
+import com.avdesign.mfd24.update.UpdateStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * On-watch configuration, reached through the system's long-press "Customise" affordance.
@@ -131,7 +88,7 @@ class WatchConfigActivity : ComponentActivity() {
      * API 33 gates the foreground notice and API 34 gates the health service type itself.
      */
     private lateinit var requestPermission: ActivityResultLauncher<String>
-    private val grantCount: MutableState<Int> = mutableStateOf(0)
+    private val grantCount: MutableIntState = mutableIntStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,14 +101,14 @@ class WatchConfigActivity : ComponentActivity() {
         // The count is a nudge for recomposition, not a value: which permissions are held is read
         // straight from the package manager, and this only says that the answer may have changed.
         requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            grantCount.value = grantCount.value + 1
+            grantCount.intValue = grantCount.intValue + 1
         }
 
         lifecycleScope.launch {
             val session = try {
                 EditorSession.createOnWatchEditorSession(this@WatchConfigActivity)
             } catch (e: Exception) {
-                Log.e(TAG, "Not launched as a watch face editor", e)
+                Diag.e(TAG, "Not launched as a watch face editor", e)
                 finish()
                 return@launch
             }
@@ -169,7 +126,7 @@ class WatchConfigActivity : ComponentActivity() {
                         onRequestLocation = {
                             requestLocation.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                         },
-                        grants = grantCount.value,
+                        grants = grantCount.intValue,
                         onRequestPermission = { requestPermission.launch(it) },
                         onDone = { finish() },
                     )
@@ -183,7 +140,7 @@ class WatchConfigActivity : ComponentActivity() {
         locationGranted.value = hasLocationPermission()
         // Background location is granted on a settings screen, not in a dialog, so the result
         // arrives as a resume rather than through the launcher: nudge the readers to re-check.
-        grantCount.value = grantCount.value + 1
+        grantCount.intValue = grantCount.intValue + 1
     }
 
     private fun hasLocationPermission(): Boolean =
@@ -194,9 +151,6 @@ class WatchConfigActivity : ComponentActivity() {
         const val TAG = "WatchConfigActivity"
     }
 }
-
-/** Ending a duty on purpose is a decision, not an emergency, so it is not the alarm red. */
-private val Terracotta = Color(0xFFB85C38)
 
 @Composable
 private fun ConfigScreen(
@@ -1125,232 +1079,6 @@ private fun ConfigScreen(
     }
 }
 
-
-/**
- * One of the two slots beside the hub.
- *
- * Selecting a reading that needs a permission asks for it there and then, rather than at some later
- * moment the user cannot connect to what they did. If it is refused the setting still takes — the
- * face shows dashes — because refusing a permission is not the same as not wanting the row, and a
- * setting that silently reverted would be the more confusing of the two.
- */
-@Composable
-private fun SensorSlotSetting(
-    label: String,
-    selectedId: String,
-    otherId: String,
-    // Unused except as the recomposition nudge every permission reader in this file leans on.
-    @Suppress("UNUSED_PARAMETER") grants: Int,
-    onRequestPermission: (String) -> Unit,
-    onSelect: (String) -> Unit,
-) {
-    val context = LocalContext.current
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Label(label)
-        SegmentedRow(
-            options = SENSOR_OPTIONS,
-            selectedId = selectedId,
-            // A reading taken by the other slot is greyed out here. Both slots showing the same
-            // number is not harmful, but it is never what was meant, and the pair of them is the
-            // whole point of having two.
-            isEnabled = { id -> id == SensorSlots.Kind.OFF.id || id != otherId },
-            onSelect = { id ->
-                onSelect(id)
-                val permission = SensorSlots.Kind.ofId(id).permission
-                if (permission != null && !hasPermission(context, permission)) {
-                    onRequestPermission(permission)
-                }
-            },
-        )
-    }
-}
-
-private fun hasPermission(context: Context, permission: String): Boolean =
-    ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-
-/** [hasPermission] with the [grants] nudge, for readers inside the composition. */
-private fun heldPermission(
-    context: Context,
-    permission: String,
-    @Suppress("UNUSED_PARAMETER") grants: Int,
-): Boolean = hasPermission(context, permission)
-
-/**
- * The permission enabling vigilance still lacks on this platform, or null when it has them all.
- *
- * Ordered by how badly the miss hurts: on API 34 the `health` foreground service will not start
- * at all without ACTIVITY_RECOGNITION (or another sensor permission), which is a dead-man's
- * switch that never arms; on API 33 the service runs but its ongoing notification is invisible.
- * Neither exists on the API 30 watches this face was built on.
- */
-private fun vigilancePermissionToRequest(
-    context: Context,
-    @Suppress("UNUSED_PARAMETER") grants: Int,
-): String? = when {
-    android.os.Build.VERSION.SDK_INT >= 34 &&
-        !hasPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) ->
-        Manifest.permission.ACTIVITY_RECOGNITION
-
-    android.os.Build.VERSION.SDK_INT >= 33 &&
-        !hasPermission(context, Manifest.permission.POST_NOTIFICATIONS) ->
-        Manifest.permission.POST_NOTIFICATIONS
-
-    else -> null
-}
-
-/**
- * Whether either slot is set to a reading whose permission is not held.
- *
- * [grants] is unused except to make this recompose after the dialog closes: what is actually asked
- * is the package manager, which a Compose snapshot has no way of observing.
- */
-private fun missingSensorPermission(
-    context: Context,
-    left: String,
-    right: String,
-    @Suppress("UNUSED_PARAMETER") grants: Int,
-): Boolean = listOf(left, right).any { id ->
-    val permission = SensorSlots.Kind.ofId(id).permission
-    permission != null && !hasPermission(context, permission)
-}
-
-@Composable
-private fun rememberOption(
-    session: EditorSession,
-    settingId: UserStyleSetting.Id,
-    fallback: String,
-): MutableState<String> = remember(settingId) {
-    mutableStateOf(StyleSchema.optionId(session.userStyle.value, settingId, fallback))
-}
-
-
-/**
- * `[ – ]  8 h  [ + ]` — a free numeric choice rather than a menu of preset watch lengths.
- *
- * Both buttons repeat while held. Latitude is stepped in hundredths of a degree over a range of
- * 18000 of them, so tapping from where you are to anywhere else would be thousands of presses;
- * holding gets there in seconds.
- *
- * @param onDown called with the number of units to subtract this tick
- * @param onUp called with the number of units to add this tick
- * @param maxStep how far one tick may jump once the repeat is at full speed. One for anything
- *   counted in days or hours, where a fast repeat is already plenty; higher only for the
- *   coordinate rows, whose range is far too wide to cross a unit at a time.
- * @param onCommit run once when the press ends, for callers whose write is too expensive to do on
- *   every tick — pushing a value into the [EditorSession] twenty times a second, for instance.
- */
-@Composable
-private fun StepperRow(
-    value: String,
-    onDown: (Int) -> Unit,
-    onUp: (Int) -> Unit,
-    maxStep: Int = 1,
-    onCommit: () -> Unit = {},
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        StepButton(stringResource(R.string.editor_step_down), maxStep, onDown, onCommit)
-        Text(
-            text = value,
-            style = MaterialTheme.typography.title3,
-            color = MaterialTheme.colors.onBackground,
-            maxLines = 1,
-        )
-        StepButton(stringResource(R.string.editor_step_up), maxStep, onUp, onCommit)
-    }
-}
-
-/**
- * One round stepper button, with press-and-hold auto-repeat.
- *
- * A plain tap still applies exactly one unit on *release*, which is what `clickable` did before:
- * these buttons sit inside a `ScalingLazyColumn`, and acting on the press instead would nudge the
- * value every time a scroll happened to start on top of one. A hold past [HOLD_DELAY_MS] starts
- * repeating and accelerating until the finger comes off.
- */
-@Composable
-private fun StepButton(
-    label: String,
-    maxStep: Int,
-    onStep: (Int) -> Unit,
-    onCommit: () -> Unit,
-) {
-    // The gesture coroutine outlives individual recompositions, so it must not capture a stale
-    // lambda: these keep it pointed at the current one.
-    val step by rememberUpdatedState(onStep)
-    val commit by rememberUpdatedState(onCommit)
-    val haptics = LocalHapticFeedback.current
-
-    var pressed by remember { mutableStateOf(false) }
-    var repeating by remember { mutableStateOf(false) }
-
-    // Held is worth showing: without it there is no way to tell auto-repeat has engaged except by
-    // watching the number, which is the thing you are trying to read.
-    val background = when {
-        repeating -> MaterialTheme.colors.primary
-        pressed -> MaterialTheme.colors.primaryVariant
-        else -> MaterialTheme.colors.surface
-    }
-
-    Box(
-        modifier = Modifier
-            .size(46.dp)
-            .clip(CircleShape)
-            .background(background)
-            .semantics(mergeDescendants = true) { role = Role.Button }
-            .pointerInput(maxStep) {
-                detectTapGestures(
-                    onPress = {
-                        pressed = true
-                        try {
-                            // null = the delay expired and the finger is still down; true = a
-                            // normal tap; false = a parent took the gesture, i.e. a scroll, and
-                            // nothing should happen at all.
-                            when (withTimeoutOrNull(HOLD_DELAY_MS) { tryAwaitRelease() }) {
-                                true -> {
-                                    step(1)
-                                    commit()
-                                }
-
-                                false -> Unit
-
-                                null -> {
-                                    repeating = true
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    var tick = 0
-                                    while (true) {
-                                        step(repeatStep(tick, maxStep))
-                                        tick++
-                                        val done = withTimeoutOrNull(REPEAT_TICK_MS) {
-                                            tryAwaitRelease()
-                                        }
-                                        if (done != null) break
-                                    }
-                                    commit()
-                                }
-                            }
-                        } finally {
-                            pressed = false
-                            repeating = false
-                        }
-                    },
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.title2,
-            color = if (repeating) MaterialTheme.colors.onPrimary else MaterialTheme.colors.primary,
-        )
-    }
-}
-
 /**
  * The seven sections of the list, and the sentinel for none open.
  *
@@ -1370,358 +1098,8 @@ private const val SECTION_ABOUT = 6
 /** Stable identity for a section header in the lazy list, whatever its index this frame. */
 private fun headerKey(section: Int): String = "header-" + section
 
-/** Small enough to read as punctuation on the header rather than as a second label. */
-private val CHEVRON_SIZE = 10.dp
-
-/** The open section's outline: thin, and half a second of light. */
-private val TRACE_STROKE = 2.dp
-
-/**
- * How long the outline takes to come up or go down.
- *
- * Deliberately the wake sweep's own figure rather than a number picked for this list: the same
- * ramp, the same duration, the same meaning — something has just become live. Read from the
- * renderer's constant so the two cannot drift apart.
- */
-private val TRACE_MILLIS = WakeTransition.DURATION_MILLIS.toInt()
-
 /** How many frames the tapped header is held in place for while the list reflows. */
 private const val PIN_FRAMES = 6
-
-/** Wait before a hold becomes a repeat: long enough that a deliberate single tap never trips it. */
-private const val HOLD_DELAY_MS = 350L
-
-/** About twenty ticks a second once repeating. */
-private const val REPEAT_TICK_MS = 50L
-
-/**
- * How many units one repeat tick moves, ramping up the longer the button is held and then clamped
- * to the row's own ceiling.
- *
- * The ramp is what makes a wide range crossable without making a narrow one uncontrollable: the
- * first three quarters of a second still move one unit at a time, so a short hold is precise, and
- * only a sustained one reaches full speed — about 20 degrees a second on a coordinate row.
- */
-private fun repeatStep(tick: Int, maxStep: Int): Int {
-    val ramp = when {
-        tick < 15 -> 1
-        tick < 30 -> 2
-        tick < 45 -> 5
-        tick < 60 -> 10
-        tick < 80 -> 25
-        tick < 100 -> 50
-        else -> 100
-    }
-    return if (ramp > maxStep) maxStep else ramp
-}
-
-/**
- * A row of equal-width chips acting as one choice, for options short enough to sit side by side.
- *
- * Four presets on one line where four full-width chips would be four screens of scrolling. The cells
- * share the width evenly so the row reads as a single control rather than as a cluster of buttons,
- * and the selected one is filled while the rest are outlined — an outline is legible on a black
- * dial without spending the accent colour four times over.
- *
- * [isEnabled] is per cell rather than per row because that is how the dependencies actually fall:
- * NADIR has nothing to shade without a position, but WEATHER can always be turned *off*, so
- * greying the whole row would trap a setting the user is allowed to change.
- */
-@Composable
-private fun SegmentedRow(
-    options: List<Segment>,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-    isEnabled: (String) -> Boolean = { true },
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        for (segment in options) {
-            val chosen = segment.id == selectedId
-            val enabled = isEnabled(segment.id)
-            val accent = segment.tint ?: MaterialTheme.colors.primary
-            val description = stringResource(segment.speechRes)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp)
-                    .clip(CircleShape)
-                    .then(
-                        if (chosen) {
-                            Modifier.background(if (enabled) accent else accent.copy(alpha = 0.35f))
-                        } else {
-                            Modifier.border(
-                                1.dp,
-                                when {
-                                    !enabled -> MaterialTheme.colors.surface
-                                    // Tinted cells keep their hue unselected as well, or the
-                                    // palette row offers three identically amber outlines.
-                                    segment.tint != null -> segment.tint
-                                    else -> MaterialTheme.colors.primaryVariant
-                                },
-                                CircleShape,
-                            )
-                        }
-                    )
-                    .clickable(enabled = enabled) { onSelect(segment.id) }
-                    .semantics { contentDescription = description },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(segment.labelRes),
-                    style = MaterialTheme.typography.button,
-                    color = when {
-                        chosen -> MaterialTheme.colors.onPrimary
-                        enabled -> MaterialTheme.colors.onBackground
-                        else -> MaterialTheme.colors.onSurfaceVariant
-                    },
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
-/**
- * A labelled [SegmentedRow], as one list item rather than two.
- *
- * One item because a `ScalingLazyColumn` scales and spaces its items independently: a label in an
- * item of its own drifts away from the control it names as the list scrolls past, and pays the
- * inter-item gap for the privilege. Folding the pair together is what let seven appearance settings
- * fit under a single DISPLAY header instead of carrying seven headers of their own.
- */
-@Composable
-private fun SegmentedSetting(
-    label: String,
-    options: List<Segment>,
-    selectedId: String,
-    onSelect: (String) -> Unit,
-    isEnabled: (String) -> Boolean = { true },
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Label(label)
-        SegmentedRow(options, selectedId, onSelect, isEnabled)
-    }
-}
-
-/**
- * A sub-heading inside a section: the section's amber, one size down.
- *
- * Amber rather than grey because these name the control below them; in grey, DURATION read as a
- * remark about the row above it. The size is what keeps the hierarchy legible — a full-size amber
- * line under DISPLAY would look like another section beginning.
- */
-@Composable
-private fun Label(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.caption2,
-        color = MaterialTheme.colors.primary,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 1.dp),
-    )
-}
-
-/** A section heading: the largest amber line on the screen, and the only thing that starts one. */
-@Composable
-private fun SectionHeader(text: String, expanded: Boolean, onClick: () -> Unit) {
-    // The open section is outlined, and the outline arrives the way the face itself does: as
-    // brightness.
-    //
-    // One section is open at a time, so which one it is is the most useful thing this list can say
-    // — and the chevron alone says it in eight pixels of glyph. An earlier version drew the line
-    // on, clockwise, over a second. It read as an animation rather than as a state, which is
-    // exactly the wrong emphasis for a row you are trying to look past: the eye followed the
-    // moving end instead of the section it was marking.
-    //
-    // So it ramps in brightness over `WakeTransition.DURATION_MILLIS` — the same half-second and
-    // the same idea as waking from always-on, where colour is already there and only the light
-    // arrives. One gesture learned once, met twice. Brightness by scaling the hue's channels
-    // rather than by alpha, for the reason the renderer's palette gives: alpha composites badly
-    // and shifts the hue, and this hue is the lume.
-    //
-    // Snapped rather than ramped on the first composition, so opening the editor does not replay
-    // half a second of light for a choice nobody just made.
-    val trace = remember { Animatable(if (expanded) 1f else 0f) }
-    var settled by remember { mutableStateOf(false) }
-    LaunchedEffect(expanded) {
-        if (!settled) {
-            settled = true
-            trace.snapTo(if (expanded) 1f else 0f)
-            return@LaunchedEffect
-        }
-        trace.animateTo(if (expanded) 1f else 0f, tween(TRACE_MILLIS, easing = LinearEasing))
-    }
-    val outline = MaterialTheme.colors.primary
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 40.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colors.surface)
-            .drawBehind {
-                val progress = trace.value
-                if (progress <= 0f) return@drawBehind
-                val stroke = TRACE_STROKE.toPx()
-                val inset = stroke / 2f
-                val radius = (size.height - stroke) / 2f
-                // The whole contour, every frame, at the brightness the ramp is currently at. A
-                // stadium rather than an arc because that is the shape of the row.
-                drawRoundRect(
-                    color = Color(
-                        red = outline.red * progress,
-                        green = outline.green * progress,
-                        blue = outline.blue * progress,
-                    ),
-                    topLeft = Offset(inset, inset),
-                    size = Size(size.width - stroke, size.height - stroke),
-                    cornerRadius = CornerRadius(radius, radius),
-                    style = Stroke(width = stroke),
-                )
-            }
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Chevron(expanded = expanded, color = MaterialTheme.colors.primary)
-        Text(
-            text = text,
-            style = MaterialTheme.typography.caption1,
-            color = MaterialTheme.colors.primary,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier.padding(start = 8.dp),
-        )
-    }
-}
-
-/**
- * The open/closed marker on a [SectionHeader]: a small triangle, pointing right when the section is
- * shut and down when it is open.
- *
- * Drawn rather than set in type or taken from an icon pack. The glyphs that would do this are not
- * reliably in the system font on Wear, and `material-icons` is a dependency to carry for one
- * triangle — this project drops dependencies rather than collecting them.
- */
-@Composable
-private fun Chevron(expanded: Boolean, color: Color) {
-    Canvas(modifier = Modifier.size(CHEVRON_SIZE)) {
-        val w = size.width
-        val h = size.height
-        val path = Path()
-        if (expanded) {
-            path.moveTo(w * 0.15f, h * 0.32f)
-            path.lineTo(w * 0.85f, h * 0.32f)
-            path.lineTo(w * 0.50f, h * 0.72f)
-        } else {
-            path.moveTo(w * 0.32f, h * 0.15f)
-            path.lineTo(w * 0.72f, h * 0.50f)
-            path.lineTo(w * 0.32f, h * 0.85f)
-        }
-        path.close()
-        drawPath(path, color)
-    }
-}
-
-@Composable
-private fun Caption(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.caption3,
-        color = MaterialTheme.colors.onSurfaceVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 4.dp),
-    )
-}
-
-/**
- * A full-width chip standing for one choice or one action.
- *
- * What is left of this after the settings moved to segmented rows: the two commands that need a
- * whole line of their own, and DONE. The colour swatch it used to carry for the palette rows went
- * with them — each segment wears its own hue now, which says the same thing in less space.
- */
-@Composable
-private fun OptionChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Chip(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = if (selected) {
-            ChipDefaults.primaryChipColors()
-        } else {
-            ChipDefaults.secondaryChipColors()
-        },
-        label = { Text(text = label, maxLines = 1) },
-    )
-}
-
-/**
- * Applies a list option to the live style. The editor session persists it and the running watch
- * face redraws immediately.
- */
-private fun EditorSession.select(settingId: UserStyleSetting.Id, optionId: String) {
-    val setting = userStyleSchema[settingId] ?: return
-    val option = setting.options.firstOrNull { it.id.toString() == optionId } ?: return
-    val mutable = userStyle.value.toMutableUserStyle()
-    mutable[setting] = option
-    userStyle.value = mutable.toUserStyle()
-}
-
-
-/**
- * One cell of a [SegmentedRow].
- *
- * [speechRes] exists because the visible labels are abbreviated to fit three or four to a line:
- * `CST` and `hPa` are legible on a dial and useless read aloud, and the long forms are still what
- * the platform's own style list shows. [tint] lets a cell carry its own hue, which is how the
- * palette row shows what it is offering now that there is no width left for a swatch.
- */
-private class Segment(
-    val id: String,
-    val labelRes: Int,
-    val speechRes: Int = labelRes,
-    val tint: Color? = null,
-)
-
-private val DURATION_PRESETS = listOf(
-    Segment(
-        WatchShiftController.PRESET_4H, R.string.editor_duration_4h,
-        R.string.editor_duration_4h_sr,
-    ),
-    Segment(
-        WatchShiftController.PRESET_8H, R.string.editor_duration_8h,
-        R.string.editor_duration_8h_sr,
-    ),
-    Segment(
-        WatchShiftController.PRESET_12H, R.string.editor_duration_12h,
-        R.string.editor_duration_12h_sr,
-    ),
-    Segment(
-        WatchShiftController.PRESET_CUSTOM, R.string.editor_duration_custom,
-        R.string.editor_duration_custom_sr,
-    ),
-)
-
-/** Where the position comes from. Local to the editor: the repository holds a boolean. */
-private const val POSITION_AUTO = "auto"
-private const val POSITION_MANUAL = "manual"
-private val POSITION_OPTIONS = listOf(
-    Segment(POSITION_AUTO, R.string.editor_position_auto),
-    Segment(POSITION_MANUAL, R.string.editor_position_manual),
-)
 
 /**
  * Ceiling on one repeat tick of a five-minute stepper: three steps, so a quarter of an hour a tick at
@@ -1734,264 +1112,3 @@ private const val DURATION_MAX_STEP = 3
  * globe in a few seconds now that the unit is a hundredth rather than a tenth.
  */
 private const val COORD_MAX_STEP = 100
-
-/** `3:42` — hours and minutes left, rounded up so it never reads 0:00 while time remains. */
-private fun formatRemaining(remainingMillis: Long): String {
-    val totalMinutes = ((remainingMillis + 59_999L) / 60_000L).toInt()
-    return String.format(Locale.US, "%02d:%02d", totalMinutes / 60, totalMinutes % 60)
-}
-
-/** Secondary line on the timer chip: what the shift is doing right now, if anything. */
-@Composable
-private fun dutySecondaryText(
-    dutyState: Int,
-    watchShift: WatchShiftController,
-    nowMillis: Long,
-): String? = when (dutyState) {
-    WatchShiftState.DUTY_ACTIVE -> stringResource(
-        R.string.editor_watch_running,
-        formatRemaining(watchShift.state.remainingMillis(nowMillis)),
-    )
-
-    WatchShiftState.DUTY_PENDING -> stringResource(
-        R.string.editor_watch_pending,
-        formatRemaining(watchShift.state.untilStartMillis(nowMillis)),
-    )
-
-    WatchShiftState.DUTY_SERVED -> stringResource(R.string.editor_watch_served)
-
-    else -> null
-}
-
-/**
- * Degrees to hundredths, the unit the manual steppers work in, falling back to [orElse] and then
- * to zero. NaN means "never set" for both.
- */
-private fun toHundredths(degrees: Double, orElse: Double): Int {
-    val value = if (degrees.isNaN()) orElse else degrees
-    return if (value.isNaN()) 0 else Math.round(value * 100.0).toInt()
-}
-
-/** `55.75` / `-33.92` — two decimals, which is what a hundredth-of-a-degree stepper expresses. */
-private fun formatDegrees(hundredths: Int): String =
-    String.format(Locale.US, "%.2f", hundredths / 100.0)
-
-private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
-private const val HOUR_MILLIS = 60 * 60 * 1000L
-
-/** An hour from now, rounded up to the next multiple of the minute step. */
-private fun defaultBookedStart(nowMillis: Long): Long =
-    WatchShiftController.earliestBookableStart(nowMillis + HOUR_MILLIS)
-
-/** The schedule steppers' floor, read off a live clock — see the comment at their rows. */
-private fun earliestBookableNow(): Long =
-    WatchShiftController.earliestBookableStart(System.currentTimeMillis())
-
-private fun localDateTime(millis: Long): LocalDateTime =
-    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDateTime()
-
-private fun hourOf(millis: Long): Int = localDateTime(millis).hour
-
-private fun minuteOf(millis: Long): Int = localDateTime(millis).minute
-
-private fun formatBookedDate(millis: Long): String =
-    localDateTime(millis).format(BOOKED_DATE_FORMAT).uppercase(Locale.US)
-
-/**
- * `19 AUG 21:14Z` — an incident, in the same Zulu the dial prints it in.
- *
- * Local time would be the wrong answer twice over: the record is kept in absolute millis precisely
- * so it survives a change of zone, and the face states it in Zulu, so a log that disagreed with the
- * dial would be a second version of events.
- */
-private fun formatIncident(record: IncidentRecord): String =
-    INCIDENT_FORMAT.format(Instant.ofEpochMilli(record.atMillis).atZone(ZoneOffset.UTC))
-
-/**
- * `HR 41 · REF 58 AT 15:12Z` — the incident pulse and the reference it has to be read against.
- *
- * Null when there is nothing measured, because a row that prints dashes for an absent reading
- * invites them to be read as a low one. The reference carries its own instant: a baseline from
- * four hours ago is a different claim from one taken four minutes before the operator stopped
- * answering, and the editor is where somebody decides which they are looking at.
- */
-private fun formatIncidentPulse(record: IncidentRecord): String? {
-    if (!record.hasBpm && !record.hasBaseline) return null
-    val out = StringBuilder()
-    if (record.hasBpm) out.append("HR ").append(record.bpm)
-    if (record.hasBaseline) {
-        if (out.isNotEmpty()) out.append(" · ")
-        out.append("REF ").append(record.baselineBpm).append(' ')
-        out.append(
-            PULSE_TIME_FORMAT.format(
-                Instant.ofEpochMilli(record.baselineAtMillis).atZone(ZoneOffset.UTC)
-            )
-        )
-    }
-    return out.toString()
-}
-
-/**
- * `WATCH 21 Aug 20:00–04:00Z · 8h` — the shift the log on file belongs to.
- *
- * Null when nothing is on file. The end carries the Zulu marker and the start does not, because
- * they are the same clock and marking it twice is noise on a row this narrow.
- */
-private fun formatLogShift(startMillis: Long, endMillis: Long): String? {
-    if (startMillis <= 0L || endMillis <= startMillis) return null
-    val start = Instant.ofEpochMilli(startMillis).atZone(ZoneOffset.UTC)
-    val end = Instant.ofEpochMilli(endMillis).atZone(ZoneOffset.UTC)
-    val minutes = (endMillis - startMillis) / 60_000L
-    val length = if (minutes % 60L == 0L) {
-        (minutes / 60L).toString() + "h"
-    } else {
-        "%dh%02d".format(minutes / 60L, minutes % 60L)
-    }
-    return "WATCH " + INCIDENT_FORMAT.format(start).removeSuffix("Z") +
-        "–" + PULSE_TIME_FORMAT.format(end) + " · " + length
-}
-
-/**
- * An explanatory line under a row — the same type as [Caption], but hideable.
- *
- * Two composables rather than a flag on one, because the distinction is the whole point: a hint
- * explains, a caption reports. `HINTS OFF` silences every hint in the list and touches no reading.
- */
-@Composable
-private fun Hint(text: String, shown: Boolean) {
-    if (!shown) return
-    Caption(text)
-}
-
-/** Whether the pulse sensor may be read at all — the heart-rate log row is offered only then. */
-private fun bodySensorsGranted(context: Context, grants: Int): Boolean {
-    @Suppress("UNUSED_EXPRESSION") grants // recomposition key: a grant arrives without a state change
-    return ContextCompat.checkSelfPermission(context, Manifest.permission.BODY_SENSORS) ==
-        PackageManager.PERMISSION_GRANTED
-}
-
-private val INCIDENT_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("dd MMM HH:mm'Z'", Locale.UK)
-
-/** Just the clock: the reference pulse's date is the incident's, a line above. */
-private val PULSE_TIME_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("HH:mm'Z'", Locale.UK)
-
-private val BOOKED_DATE_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("EEE d MMM", Locale.US)
-
-// "MIDNIGHT UP" is a character too wide for half a row and lost its "UP"; under a label that
-// already says DIAL TOP, the direction was the redundant half anyway.
-private val DIAL_TOP_OPTIONS = listOf(
-    Segment(StyleSchema.DIAL_TOP_NOON, R.string.editor_seg_dial_noon, R.string.dial_top_noon_sr),
-    Segment(
-        StyleSchema.DIAL_TOP_MIDNIGHT, R.string.editor_seg_dial_midnight,
-        R.string.dial_top_midnight_sr,
-    ),
-)
-private val NADIR_OPTIONS = listOf(
-    Segment(StyleSchema.NADIR_OFF, R.string.nadir_off, R.string.nadir_off_sr),
-    Segment(StyleSchema.NADIR_ON, R.string.nadir_on, R.string.nadir_on_sr),
-)
-private val SOLAR_OPTIONS = listOf(
-    Segment(StyleSchema.SOLAR_OFF, R.string.solar_off, R.string.solar_off_sr),
-    Segment(StyleSchema.SOLAR_ON, R.string.solar_on, R.string.solar_on_sr),
-)
-private val LUNAR_OPTIONS = listOf(
-    Segment(StyleSchema.LUNAR_OFF, R.string.lunar_off, R.string.lunar_off_sr),
-    Segment(StyleSchema.LUNAR_ON, R.string.lunar_on, R.string.lunar_on_sr),
-)
-private val VIGILANCE_OPTIONS = listOf(
-    Segment(StyleSchema.VIGILANCE_OFF, R.string.vigilance_off, R.string.vigilance_off_sr),
-    Segment(StyleSchema.VIGILANCE_ON, R.string.vigilance_on, R.string.vigilance_on_sr),
-)
-private val VIGILANCE_INTERVAL_OPTIONS = listOf(
-    Segment("5", R.string.vigilance_5, R.string.vigilance_5_sr),
-    Segment("10", R.string.vigilance_10, R.string.vigilance_10_sr),
-    Segment("15", R.string.vigilance_15, R.string.vigilance_15_sr),
-)
-private val SENSOR_OPTIONS = listOf(
-    Segment(SensorSlots.Kind.OFF.id, R.string.sensor_off, R.string.sensor_off_sr),
-    Segment(SensorSlots.Kind.HEART_RATE.id, R.string.sensor_hr, R.string.sensor_hr_sr),
-    Segment(SensorSlots.Kind.STEPS.id, R.string.sensor_steps, R.string.sensor_steps_sr),
-    Segment(SensorSlots.Kind.PRESSURE.id, R.string.sensor_qfe, R.string.sensor_qfe_sr),
-)
-
-/** ABOUT's release-check switch. Ids are local: this one is not in the style schema. */
-private const val UPDATE_CHECK_ON = "on"
-private const val UPDATE_CHECK_OFF = "off"
-
-private const val HINTS_ON = "on"
-private const val HINTS_OFF = "off"
-
-private val HINT_OPTIONS = listOf(
-    Segment(HINTS_ON, R.string.hints_on, R.string.hints_on_sr),
-    Segment(HINTS_OFF, R.string.hints_off, R.string.hints_off_sr),
-)
-
-private val UPDATE_CHECK_OPTIONS = listOf(
-    Segment(UPDATE_CHECK_ON, R.string.update_check_on, R.string.update_check_on_sr),
-    Segment(UPDATE_CHECK_OFF, R.string.update_check_off, R.string.update_check_off_sr),
-)
-
-private val SOS_SOUND_OPTIONS = listOf(
-    Segment(StyleSchema.SOS_SOUND_OFF, R.string.sos_off, R.string.sos_off_sr),
-    Segment(StyleSchema.SOS_SOUND_LOW, R.string.sos_low, R.string.sos_low_sr),
-    Segment(StyleSchema.SOS_SOUND_MED, R.string.sos_med, R.string.sos_med_sr),
-    Segment(StyleSchema.SOS_SOUND_HIGH, R.string.sos_high, R.string.sos_high_sr),
-)
-
-private val LOG_HR_OPTIONS = listOf(
-    Segment(StyleSchema.LOG_HR_OFF, R.string.log_hr_off, R.string.log_hr_off_sr),
-    Segment(StyleSchema.LOG_HR_ON, R.string.log_hr_on, R.string.log_hr_on_sr),
-)
-
-private val VIBE_OPTIONS = listOf(
-    Segment(StyleSchema.VIBE_LOW, R.string.vibe_low, R.string.vibe_low_sr),
-    Segment(StyleSchema.VIBE_MED, R.string.vibe_med, R.string.vibe_med_sr),
-    Segment(StyleSchema.VIBE_HIGH, R.string.vibe_high, R.string.vibe_high_sr),
-)
-private val WEATHER_OPTIONS = listOf(
-    Segment(StyleSchema.WEATHER_ON, R.string.weather_on, R.string.weather_on_sr),
-    Segment(StyleSchema.WEATHER_OFF, R.string.weather_off, R.string.weather_off_sr),
-)
-private val AMBIENT_DENSITY_OPTIONS = listOf(
-    Segment(StyleSchema.AMBIENT_FULL, R.string.ambient_full, R.string.ambient_full_sr),
-    Segment(StyleSchema.AMBIENT_HALF, R.string.ambient_half, R.string.ambient_half_sr),
-    Segment(StyleSchema.AMBIENT_AUTO, R.string.ambient_auto, R.string.ambient_auto_sr),
-)
-private val MIDNIGHT_OPTIONS = listOf(
-    Segment(StyleSchema.MIDNIGHT_AS_00, R.string.midnight_00, R.string.midnight_00_sr),
-    Segment(StyleSchema.MIDNIGHT_AS_24, R.string.midnight_24, R.string.midnight_24_sr),
-)
-// Each cell wears its own hue, which says more than a name does and survives the loss of the
-// swatch that a full-width chip had room for.
-private val PALETTE_OPTIONS = listOf(
-    Segment(
-        Palette.ID_AMBER, R.string.editor_seg_palette_amber, R.string.palette_amber_sr,
-        Color(Palette.ALERT_AMBER),
-    ),
-    Segment(
-        Palette.ID_GREEN, R.string.editor_seg_palette_green, R.string.palette_green_sr,
-        Color(Palette.PHOSPHOR_GREEN),
-    ),
-    Segment(
-        Palette.ID_RED, R.string.editor_seg_palette_red, R.string.palette_red_sr,
-        Color(Palette.NVG_RED),
-    ),
-)
-private val TEMP_OPTIONS = listOf(
-    Segment(
-        StyleSchema.TEMP_CELSIUS, R.string.editor_seg_temp_celsius, R.string.temp_celsius_sr
-    ),
-    Segment(
-        StyleSchema.TEMP_FAHRENHEIT, R.string.editor_seg_temp_fahrenheit,
-        R.string.temp_fahrenheit_sr,
-    ),
-)
-private val PRESSURE_OPTIONS = listOf(
-    Segment(StyleSchema.PRESSURE_HPA, R.string.editor_seg_pressure_hpa, R.string.pressure_hpa_sr),
-    Segment(
-        StyleSchema.PRESSURE_MMHG, R.string.editor_seg_pressure_mmhg, R.string.pressure_mmhg_sr
-    ),
-)

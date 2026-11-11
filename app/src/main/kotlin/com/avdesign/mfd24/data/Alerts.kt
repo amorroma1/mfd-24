@@ -10,7 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.util.Log
+import com.avdesign.mfd24.Diag
 
 /**
  * The short beep-and-buzz that marks the start and the end of a watch.
@@ -60,11 +60,11 @@ object Alerts {
             Handler(Looper.getMainLooper()).postDelayed(
                 {
                     runCatching { generator.startTone(ToneGenerator.TONE_PROP_BEEP, TONE_MILLIS) }
-                        .onFailure { Log.w(TAG, "startTone refused", it) }
+                        .onFailure { Diag.w(TAG, "startTone refused", it) }
                 },
                 WARM_UP_MILLIS,
             )
-        }.onFailure { Log.w(TAG, "Could not sound the watch tone", it) }
+        }.onFailure { Diag.w(TAG, "Could not sound the watch tone", it) }
     }
 
     private fun vibrate(context: Context, amplitude: Int) {
@@ -72,7 +72,7 @@ object Alerts {
             val vibrator = context.getSystemService(Vibrator::class.java) ?: return
             if (!vibrator.hasVibrator()) return
             vibrator.vibrate(VibrationEffect.createOneShot(VIBRATION_MILLIS, amplitude))
-        }.onFailure { Log.w(TAG, "Could not vibrate", it) }
+        }.onFailure { Diag.w(TAG, "Could not vibrate", it) }
     }
 
     private const val TONE_VOLUME = 90

@@ -155,6 +155,25 @@ class VigilanceStore(context: Context) {
     fun logHeartRate(fallback: Boolean): Boolean =
         runCatching { prefs.getBoolean(KEY_LOG_HR, fallback) }.getOrDefault(fallback)
 
+    /**
+     * The dial's last pulse, written by [SensorSlots] at most once a minute while `LOG PULSE` is
+     * on, and read by the service only when an incident is being recorded — under
+     * [IncidentLog.referenceUsable], which is where the "before the check" and "not older than a
+     * day" rules live.
+     */
+    fun noteReferencePulse(bpm: Int, atMillis: Long) {
+        runCatching {
+            prefs.edit().putInt(KEY_REFERENCE_BPM, bpm).putLong(KEY_REFERENCE_AT, atMillis).apply()
+        }
+    }
+
+    fun referenceBpm(): Int =
+        runCatching { prefs.getInt(KEY_REFERENCE_BPM, IncidentRecord.NO_BPM) }
+            .getOrDefault(IncidentRecord.NO_BPM)
+
+    fun referenceAtMillis(): Long =
+        runCatching { prefs.getLong(KEY_REFERENCE_AT, 0L) }.getOrDefault(0L)
+
     companion object {
         private const val TAG = "Vigilance"
         private const val PREFS_NAME = "mfd24_vigilance"
@@ -166,6 +185,8 @@ class VigilanceStore(context: Context) {
         private const val KEY_AMPLITUDE = "vibe_amplitude"
         private const val KEY_TONE_VOLUME = "sos_volume"
         private const val KEY_LOG_HR = "log_heart_rate"
+        private const val KEY_REFERENCE_BPM = "reference_bpm"
+        private const val KEY_REFERENCE_AT = "reference_at"
 
         /**
          * Kept here as the one name the rest of the code reaches for. The arithmetic itself moved

@@ -50,8 +50,8 @@ class TextBufTest {
         val buf = TextBuf(32)
         buf.clear()
             .lit(TextBuf.LIT_ZULU).pad2(18).lit(TextBuf.MONTHS[7]).space()
-            .pad2(18).ch(':').pad2(42).ch(':').pad2(15)
-        assertEquals("Z 18AUG 18:42:15", buf.render())
+            .pad2(18).ch(':').pad2(42)
+        assertEquals("Z 18AUG 18:42", buf.render())
 
         buf.clear().lit(TextBuf.LIT_SOL).uint(54_321L)
         assertEquals("SOL 54321", buf.render())

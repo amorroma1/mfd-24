@@ -122,24 +122,32 @@ proprie build per smanettare — e restateci.
 
 ## Aggiornare
 
-L'orologio ti dirà che esiste una nuova release. Non la installerà, e non finge di poterlo fare.
+L'orologio vi dirà che esiste una nuova release. Non la installerà, e non finge di poterlo fare.
 
 - **Una volta al giorno, fuori turno, chiede a GitHub se esiste qualcosa di più recente.** Un
-  piccolo corpo JSON. **Non scarica mai nulla.** Mai durante un turno, e
-  **ABOUT → RELEASE CHECK** disattiva tutto.
-- **Una notifica per release**, e **ABOUT → RELEASES** nomina quella in attesa.
-- **Toccandolo compare la pagina della release come QR code.** Puntaci un telefono: note, SHA-256 e
-  APK sono su quella pagina, in un browser, a una dimensione leggibile.
-- **Poi installa nel modo ordinario**, da un computer:
+  piccolo corpo JSON. **Non scarica mai nulla.** Il controllo non gira mai mentre un turno è in
+  corso, e **ABOUT → RELEASE CHECK** lo disattiva del tutto.
+- **Una notifica per release**, e **ABOUT → RELEASES** nomina la versione ogni volta che ce n'è
+  una in attesa.
+- **Toccandolo compare la pagina della release come codice QR.** Puntateci un telefono: le note,
+  lo SHA-256 e l'APK sono tutti su quella pagina, in un browser, a una dimensione che una persona
+  riesce davvero a leggere.
+- **Poi installatela nel modo ordinario**, da un computer:
 
   ```
   adb install -r app-earth-release.apk
   ```
 
-**Perché non dall'orologio?** Perché Wear OS non lo consente: la sessione viene applicata, la
-piattaforma chiede conferma, e il suo installer risponde *"Install/Uninstall actions not supported
-on Wear"* — verificato sull'emulatore API 30 e su un TicWatch Pro 3 Ultra con Wear 3.5. Ogni
-scorciatoia è chiusa a un'app ordinaria.
+**Perché non dall'orologio?** Perché Wear OS non lo consente. La sessione di installazione viene
+applicata, la piattaforma chiede conferma, e il suo stesso installer risponde *"Install/Uninstall
+actions not supported on Wear"* — verificato sull'emulatore API 30 e su un TicWatch Pro 3 Ultra
+con Wear 3.5. Ogni scorciatoia è chiusa a un'app ordinaria, quindi il pulsante che stava qui era
+un pulsante che non poteva funzionare, e il muro di note di release accanto era un muro di testo su
+uno schermo da 1,2 pollici. Entrambi sono spariti; il QR è ciò che li ha sostituiti.
+
+*(Se un APK è già sull'orologio, fare `adb push` verso `/data/local/tmp/` e poi
+`adb shell pm install -r /data/local/tmp/…` — quel percorso funziona dove `/sdcard` dà un rifiuto
+SELinux.)*
 
 ## Dopo l'installazione
 
@@ -147,9 +155,9 @@ scorciatoia è chiusa a un'app ordinaria.
   che serve al quadrante viene chiesto lì — la posizione per meteo, Nadir e l'aggancio del sito; i
   permessi dei sensori nel momento in cui si sceglie uno slot che ne richiede uno.
   All'installazione non viene chiesto nulla. La tabella completa dei permessi è nel
-  [README](../../README.md#permissions).
-- **Gli aggiornamenti** arrivano da soli — vedi [Aggiornare](#aggiornare) sopra; `adb install -r`
-  con la nuova release funziona sempre. Le impostazioni sopravvivono in entrambi i casi, tranne
-  nelle release che cambiano lo schema delle impostazioni, cosa che le note di release segnalano
-  quando accade.
+  [README](README.it.md#permissions).
+- **Gli aggiornamenti** si annunciano e aspettano — vedere [Aggiornare](#aggiornare) sopra;
+  `adb install -r` con la nuova release funziona comunque sempre. Le impostazioni sopravvivono
+  in entrambi i casi, tranne nelle release che cambiano lo schema delle impostazioni, cosa che le
+  note di release segnalano quando accade.
 - **Nessuna app companion, nessun account.** L'APK è l'intero prodotto.

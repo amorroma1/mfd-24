@@ -3,6 +3,7 @@
 
 package com.avdesign.mfd24.export
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -19,6 +20,7 @@ import android.view.View
  * time one was fixed. The bottom caption is a function so a caller whose status changes while
  * the code is up (the AFSK burst ending) redraws with `invalidate()` and nothing more.
  */
+@SuppressLint("ViewConstructor") // Built in code with its payload; it has no XML form to inflate.
 internal class QrPanelView(
     context: Context,
     payload: String,
@@ -46,8 +48,15 @@ internal class QrPanelView(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val handler = onTap ?: return super.onTouchEvent(event)
-        if (event.actionMasked == MotionEvent.ACTION_UP) handler()
+        if (onTap == null) return super.onTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP) performClick()
+        return true
+    }
+
+    /** The tap goes through here so an accessibility service's click reaches the same handler. */
+    override fun performClick(): Boolean {
+        super.performClick()
+        onTap?.invoke()
         return true
     }
 

@@ -4,14 +4,14 @@
 package com.avdesign.mfd24.data
 
 import android.content.Context
-import android.util.Log
 import androidx.health.services.client.HealthServices
 import androidx.health.services.client.PassiveListenerCallback
 import androidx.health.services.client.clearPassiveListenerCallback
-import androidx.health.services.client.getCapabilities
 import androidx.health.services.client.data.DataPointContainer
 import androidx.health.services.client.data.DataType
 import androidx.health.services.client.data.PassiveListenerConfig
+import androidx.health.services.client.getCapabilities
+import com.avdesign.mfd24.Diag
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -70,7 +70,7 @@ class DailySteps(context: Context) {
                     // Logged as well as used: whether this watch's provider sends the day's total
                     // or something else is the one fact that decides whether the platform path is
                     // worth having at all, and it cannot be read off the dial.
-                    Log.i(TAG, "daily steps from the platform: $value")
+                    Diag.i(TAG, "daily steps from the platform: $value")
                     if (value in 0..MAX_PLAUSIBLE) onSteps(value.toInt())
                 }
             }
@@ -81,12 +81,12 @@ class DailySteps(context: Context) {
                 runCatching {
                     val supported = client.getCapabilities()
                         .supportedDataTypesPassiveMonitoring
-                    Log.i(
+                    Diag.i(
                         TAG,
                         "STEPS_DAILY supported: " + supported.contains(DataType.STEPS_DAILY) +
                             "; provider offers " + supported.size + " passive types",
                     )
-                }.onFailure { Log.w(TAG, "could not read Health Services capabilities", it) }
+                }.onFailure { Diag.w(TAG, "could not read Health Services capabilities", it) }
             }
             client.setPassiveListenerCallback(
                 PassiveListenerConfig.builder()
@@ -104,7 +104,7 @@ class DailySteps(context: Context) {
             // The keep rules in proguard-rules.pro fix the cause; this catches the class of
             // failure. An optional row's provider must never be able to take the dial down, and
             // there is a working fallback one line below.
-            Log.w(TAG, "no daily steps from Health Services; falling back to the counter", t)
+            Diag.w(TAG, "no daily steps from Health Services; falling back to the counter", t)
             false
         }
     }
@@ -121,7 +121,7 @@ class DailySteps(context: Context) {
                 HealthServices.getClient(appContext)
                     .passiveMonitoringClient
                     .clearPassiveListenerCallback()
-            }.onFailure { Log.w(TAG, "could not unsubscribe from daily steps", it) }
+            }.onFailure { Diag.w(TAG, "could not unsubscribe from daily steps", it) }
         }
     }
 

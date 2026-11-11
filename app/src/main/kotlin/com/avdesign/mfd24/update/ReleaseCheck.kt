@@ -3,13 +3,13 @@
 
 package com.avdesign.mfd24.update
 
-import android.util.Log
 import com.avdesign.mfd24.BuildConfig
-import org.json.JSONException
-import org.json.JSONObject
+import com.avdesign.mfd24.Diag
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import org.json.JSONException
+import org.json.JSONObject
 
 /**
  * Asks GitHub what the latest release of this face is.
@@ -74,7 +74,7 @@ object ReleaseCheck {
                 setRequestProperty("User-Agent", USER_AGENT)
             }
             if (connection.responseCode !in 200..299) {
-                Log.w(TAG, "release check got HTTP ${connection.responseCode}")
+                Diag.w(TAG, "release check got HTTP ${connection.responseCode}")
                 return null
             }
             parse(
@@ -83,7 +83,7 @@ object ReleaseCheck {
                 BuildConfig.UPDATE_ASSET,
             )
         } catch (e: IOException) {
-            Log.w(TAG, "release check failed", e)
+            Diag.w(TAG, "release check failed", e)
             null
         } finally {
             connection?.disconnect()
@@ -113,7 +113,7 @@ object ReleaseCheck {
             }
             null
         } catch (e: JSONException) {
-            Log.w(TAG, "release payload did not parse", e)
+            Diag.w(TAG, "release payload did not parse", e)
             null
         }
     }

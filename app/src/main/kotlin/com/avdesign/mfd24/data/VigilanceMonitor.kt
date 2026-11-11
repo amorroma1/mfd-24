@@ -6,6 +6,7 @@ package com.avdesign.mfd24.data
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.avdesign.mfd24.Diag
 
 /**
  * The handle on vigilance monitoring: process-wide state the renderer reads, and the three commands
@@ -153,7 +154,7 @@ class VigilanceMonitor private constructor(context: Context) {
 
     private fun send(intent: Intent) {
         runCatching { appContext.startForegroundService(intent) }
-            .onFailure { Log.w(TAG, "Could not reach the vigilance service", it) }
+            .onFailure { Diag.w(TAG, "Could not reach the vigilance service", it) }
     }
 
     companion object {

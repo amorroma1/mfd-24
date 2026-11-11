@@ -3,6 +3,7 @@
 
 package com.avdesign.mfd24.render
 
+import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.RectF
@@ -91,8 +92,9 @@ class Geometry {
 
     /**
      * Hand silhouettes, built pointing straight up from the hub; the renderer rotates the canvas
-     * around it. These are *stroked*, not filled — the readout sits under the hands, and a solid
-     * hand crossing it takes a line of type with it.
+     * around it. These are contours, not solids — the readout sits under the hands, and a solid
+     * hand crossing it takes a line of type with it. Drawn through [hourHandRing], never stroked
+     * directly; see there for why.
      */
     val hourHand: Path = Path()
     val minuteHand: Path = Path()
@@ -110,38 +112,50 @@ class Geometry {
     val dutyArcRadius: Float
         get() = r * DUTY_ARC_RADIUS
 
-    /** Hollow outlines used in ambient mode, where filled hands would burn the panel. */
-    val hourHandOutline: Path = Path()
-    val minuteHandOutline: Path = Path()
+    /**
+     * The contour of each hand as a *filled* shape: [hourHand] stroked once, here, and kept as
+     * the fill that stroke covers. [Paint.getFillPath] does the stroking, once per layout, so
+     * the interactive sprite in [HandsLayer] and the ambient contour are fills of one definition
+     * rather than a stroke whose weight is set again at every draw. Note that this alone bought
+     * nothing on the watch: a fill of this many verbs is still a software mask to Skia, which is
+     * why the interactive hands are sprites. The reasoning is kept with [HandsLayer].
+     */
+    val hourHandRing: Path = Path()
+    val minuteHandRing: Path = Path()
+
+    /** The same contours at ambient weight, where filled hands would burn the panel. */
+    val hourHandAmbientRing: Path = Path()
+    val minuteHandAmbientRing: Path = Path()
+
+    /** Strokes a silhouette into its ring; declared above the init that first uses it. */
+    private val contourPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
 
     // --- Telemetry readout -----------------------------------------------------------------
 
     /**
-     * Baselines of the four readout lines — ZULU and duty above the hub, the two data rows below —
-     * all set in one size and one weight, because with no window and no frame the type itself has
-     * to carry the structure.
+     * Baselines of the four readout lines — duty and ZULU above the hub, the two data rows below —
+     * and the one size every row on the dial is set in, because with no window and no frame the
+     * type itself has to carry the structure. See [TEXT_SIZE] and [LINE_PITCH].
      */
     val telemetryLineY: FloatArray = FloatArray(4)
     var telemetryTextSize: Float = 0f
         private set
 
-    /** Baseline and size of the battery row, below the readout block. */
+    /** Baseline of the battery row, one pitch under the readout block. */
     var batteryLineY: Float = 0f
         private set
-    var batteryTextSize: Float = 0f
-        private set
 
-    /** Status line above the readout, drawn only when the vigilance monitor has something to say. */
+    /** Status line one pitch over the readout, drawn only when the vigilance monitor has something to say. */
     var statusLineY: Float = 0f
 
-    /** The two optional sensor readouts either side of the hub: one line each, one size. */
+    /** The two optional sensor readouts either side of the hub, on the hub's own baseline. */
     var sensorLineY: Float = 0f
     var sensorOffsetX: Float = 0f
-    var sensorTextSize: Float = 0f
     var sensorGlyphSize: Float = 0f
     var sensorGlyphGap: Float = 0f
-        private set
-    var statusTextSize: Float = 0f
         private set
 
     /**
@@ -192,7 +206,7 @@ class Geometry {
         cardinalTickWidth = r * 0.032f
         minuteTickWidth = r * 0.008f
         minuteFiveTickWidth = r * 0.021f
-        hourLabelSize = r * 0.095f
+        hourLabelSize = r * HOUR_LABEL_SIZE
         ringWidth = r * 0.008f
 
         setRadius(outerRing, RING_RADIUS)
@@ -332,11 +346,21 @@ class Geometry {
         buildSolid(hourHand, hLen, SOLID_TIP_HOUR, hourHandSolid)
         buildSolid(minuteHand, mLen, SOLID_TIP_MINUTE, minuteHandSolid)
 
-        // Ambient variants are the same silhouettes; the renderer strokes rather than fills them,
-        // so a shared Path would be enough — separate copies keep the intent obvious and let the
-        // ambient shapes be simplified independently later.
-        hourHandOutline.set(hourHand)
-        minuteHandOutline.set(minuteHand)
+        // The contours as fills, at interactive and at ambient weight. Round joins on the
+        // interactive hand so the lance's point stays a point under a visible weight; mitred in
+        // ambient, where the hairline is too thin for the difference to show.
+        strokeToFill(hourHand, HAND_OUTLINE_WIDTH, Paint.Join.ROUND, hourHandRing)
+        strokeToFill(minuteHand, HAND_OUTLINE_WIDTH, Paint.Join.ROUND, minuteHandRing)
+        strokeToFill(hourHand, AMBIENT_HAND_WIDTH, Paint.Join.MITER, hourHandAmbientRing)
+        strokeToFill(minuteHand, AMBIENT_HAND_WIDTH, Paint.Join.MITER, minuteHandAmbientRing)
+    }
+
+    /** [src] stroked at [width] (a fraction of the radius), as the shape that stroke covers. */
+    private fun strokeToFill(src: Path, width: Float, join: Paint.Join, out: Path) {
+        contourPaint.strokeWidth = r * width
+        contourPaint.strokeJoin = join
+        out.reset()
+        contourPaint.getFillPath(src, out)
     }
 
     /** Intersects [silhouette] with a band at the point and another below the hub. */
@@ -366,14 +390,11 @@ class Geometry {
         }
 
         batteryLineY = cy + r * BATTERY_BASELINE
-        batteryTextSize = r * BATTERY_TEXT_SIZE
-        statusTextSize = r * STATUS_TEXT_SIZE
         statusLineY = cy + r * STATUS_BASELINE
 
         sensorLineY = cy + r * SENSOR_BASELINE
         sensorOffsetX = r * SENSOR_OFFSET_X
-        sensorTextSize = r * SENSOR_TEXT_SIZE
-        sensorGlyphSize = r * SENSOR_TEXT_SIZE * SENSOR_GLYPH_RATIO
+        sensorGlyphSize = r * TEXT_SIZE * SENSOR_GLYPH_RATIO
         sensorGlyphGap = r * SENSOR_GLYPH_GAP
 
         val symbolSize = r * SYMBOL_SIZE
@@ -396,8 +417,8 @@ class Geometry {
             (cx + r * 0.45f).toInt(), (cy + r * 0.45f).toInt(),
         )
         a11yStatusBounds.set(
-            (cx - r * 0.45f).toInt(), (statusLineY - statusTextSize * 1.2f).toInt(),
-            (cx + r * 0.45f).toInt(), (statusLineY + statusTextSize * 0.4f).toInt(),
+            (cx - r * 0.45f).toInt(), (statusLineY - telemetryTextSize * 1.2f).toInt(),
+            (cx + r * 0.45f).toInt(), (statusLineY + telemetryTextSize * 0.4f).toInt(),
         )
     }
 
@@ -441,24 +462,42 @@ class Geometry {
 
         /**
          * The readout is bare type on the dial — no window, no frame — split either side of the
-         * hub: ZULU above, the reference frame and the situational data below. Offsets are signed,
-         * measured from the centre.
+         * hub: duty and ZULU above, weather and site below, the two sensor slots on the hub's own
+         * line, the battery a step under the block and the vigilance status a step over it.
+         * Offsets are signed, measured from the centre.
          *
-         * ### Why these numbers
-         * The type is sized from the longest line the readout can produce. Two tie at 16
-         * characters: the zulu row with its date-time group, `Z 18AUG 18:42:15`, and the Earth
-         * weather row `-40°C TSGR Q1013`, which also carries the reference-frame symbol in front of
-         * it and is therefore the wider of the two. `DUTY: 03:42 REM` is 15, and the site row is
-         * shorter still even with a six-character code and a pictogram.
+         * ### One size, and it is the numerals'
+         * Every piece of type on the dial is set at one em: the hour numerals at
+         * [HOUR_LABEL_SIZE], and every readout row — duty, ZULU, the sensor slots, weather, site,
+         * battery, the vigilance status — at [TEXT_SIZE], which *is* that figure. Until
+         * 2026-11-06 the readout carried four sizes (0.096, 0.086 for the slots and the battery,
+         * 0.078 for the status word), each sized to its own row's width budget, and together a
+         * panel the eye re-focused for at every line. One size was the fix; the first attempt at
+         * it, 0.112 for everything, was wrong in the other direction and lasted an afternoon: the
+         * readout outgrew the dial's own figures by a sixth and ran to within five pixels of
+         * them, and beside the Mars face, whose rows were still at 0.096, it looked crowded. The
+         * dial is the instrument and the readout is printed on it; the type inside must not be
+         * larger than the figures round the edge. Colour and weight carry the hierarchy, as they
+         * already did.
          *
-         * Monospace advance is 0.60 em, so a 16-character line is 9.6 × [TEXT_SIZE] wide. A
+         * ### The width budget
+         * Monospace advance is 0.60 em, so n characters are 0.6 × n × [TEXT_SIZE] wide; a
          * horizontal line at vertical offset y with half-width w reaches radius sqrt(w² + y²) at
          * its corners, and that has to stay inside the hour numerals, whose inner edge sits at
-         * about 0.632 r. With the outer rows spread out the four corners land within a whisker of
-         * each other at about 0.57 r, leaving roughly 0.065 r of clearance, or 15 px on a 454 px
-         * dial.
+         * [NUMERAL_INNER_EDGE]. The longest rows: the Earth weather row `-40°C TSGR Q1013` at 16,
+         * `DUTY: 03:42 REM` at 15, `Z 18AUG 18:42` at 13, the site row at a pictogram plus
+         * `ABANDO 5.0KM` — six characters is the longest code in the bundled data, and the lock
+         * radius keeps the distance under ten — `ACKNOWLEDGE` at 11, and `BAT 100%` and
+         * `QFE 1013` at 8. The four readout rows clear the numerals by thirteen pixels and more
+         * on a 454 px dial; the battery, a pitch further out, by five, and a pressure slot by six.
+         * `GeometryBudgetTest` re-derives every corner from these constants.
+         *
+         * 0.095 was the numerals' size as the dial shipped; 0.100 is one hundredth up at the
+         * user's word, having seen 0.095 on the wrist — a pixel of em on a 454 px dial, the
+         * numerals and the readout moving together so the one size stays one.
          */
-        internal const val TEXT_SIZE = 0.096f
+        internal const val HOUR_LABEL_SIZE = 0.100f
+        internal const val TEXT_SIZE = HOUR_LABEL_SIZE
 
         /**
          * Monospace advance, the figure every width above is written in. Owned here rather than in
@@ -478,32 +517,37 @@ class Geometry {
         internal const val NUMERAL_INNER_EDGE = 0.632f
 
         /**
-         * Duty then ZULU above the hub; the two data rows below it.
+         * One pitch between every baseline on the dial, counted from the hub's own line.
          *
-         * The inner pair sits close in. Pushed further out the block reads as two separate
-         * captions with a bare stripe between them, rather than as one instrument panel with the
-         * hands running through it — and the stripe is the widest part of the dial, so it is the
-         * emptiness you notice first.
+         * Seven baselines — status, duty, ZULU, the sensor slots, weather, site, battery — at one
+         * spacing, so the block reads as ruled rather than placed. The type's cap height is about
+         * 0.72 em, 0.072 r, which leaves 0.103 r of air between lines, a cap and a half: the
+         * spacing the Mars face's upper pair had, and what makes the block read as set rather
+         * than stacked. The hub line is where a row of capitals is centred on the hub itself, half
+         * a cap above the baseline; the rows either side of it are then symmetric about the dial's
+         * centre, as the two pairs used to be by hand.
          *
-         * The outer pair is spread away from them to use the height the dial actually has. It can
-         * go about as far as 0.42 r before the corners of the longest row start crowding the hour
-         * numerals; these sit inside that with room to spare.
+         * The pitch is the largest the battery row allows: a pitch further out than the site row,
+         * at 0.175 its corner sits five pixels inside the numerals, and 0.180 puts it within two.
+         * Pulling the block in instead would spend the height the dial has on nothing.
          */
-        internal val LINE_BASELINES = floatArrayOf(-0.360f, -0.160f, 0.200f, 0.395f)
+        internal const val LINE_PITCH = 0.175f
+        internal const val HUB_BASELINE = 0.036f
+
+        /** Duty, ZULU, weather, site — two pitches above the hub line to two below. */
+        internal val LINE_BASELINES = floatArrayOf(
+            HUB_BASELINE - 2f * LINE_PITCH,
+            HUB_BASELINE - LINE_PITCH,
+            HUB_BASELINE + LINE_PITCH,
+            HUB_BASELINE + 2f * LINE_PITCH,
+        )
 
         /**
-         * The battery row, below the site row and outside the block the four lines form.
-         *
-         * 0.42 r is the limit for a *sixteen*-character line; `BAT 84%` is seven, which is what buys
-         * the extra distance. At [BATTERY_TEXT_SIZE] its half-width is 7 × 0.60 × 0.086 / 2 =
-         * 0.180 r, so the corner reaches sqrt(0.180² + 0.520²) = 0.550 r — inside the numerals'
-         * 0.632 r by more than the existing worst corner manages. Lengthen this row and that stops
-         * being true.
+         * The battery row, a pitch under the site row. Eight characters at most — `BAT 100%` —
+         * which is what lets it sit this far out: its corner reaches 0.608 r, and a sixteen-character
+         * row here would be into the numerals. Lengthen it and that stops being true.
          */
-        internal const val BATTERY_BASELINE = 0.520f
-
-        /** A step under the readout: it is a background figure, not one of the four data rows. */
-        internal const val BATTERY_TEXT_SIZE = 0.086f
+        internal const val BATTERY_BASELINE = HUB_BASELINE + 3f * LINE_PITCH
 
         /** The reference-frame symbol leads the first data row, a little taller than the type. */
         internal const val SYMBOL_SIZE = 0.104f
@@ -512,44 +556,33 @@ class Geometry {
          * The two optional readouts sit on the hub's own line, outboard of every other row.
          *
          * ### Why here
-         * This is the only clear ground left. The readout rows reach 0.42 r either side of centre
-         * at their widest, and they sit at -0.160 and +0.200; outside 0.42 r on the centre line
-         * there is nothing at all between the hub and the hour numerals. Nothing had to move.
+         * This is the only clear ground left: on the hub line there is nothing at all between the
+         * hub and the hour numerals.
          *
          * ### The arithmetic
          * The offset is set by the widest line, not by the shortest. `QFE 1013` is eight characters
-         * at 0.60 em of [SENSOR_TEXT_SIZE], which is 0.413 r wide and 0.206 r either side of its
-         * centre; at 0.364 r that puts the outer edge at 0.570 r, the same reach as the readout's
-         * own worst corner, and the inner edge at 0.158 r, well outside the hub. A pictogram slot
-         * takes about half the width and simply sits further in, which keeps the two symmetrical.
+         * at 0.60 em of [TEXT_SIZE], 0.480 r wide and 0.240 r either side of its centre; at 0.364 r
+         * that puts the outer edge at 0.604 r, six pixels short of the numerals — and on a noon-up
+         * dial `06` and `18` stand exactly there — and the inner edge at 0.124 r, well outside the
+         * hub. A pictogram slot takes about half the width and simply sits further in, which keeps
+         * the two symmetrical.
          *
          * Lengthen a slot past eight characters and the arithmetic stops holding, which is why
          * steps go to `12K` rather than running to five figures.
          */
         internal const val SENSOR_OFFSET_X = 0.364f
-        internal const val SENSOR_BASELINE = 0.030f
-
-        /**
-         * The same size as the battery row, and the only size in the slot.
-         *
-         * A pictogram over a value in two sizes was the first attempt and it was wrong: three type
-         * sizes stacked in one corner of a dial makes the eye re-focus for every reading, which is
-         * the opposite of what an instrument face is for. One line, one size, and the pictogram
-         * sized to the digits beside it.
-         */
-        internal const val SENSOR_TEXT_SIZE = 0.086f
+        internal const val SENSOR_BASELINE = HUB_BASELINE
 
         /** Glyph height against the type it sits with, and the space between the two. */
         private const val SENSOR_GLYPH_RATIO = 0.90f
         private const val SENSOR_GLYPH_GAP = 0.022f
 
         /**
-         * The vigilance status sits above the readout, smaller, and only appears when the monitor
-         * is doing something worth saying. Set in the smaller size so a thirteen-character word
-         * still clears the numerals this far out.
+         * The vigilance status, a pitch over the duty row, appears only when the monitor is doing
+         * something worth saying. `ACKNOWLEDGE` is the longest word, and clears the numerals by
+         * nine pixels this far out.
          */
-        internal const val STATUS_TEXT_SIZE = 0.078f
-        internal const val STATUS_BASELINE = -0.470f
+        internal const val STATUS_BASELINE = HUB_BASELINE - 3f * LINE_PITCH
 
         /**
          * Centre hub, as a fraction of the dial radius — about 9 dp across on a 454 px watch.
@@ -566,6 +599,9 @@ class Geometry {
 
         /** Contour weight of the skeletonised body: heavy enough to read, light enough to see past. */
         const val HAND_OUTLINE_WIDTH = 0.009f
+
+        /** The ambient contour, a shade heavier: it has to survive the dimmed palette. */
+        const val AMBIENT_HAND_WIDTH = 0.011f
 
         /**
          * Screen angle for an hour on the 24-hour dial, in radians clockwise from 12 o'clock.

@@ -252,7 +252,10 @@ and it should be asked for as one rather than inferred from a log that happens t
 #### The pulse in an entry
 
 With `LOG PULSE` on, an entry carries two heart rates instead of none: the one measured during the
-unanswered check, and the last one taken while the wearer was moving, with the instant it was taken.
+unanswered check, and the dial's own last reading from before the check went out, with the instant
+it was taken — borrowed from the always-on pulse slot rather than sampled by the monitor, so a watch
+on duty lights the LED only in the answer window. A reading from inside the answer window, or older
+than a day, is not used as a reference.
 The editor prints them under the time — `HR 41 · REF 58 20:12Z` — and the exported packet gives them
 their own columns.
 
@@ -429,12 +432,12 @@ unregistered outright rather than batching events nobody will read.
 
 ### The readout
 
-Bare type printed on the dial — no window, no fill, no frame — in one size and one weight, split
-either side of the hub:
+Bare type printed on the dial — no window, no fill, no frame — in one size and one weight, on one
+grid, split either side of the hub:
 
 ```
             DUTY: 07:50 REM
-         Z 22AUG 12:16:13
+         Z 22AUG 12:16
       ♥ 67   ( hub )   QFE 1013
            18°C OVC Q1018
           ✈ KJFK 0.2KM
@@ -442,13 +445,21 @@ either side of the hub:
 ```
 
 The zulu row carries an ICAO date-time group — day, three-letter month, time, all UTC — behind the
-bare `Z` prefix a date-time group actually uses. At 16 characters it ties with the weather row for
-the longest line the readout can produce, so it takes the inner slot of the upper block where the
-dial is widest.
+bare `Z` prefix a date-time group actually uses. It carries no seconds: the rim cursor already
+shows them while the screen is on, and in always-on the row is redrawn once a minute, so a seconds
+field there stood still and read as a stopped clock. Thirteen characters, in the inner slot of the
+upper block where the dial is widest.
 
-The type is sized from those two lines — `Z 22AUG 12:16:13` and `-40°C TSGR Q1013`, sixteen
-characters each — and placed so that even their corners clear the hour numerals with about 15 px to
-spare on a 454 px dial. `Geometry` carries the arithmetic.
+**One size for every piece of type on the dial**, the hour numerals included: `0.100 r`, about
+23 px on a 454 px dial, for the readout, the sensor slots beside the hub, the battery and the
+vigilance status alike. There were four sizes in the readout until November 2026, each chosen for
+its own row's width, and together they made a panel the eye re-focused for at every line; the
+hierarchy is carried by colour and weight instead, as it already was. The size is the numerals' on
+purpose: the dial is the instrument and the readout is printed on it, so the type inside is never
+larger than the figures round the edge. The seven baselines sit on one pitch of `0.175 r` counted
+from the hub's own line, a cap and a half of air between lines, so the block reads as ruled rather
+than placed. `Geometry` carries the arithmetic and `GeometryBudgetTest` re-derives it from the
+shipped constants.
 
 Each glyph is laid down twice, first as a background-coloured outline and then as fill. The dial
 carries no NOON/MORN/EVE/MIDNIGHT wording: the heavy cardinal ticks and the numerals already say it.
@@ -457,7 +468,10 @@ The hands are skeletons for the same reason — a thin contour along the body, s
 and the counterweight. Printed type under a filled hand is simply gone for part of every hour;
 hollowed out, it reads straight through the shaft while the solid tip still lands unambiguously on a
 mark. The solid caps are cut from the silhouettes with a path intersection rather than drawn
-separately, so they cannot drift out of register with the outline.
+separately, so they cannot drift out of register with the outline. On screen the interactive
+hands come from two small cached bitmaps rendered from those same paths at twice the panel's
+density and drawn rotated: the platform's renderer was rasterising the rotating contours on the
+CPU afresh every second, and a sprite costs it nothing. Always-on still draws the paths.
 
 The moon on the sky ring is drawn as a path, for the same reason the site pictograms are: font
 coverage for astronomical code points on Wear OS is no more reliable than it is for emoji. Its
@@ -586,7 +600,7 @@ type and a flag bitfield, and the two together pick the pictogram:
 | spaceport | launch complex | launch complex |
 
 **Military sites are drawn in the palette's accent colour**, civil ones in the primary. That is what
-actually carries the distinction: the glyph box is `0.096 r`, about 22 device pixels, and a
+actually carries the distinction: the glyph box is `0.100 r`, about 23 device pixels, and a
 silhouette that size can just about say "ship" or "rotorcraft" — asking it to also say "military"
 costs more than it buys. The silhouettes still differ and confirm it close up, but colour is what
 reads at a glance, works at any size, and covers the spaceport, where both owners share one shape.
@@ -692,12 +706,24 @@ barometer at this size would say less than three characters do. A reading taken 
 greyed out in the other — two copies of the same number is never what was meant, and a pair of
 slots showing one thing has thrown the pair away.
 
-**They run only while the screen is on.** Heart rate means lighting an optical LED against the skin
-and keeping it lit; left registered it would run for the whole watch and buy nothing, because a
-number nobody is looking at is not information. So the registration follows the watch face's own
-visibility. The consequence to know about is that a value takes a moment to arrive — optical heart
-rate needs several seconds to lock from cold — so a slot shows `--` first and fills in. That is
-honest, and better than a number from ten minutes ago presented as now.
+**They run only while the screen is on, and the pulse is re-read once a minute in always-on.**
+Heart rate means lighting an optical LED against the skin and keeping it lit; left registered it
+would run for the whole watch and buy nothing, because a number nobody is looking at is not
+information. So the registration follows the watch face's own visibility. The consequence to know
+about is that a value takes a moment to arrive — optical heart rate needs several seconds to lock
+from cold — so a slot shows `--` first and fills in. That is honest, and better than a number from
+ten minutes ago presented as now.
+
+Always-on is where that last sentence used to be broken: the sensor was off and the slot kept the
+figure from when the wrist was last raised, for as long as the screen stayed dim. Now each minute's
+ambient redraw opens a *window* — the LED until the first plausible reading or fifteen seconds,
+whichever comes first — and the slot redraws with the figure. A reading older than three minutes
+comes off the dial as `--`, and no window opens while the watch is off the wrist, where the LED
+would light against a table all night for nothing. Fifteen seconds is a measurement: on a lowered,
+still wrist the sensor locks in seven to eleven, and on a wrist that is walking or typing it does
+not lock in thirty either, so `--` on the move is the honest answer and the window is sized for
+the case it can win. The cost is the LED for up to a quarter of every always-on minute; the number
+it buys is one taken within the last minute.
 
 `QFE` is the one that always works, and it is a different reading from the `Q` on the weather row:
 that is sea-level pressure for the nearest station, over the network, and this is the air where you
@@ -879,7 +905,7 @@ The face never prints placeholder dashes; a row simply is not there. So:
 
 ## Tests
 
-`gradlew :app:testEarthDebugUnitTest` — **178 JVM tests** in 31 classes. Everything with arithmetic
+`gradlew :app:testEarthDebugUnitTest` — **192 JVM tests** in 33 classes. Everything with arithmetic
 in it sits behind a pure, Android-free function so it can be pinned here rather than eyeballed on a
 wrist, and several of these tests exist to stop a specific bug coming back rather than to describe a
 feature:

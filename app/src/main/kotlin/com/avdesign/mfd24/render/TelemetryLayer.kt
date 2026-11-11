@@ -22,15 +22,18 @@ import kotlin.math.roundToInt
 /**
  * The readout printed on the dial.
  *
- * Bare type — no window, no fill, no frame — set in one size and one weight, split either side of
- * the hub. It is drawn under the hands, the way dial text always is, and each glyph is laid down
- * twice, first as a background-coloured outline and then as fill, so it separates cleanly from the
- * ticks and the duty arc.
+ * Bare type — no window, no fill, no frame — set in one size and one weight, on one grid, split
+ * either side of the hub. One size means one: the sensor slots, the battery row and the vigilance
+ * status are set at the readout's [Geometry.TEXT_SIZE] too, and nothing here changes `textSize`
+ * after the first frame's setup. Colour and weight carry the hierarchy. It is drawn under the
+ * hands, the way dial text always is, and each glyph is laid down twice, first as a
+ * background-coloured outline and then as fill, so it separates cleanly from the ticks and the
+ * duty arc.
  *
  * ```
  *                  EARTH                  MARS               MOON
  *   above  row 1   DUTY: 03:42 REM        DUTY: 03:42 REM    OFF-DUTY
- *          row 2   Z 18AUG 18:42:15       Z 18AUG 18:42      Z 18AUG 18:42
+ *          row 2   Z 18AUG 18:42          Z 18AUG 18:42      Z 18AUG 18:42
  *   below  row 3   ♁ -4°C OVC Q1013       ♂ SOL 54321        ☾ LUNAR DAY 20834
  *          row 4   ✈ SVO 4.2KM            MTC 18:42          LTC 18:42
  * ```
@@ -287,9 +290,6 @@ class TelemetryLayer {
                 canvas, g, palette, state, rightKind, g.cx + g.sensorOffsetX, 1, layoutGeneration
             )
         }
-        // Put the shared paints back: every other row assumes the readout size.
-        textPaint.textSize = g.telemetryTextSize
-        haloPaint.textSize = g.telemetryTextSize
     }
 
     /**
@@ -311,8 +311,6 @@ class TelemetryLayer {
         layoutGeneration: Int,
     ) {
         buildSensorValue(state, kind)
-        textPaint.textSize = g.sensorTextSize
-        haloPaint.textSize = g.sensorTextSize
         textPaint.color = palette.lumeSoft
 
         // Station pressure has no pictogram, so it leads with its own name and the line is centred
@@ -322,7 +320,7 @@ class TelemetryLayer {
             return
         }
 
-        val textWidth = sensor.length * g.sensorTextSize * Geometry.MONO_ADVANCE
+        val textWidth = sensor.length * g.telemetryTextSize * Geometry.MONO_ADVANCE
         val shift = (g.sensorGlyphSize + g.sensorGlyphGap) * 0.5f
         drawSensorGlyph(
             canvas, g, palette, kind, x - (textWidth + g.sensorGlyphGap) * 0.5f,
@@ -355,7 +353,7 @@ class TelemetryLayer {
             val half = g.sensorGlyphSize * 0.5f
             // Centred on the type's own optical middle rather than sitting on the baseline, so the
             // glyph and the digits read as one line and not as a picture with a caption.
-            val middle = g.sensorLineY - g.sensorTextSize * CAP_MIDDLE
+            val middle = g.sensorLineY - g.telemetryTextSize * CAP_MIDDLE
             sensorGlyphBox.set(centreX - half, middle - half, centreX + half, middle + half)
             if (kind == SLOT_HEART_RATE) {
                 Glyphs.buildHeart(sensorGlyphBox, path)
@@ -420,16 +418,12 @@ class TelemetryLayer {
         val low = percent < LOW_BATTERY_PERCENT
         textPaint.typeface = if (low) monoBold else Typeface.MONOSPACE
         haloPaint.typeface = textPaint.typeface
-        textPaint.textSize = g.batteryTextSize
-        haloPaint.textSize = g.batteryTextSize
         textPaint.color = palette.lumeDim
         drawHaloed(canvas, battery, g.cx, g.batteryLineY)
 
-        // Put the shared paints back: every other row assumes the regular face at the readout size.
+        // Put the shared paints back: every other row assumes the regular face.
         textPaint.typeface = Typeface.MONOSPACE
         haloPaint.typeface = Typeface.MONOSPACE
-        textPaint.textSize = g.telemetryTextSize
-        haloPaint.textSize = g.telemetryTextSize
     }
 
     /**
@@ -463,17 +457,12 @@ class TelemetryLayer {
             VigilanceState.OFF_BODY -> TextBuf.LIT_OFF_WRIST
             else -> return
         }
-        textPaint.textSize = g.statusTextSize
-        haloPaint.textSize = g.statusTextSize
         // Off the wrist is information, not an alert; the accent is reserved for the three states
         // that are asking something of somebody.
         textPaint.color =
             if (status == VigilanceState.OFF_BODY) palette.lumeDim else palette.second
         canvas.drawText(label, 0, label.size, g.cx, g.statusLineY, haloPaint)
         canvas.drawText(label, 0, label.size, g.cx, g.statusLineY, textPaint)
-
-        textPaint.textSize = g.telemetryTextSize
-        haloPaint.textSize = g.telemetryTextSize
     }
 
     /** Outline first, then fill — [textPaint]'s colour must already be set. */
@@ -549,9 +538,9 @@ class TelemetryLayer {
             .pad2(daySeconds / 3600)
             .ch(':')
             .pad2((daySeconds / 60) % 60)
-        if (planetMode == PlanetMode.EARTH) {
-            zulu.ch(':').pad2(daySeconds % 60)
-        }
+        // No seconds, on any world. Interactive, the rim cursor already carries them; in always-on
+        // the row is redrawn once a minute, so a seconds field there stood still and lied.
+        // Thirteen characters instead of sixteen is what pays for the row's larger size.
 
         line1.clear()
         line2.clear()

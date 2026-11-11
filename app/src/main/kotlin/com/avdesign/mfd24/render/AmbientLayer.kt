@@ -34,10 +34,8 @@ import com.avdesign.mfd24.text.TextBuf
  */
 class AmbientLayer {
 
-    private val handPaint = Paint().apply {
-        style = Paint.Style.STROKE
-        strokeJoin = Paint.Join.MITER
-    }
+    /** A fill: the ambient contour is [Geometry.hourHandAmbientRing], stroked once at layout. */
+    private val handPaint = Paint().apply { style = Paint.Style.FILL }
     private val tickPaint = Paint().apply { strokeCap = Paint.Cap.BUTT }
     private val hubPaint = Paint().apply { style = Paint.Style.STROKE }
     private val textPaint = Paint().apply {
@@ -190,15 +188,14 @@ class AmbientLayer {
             watchRemainingStartAngle, dutyRemainingSweep, antiAlias,
         )
 
-        handPaint.strokeWidth = g.r * 0.011f
         canvas.save()
         canvas.rotate(hourAngle, g.cx, g.cy)
-        canvas.drawPath(g.hourHandOutline, handPaint)
+        canvas.drawPath(g.hourHandAmbientRing, handPaint)
         canvas.restore()
 
         canvas.save()
         canvas.rotate(minuteAngle, g.cx, g.cy)
-        canvas.drawPath(g.minuteHandOutline, handPaint)
+        canvas.drawPath(g.minuteHandAmbientRing, handPaint)
         canvas.restore()
 
         hubPaint.strokeWidth = g.r * 0.010f

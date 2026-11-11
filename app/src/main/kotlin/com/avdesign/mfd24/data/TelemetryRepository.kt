@@ -5,7 +5,7 @@ package com.avdesign.mfd24.data
 
 import android.content.Context
 import android.location.Location
-import android.util.Log
+import com.avdesign.mfd24.Diag
 import com.avdesign.mfd24.astro.SolarDay
 import com.avdesign.mfd24.astro.SolarTime
 import com.avdesign.mfd24.geo.PoiFormat
@@ -220,7 +220,7 @@ class TelemetryRepository private constructor(context: Context) {
         refreshLock.withLock {
             withContext(Dispatchers.IO) {
                 val outcome = refreshLocked(allowActiveFix, nowMillis)
-                Log.d(
+                Diag.d(
                     TAG,
                     "refresh(activeFix=$allowActiveFix) -> $outcome " +
                         "[site=${state.siteValid} weather=${state.weatherValid}]",
@@ -300,7 +300,7 @@ class TelemetryRepository private constructor(context: Context) {
         val sample = metarIcao()?.let { MetarClient.fetch(it, nowMillis) }
             ?: OpenMeteoClient.fetch(lat, lon, nowMillis)
         if (sample == null) {
-            Log.i(TAG, "Weather refresh failed; keeping the cached observation")
+            Diag.i(TAG, "Weather refresh failed; keeping the cached observation")
             return RefreshOutcome.NETWORK_ERROR
         }
         state.setWeather(

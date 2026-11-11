@@ -3,6 +3,7 @@
 
 package com.avdesign.mfd24.export
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
 import android.provider.Settings
@@ -30,6 +31,7 @@ class LogExportActivity : Activity() {
     /** Whether the burst is still sounding; drawn as the caption under the code. */
     private var sounding = false
 
+    @SuppressLint("HardwareIds") // The callsign is derived from ANDROID_ID on purpose: see Callsign.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

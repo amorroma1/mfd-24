@@ -13,8 +13,10 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import android.os.PowerManager
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import com.avdesign.mfd24.Diag
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
@@ -32,6 +34,28 @@ import java.util.concurrent.TimeUnit
  * The consequence to know about is that a value takes a moment to arrive. Optical heart rate needs
  * several seconds to lock from cold, so the readout shows `--` first and fills in. That is honest,
  * and better than showing a number from ten minutes ago as though it were now.
+ *
+ * ### Why always-on is a window a minute, and not nothing
+ * Always-on used to keep the sensor off and the slot's last number on, which was exactly the
+ * number from ten minutes ago presented as now: the figure read when the wrist was last raised
+ * stood on the dial for as long as the screen stayed dim, and the user saw it standing. The
+ * ambient face redraws once a minute, and that minute tick is the one clock a watch face has in
+ * Doze — an inexact alarm there is served every nine minutes — so [ambientMinute] is driven from
+ * the renderer's ambient frame and opens a *window*: a partial wake lock, because the pulse
+ * sensor on this watch is non-wakeUp and its events do not reach a suspended processor; the LED
+ * until the first plausible reading or [WINDOW_MILLIS], whichever is first; then a redraw with the
+ * figure. Two rules round it: a reading older than [STALE_MILLIS] is dashes, never a stale
+ * number, and no window opens off the wrist, where the LED would light against a table every
+ * minute all night for nothing.
+ *
+ * The window length was measured, not reasoned. Two and a half days of wear at thirty seconds:
+ * 747 windows, one a minute of always-on as intended, and 92 % of them ran to the timeout with
+ * nothing — a wrist that is walking or typing gives this sensor no lock in thirty seconds, and
+ * the LED burned the full thirty each time, 5 h 50 m in 62. On a lowered, still wrist every
+ * window locked in seven to eleven seconds, and of the windows that locked at all, 41 of 48 did
+ * so inside fifteen. So fifteen: nearly every lock that is going to come has come, and the
+ * minutes that were never going to lock cost half what they did. Dashes on the move are the
+ * honest answer — a wrist in motion gives this sensor nothing, whoever is asking.
  *
  * ### Where the step count comes from
  * From the platform, when the platform will give it: [DailySteps] subscribes to Health Services'
@@ -59,6 +83,12 @@ class SensorSlots(context: Context) : SensorEventListener {
         .createDeviceProtectedStorageContext()
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    /** Where an incident's reference pulse goes; see [noteReference]. */
+    private val vigilanceStore by lazy { VigilanceStore(appContext) }
+
+    /** `elapsedRealtime` of the last reference written, so the interactive stream is not written at 15 Hz. */
+    private var referenceWrittenAt = NEVER
+
     /** The kinds currently asked for, as [Kind] values. Both [Kind.OFF] means nothing is running. */
     private var left = Kind.OFF
     private var right = Kind.OFF
@@ -85,6 +115,68 @@ class SensorSlots(context: Context) : SensorEventListener {
     /** Set by [stepsToday] when it had to create today's zero point. See [onSensorChanged]. */
     private var baselineIsNew = false
 
+    // --- The always-on pulse window: see the class KDoc and [ambientMinute]. ---
+
+    private val heartSensor: Sensor? = manager?.getDefaultSensor(Sensor.TYPE_HEART_RATE)
+
+    /** On-change, wakeUp, no permission, and already powered for four other clients on this watch. */
+    private val offBodySensor: Sensor? =
+        manager?.getDefaultSensor(Sensor.TYPE_LOW_LATENCY_OFFBODY_DETECT)
+
+    private val wakeLock: PowerManager.WakeLock? = appContext
+        .getSystemService(PowerManager::class.java)
+        ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG)
+
+    /**
+     * Called on the main thread when a window changes what the slot shows — a reading landed, or
+     * the old one expired — so the face can redraw without waiting for the next minute.
+     */
+    var onAmbientReading: (() -> Unit)? = null
+
+    /** Defaults to worn, so hardware without the detector keeps its windows. */
+    private var onBody = true
+    private var followingBody = false
+    private var windowOpen = false
+
+    /** `elapsedRealtime` of the last pulse put on the dial, by either path; [NEVER] until one is. */
+    private var pulseReadAt = NEVER
+
+    private val windowTimeout = Runnable { closeWindow("no lock inside the window") }
+    private val ambientTick = Runnable { ambientMinuteNow() }
+
+    /** The window's own listener, so closing it cannot touch the interactive registration. */
+    private val windowListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor?.type != Sensor.TYPE_HEART_RATE) return
+            // The first plausible reading ends the window: the recorder keeps the last of a fixed
+            // window because it files a record, and this is a glance. The bounds are the log's,
+            // wide enough to be a filter against the sensor rather than a judgement of the wearer.
+            val bpm = event.values[0].toInt()
+            if (!IncidentLog.plausibleBpm(bpm)) return
+            state.heartRate = bpm
+            pulseReadAt = SystemClock.elapsedRealtime()
+            noteReference(bpm)
+            closeWindow("locked")
+            onAmbientReading?.invoke()
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
+    /** Separate for the same reason: `stop()` unregisters the main listener wholesale. */
+    private val bodyListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (event.sensor?.type != Sensor.TYPE_LOW_LATENCY_OFFBODY_DETECT) return
+            val worn = event.values[0] > 0.5f
+            if (worn == onBody) return
+            onBody = worn
+            Diag.d(TAG, if (worn) "back on the wrist" else "off the wrist")
+            if (!worn) closeWindow("off the wrist")
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    }
+
     /**
      * Falls back to the raw counter when the platform accepted the subscription and then said
      * nothing.
@@ -99,8 +191,8 @@ class SensorSlots(context: Context) : SensorEventListener {
     private val stepsFallback = Runnable {
         if (state.stepsToday != NO_READING) return@Runnable
         val sensor = manager?.getDefaultSensor(Kind.STEPS.type) ?: return@Runnable
-        Log.d(TAG, "no daily total yet; bringing up the step counter as well")
-        manager?.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
+        Diag.d(TAG, "no daily total yet; bringing up the step counter as well")
+        manager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_UI)
     }
 
     /**
@@ -117,12 +209,102 @@ class SensorSlots(context: Context) : SensorEventListener {
         left = wantLeft
         right = wantRight
         followPlatformSteps((left == Kind.STEPS || right == Kind.STEPS) && permitted(Kind.STEPS))
+        followBody((left == Kind.HEART_RATE || right == Kind.HEART_RATE) && permitted(Kind.HEART_RATE))
         val shouldListen = visible && (left != Kind.OFF || right != Kind.OFF)
         if (shouldListen && (!listening || changed)) {
+            // The screen is on: the continuous registration takes over from any window.
+            closeWindow("screen on")
             stop()
             start()
         } else if (!shouldListen && listening) {
             stop()
+        }
+    }
+
+    /**
+     * One always-on minute has been drawn. Posted rather than acted on, because the caller is
+     * `render()`, which allocates nothing and should not be making binder calls to the sensor
+     * service and the power manager in the middle of a frame.
+     */
+    fun ambientMinute() {
+        handler.post(ambientTick)
+    }
+
+    private fun ambientMinuteNow() {
+        if (left != Kind.HEART_RATE && right != Kind.HEART_RATE) return
+        val now = SystemClock.elapsedRealtime()
+        // The expiry first, and whether or not a window follows: dashes beat a number that has
+        // stopped being true, and the face is asked to redraw so they appear now rather than at
+        // the next minute.
+        if (state.heartRate != NO_READING && stale(now, pulseReadAt)) {
+            state.heartRate = NO_READING
+            onAmbientReading?.invoke()
+        }
+        if (!permitted(Kind.HEART_RATE)) return
+        val sensor = heartSensor ?: return
+        if (!windowDue(now, pulseReadAt, onBody, listening, windowOpen)) return
+        runCatching { wakeLock?.acquire(WAKE_LOCK_TIMEOUT_MILLIS) }
+        val registered = runCatching {
+            manager?.registerListener(windowListener, sensor, SensorManager.SENSOR_DELAY_NORMAL) == true
+        }.getOrDefault(false)
+        if (!registered) {
+            releaseWakeLock()
+            return
+        }
+        windowOpen = true
+        handler.postDelayed(windowTimeout, WINDOW_MILLIS)
+    }
+
+    private fun closeWindow(reason: String) {
+        if (!windowOpen) return
+        windowOpen = false
+        handler.removeCallbacks(windowTimeout)
+        heartSensor?.let { runCatching { manager?.unregisterListener(windowListener, it) } }
+        releaseWakeLock()
+        Diag.d(TAG, "pulse window closed: $reason")
+    }
+
+    /**
+     * Hands the dial's reading to the incident record as its reference pulse — at most once a
+     * minute, and only while `LOG PULSE` is on, because a physiological reading is written nowhere
+     * the wearer did not ask for it.
+     *
+     * The monitor used to sample a reference of its own after every sign of life. On a wrist that
+     * keeps moving that was the LED on for the whole watch: measured 2026-11-11 on duty at a desk,
+     * 815 activations of the sensor and the LED on 79 % of eight minutes, against ten activations
+     * for ten windows in the same ten minutes without a duty — for a number the next movement
+     * overwrote and nothing wrote down unless an incident followed. The dial already has the
+     * number; the record borrows it.
+     */
+    private fun noteReference(bpm: Int) {
+        if (!IncidentLog.plausibleBpm(bpm)) return
+        val now = SystemClock.elapsedRealtime()
+        if (referenceWrittenAt != NEVER && now - referenceWrittenAt < REFERENCE_WRITE_MILLIS) return
+        if (!vigilanceStore.logHeartRate(false)) return
+        referenceWrittenAt = now
+        vigilanceStore.noteReferencePulse(bpm, System.currentTimeMillis())
+    }
+
+    private fun releaseWakeLock() {
+        val lock = wakeLock ?: return
+        if (lock.isHeld) runCatching { lock.release() }
+    }
+
+    /**
+     * The wrist detector stands for as long as the pulse slot is set, like the platform's step
+     * subscription: on-change, so a wrist that stays put costs nothing, and the state has to be
+     * known the moment a minute comes round rather than acquired then.
+     */
+    private fun followBody(wanted: Boolean) {
+        val sensor = offBodySensor ?: return
+        if (wanted && !followingBody) {
+            followingBody = runCatching {
+                manager?.registerListener(bodyListener, sensor, SensorManager.SENSOR_DELAY_NORMAL) == true
+            }.getOrDefault(false)
+        } else if (!wanted && followingBody) {
+            runCatching { manager?.unregisterListener(bodyListener, sensor) }
+            followingBody = false
+            onBody = true
         }
     }
 
@@ -172,7 +354,7 @@ class SensorSlots(context: Context) : SensorEventListener {
             if (!permitted(kind)) {
                 // Nothing to do about it here — the editor is where a permission can be asked for,
                 // and the readout shows dashes until it is granted.
-                Log.d(TAG, "${kind.name} not permitted")
+                Diag.d(TAG, "${kind.name} not permitted")
                 continue
             }
             if (kind == Kind.STEPS && stepsFromPlatform) {
@@ -202,10 +384,12 @@ class SensorSlots(context: Context) : SensorEventListener {
         listening = false
     }
 
-    /** Everything down, the standing subscription included: the face itself is going away. */
+    /** Everything down, the standing subscriptions included: the face itself is going away. */
     fun release() {
+        closeWindow("released")
         stop()
         followPlatformSteps(false)
+        followBody(false)
     }
 
     private fun permitted(kind: Kind): Boolean {
@@ -221,6 +405,10 @@ class SensorSlots(context: Context) : SensorEventListener {
                 // zero. Left as no reading, so the dial keeps showing dashes rather than a corpse.
                 val bpm = event.values[0].toInt()
                 state.heartRate = if (bpm > 0) bpm else NO_READING
+                if (bpm > 0) {
+                    pulseReadAt = SystemClock.elapsedRealtime()
+                    noteReference(bpm)
+                }
             }
 
             // Ignored outright once the platform is answering: see platformDelivered.
@@ -336,6 +524,56 @@ class SensorSlots(context: Context) : SensorEventListener {
          */
         fun baselineFor(counter: Long, storedBaseline: Long, storedDay: Long, day: Long): Long =
             if (day != storedDay || counter < storedBaseline) counter else storedBaseline
+
+        /**
+         * Whether an always-on minute opens a pulse window. Pure, so the four conditions can be
+         * pinned without a sensor: worn, the screen not already holding the sensor, no window
+         * open, and the reading on the dial old enough to be worth replacing — a wrist lowered
+         * seconds after the screen filled the slot has nothing to gain from lighting the LED.
+         */
+        fun windowDue(
+            nowElapsed: Long,
+            readingElapsed: Long,
+            onBody: Boolean,
+            interactive: Boolean,
+            windowOpen: Boolean,
+        ): Boolean =
+            onBody && !interactive && !windowOpen &&
+                (readingElapsed == NEVER || nowElapsed - readingElapsed >= FRESH_MILLIS)
+
+        /** Whether the reading on the dial has stopped being true. Never, for a dial with none. */
+        fun stale(nowElapsed: Long, readingElapsed: Long): Boolean =
+            readingElapsed != NEVER && nowElapsed - readingElapsed > STALE_MILLIS
+
+        /** No reading has been put on the dial since the process started. */
+        const val NEVER: Long = -1L
+
+        /**
+         * How long an always-on window holds the LED waiting for a lock. Fifteen seconds, from
+         * the measurement in the class KDoc: a still wrist locks in seven to eleven, and a moving
+         * one does not lock in thirty either.
+         */
+        const val WINDOW_MILLIS: Long = 15_000L
+
+        /**
+         * A reading younger than this is not replaced. Half a minute: the next minute's window
+         * is then always due, and a wrist lowered just after the screen read it is not.
+         */
+        const val FRESH_MILLIS: Long = 30_000L
+
+        /**
+         * Past this the number comes off the dial. Three windows' worth: one missed lock keeps
+         * the last figure, three in a row means the wrist is not giving one, and a number from
+         * before that presented as now is the fault this whole arrangement exists to remove.
+         */
+        const val STALE_MILLIS: Long = 180_000L
+
+        /** Past any window that could need it; a leak costs seconds, not a night. */
+        private const val WAKE_LOCK_TIMEOUT_MILLIS: Long = 30_000L
+        private const val WAKE_LOCK_TAG = "mfd24:pulse"
+
+        /** How often the reference pulse is written, which is the window's own cadence. */
+        private const val REFERENCE_WRITE_MILLIS: Long = 60_000L
 
         private const val TAG = "SensorSlots"
         private const val PREFS_NAME = "mfd24_sensors"

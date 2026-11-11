@@ -4,17 +4,18 @@
 package com.avdesign.mfd24.data
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.CancellationSignal
-import android.util.Log
 import androidx.core.content.ContextCompat
+import com.avdesign.mfd24.Diag
+import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.coroutines.resume
 
 /**
  * Position fixes for the weather lookup and the 5 km site lock.
@@ -48,10 +49,9 @@ class LocationRepository(private val context: Context) {
      * than an error, which looks exactly like "no signal".
      */
     fun hasBackgroundPermission(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
 
     /**
      * Our preferred providers first, then anything else the device reports. Order decides which
@@ -102,7 +102,7 @@ class LocationRepository(private val context: Context) {
             val fix = try {
                 lm.getLastKnownLocation(provider)
             } catch (e: SecurityException) {
-                Log.w(TAG, "No permission for provider $provider", e)
+                Diag.w(TAG, "No permission for provider $provider", e)
                 null
             } catch (e: IllegalArgumentException) {
                 // Provider not present on this device.
@@ -114,7 +114,7 @@ class LocationRepository(private val context: Context) {
             }
         }
         if (best == null) {
-            Log.d(
+            Diag.d(
                 TAG,
                 "no cached fix. providers[${describeProviders()}] " +
                     "fine=${fineGranted()} coarse=${coarseGranted()} " +
@@ -122,7 +122,7 @@ class LocationRepository(private val context: Context) {
             )
         } else {
             val ageSeconds = (System.currentTimeMillis() - best.time) / 1000
-            Log.d(TAG, "cached fix from $bestProvider, ${ageSeconds}s old")
+            Diag.d(TAG, "cached fix from $bestProvider, ${ageSeconds}s old")
         }
         return best
     }
@@ -143,11 +143,11 @@ class LocationRepository(private val context: Context) {
             }
         }
         if (provider == null) {
-            Log.w(TAG, "no usable provider. ${describeProviders()}")
+            Diag.w(TAG, "no usable provider. ${describeProviders()}")
             return null
         }
 
-        Log.d(TAG, "requesting a fix from $provider, up to ${timeoutMillis / 1000}s")
+        Diag.d(TAG, "requesting a fix from $provider, up to ${timeoutMillis / 1000}s")
         val fix = withTimeoutOrNull(timeoutMillis) {
             suspendCancellableCoroutine { continuation ->
                 val signal = CancellationSignal()
@@ -161,19 +161,19 @@ class LocationRepository(private val context: Context) {
                         if (continuation.isActive) continuation.resume(location)
                     }
                 } catch (e: SecurityException) {
-                    Log.w(TAG, "Location permission revoked mid-request", e)
+                    Diag.w(TAG, "Location permission revoked mid-request", e)
                     if (continuation.isActive) continuation.resume(null)
                 }
             }
         }
         if (fix == null) {
-            Log.w(
+            Diag.w(
                 TAG,
                 "no fix from $provider within ${timeoutMillis / 1000}s. " +
                     "background=${hasBackgroundPermission()} fine=${fineGranted()}",
             )
         } else {
-            Log.d(TAG, "got a fix from ${fix.provider}, accuracy ${fix.accuracy}m")
+            Diag.d(TAG, "got a fix from ${fix.provider}, accuracy ${fix.accuracy}m")
         }
         return fix
     }
@@ -192,6 +192,10 @@ class LocationRepository(private val context: Context) {
          * with GPS last because it is the only one that costs real battery — and on a watch
          * indoors, the only one that never answers.
          */
+        // FUSED_PROVIDER is a public constant only from API 31; it inlines as "fused", which
+        // API 30 understands, and every provider call below catches the IllegalArgumentException
+        // an older platform could raise for an unknown name.
+        @SuppressLint("InlinedApi")
         val PROVIDERS = listOf(
             LocationManager.FUSED_PROVIDER,
             LocationManager.NETWORK_PROVIDER,

@@ -103,6 +103,7 @@
              LogPacket for both. Read-only; reached only from the editor. -->
         <activity
             android:name=".export.LogExportActivity"
+            android:taskAffinity=""
             android:exported="false"
             android:label="@string/editor_tx_log"
             android:theme="@android:style/Theme.DeviceDefault" />
@@ -110,6 +111,7 @@
         <!-- The repository as a QR, from the ABOUT section: a watch has no browser. -->
         <activity
             android:name=".export.RepoLinkActivity"
+            android:taskAffinity=""
             android:exported="false"
             android:label="@string/editor_about_github"
             android:theme="@android:style/Theme.DeviceDefault" />
@@ -118,6 +120,7 @@
              OS does not let an app install an app. Reached from ABOUT and from the notification. -->
         <activity
             android:name=".update.ReleaseLinkActivity"
+            android:taskAffinity=""
             android:exported="false"
             android:label="@string/editor_about_update"
             android:theme="@android:style/Theme.DeviceDefault" />

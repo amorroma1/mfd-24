@@ -4,7 +4,7 @@
 package com.avdesign.mfd24.geo
 
 import android.content.Context
-import android.util.Log
+import com.avdesign.mfd24.Diag
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -190,7 +190,7 @@ class PoiDatabase private constructor(
             val bytes = try {
                 context.assets.open(PoiFormat.ASSET_NAME).use { it.readBytes() }
             } catch (e: IOException) {
-                Log.w(TAG, "POI asset unavailable", e)
+                Diag.w(TAG, "POI asset unavailable", e)
                 return null
             }
             return fromBytes(bytes)
@@ -199,24 +199,24 @@ class PoiDatabase private constructor(
         /** Validates and wraps an in-memory image of the format. Returns null if it is malformed. */
         fun fromBytes(bytes: ByteArray): PoiDatabase? {
             if (bytes.size < PoiFormat.HEADER_BYTES) {
-                Log.w(TAG, "POI asset truncated: ${bytes.size} bytes")
+                Diag.w(TAG, "POI asset truncated: ${bytes.size} bytes")
                 return null
             }
 
             val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
             if (buffer.getInt(0) != PoiFormat.MAGIC) {
-                Log.w(TAG, "POI asset magic mismatch")
+                Diag.w(TAG, "POI asset magic mismatch")
                 return null
             }
             val version = buffer.getShort(4).toInt() and 0xFFFF
             if (version != PoiFormat.VERSION) {
-                Log.w(TAG, "POI asset version $version, expected ${PoiFormat.VERSION}")
+                Diag.w(TAG, "POI asset version $version, expected ${PoiFormat.VERSION}")
                 return null
             }
             val count = buffer.getInt(8)
             val expected = PoiFormat.HEADER_BYTES + count * PoiFormat.RECORD_BYTES
             if (count < 0 || bytes.size < expected) {
-                Log.w(TAG, "POI asset declares $count records but holds ${bytes.size} bytes")
+                Diag.w(TAG, "POI asset declares $count records but holds ${bytes.size} bytes")
                 return null
             }
 

@@ -117,4 +117,31 @@ class VigilanceStoreTest {
         assertFalse(IncidentLog.belongsToEarlierWatch(0L, 1_000L))
         assertFalse(IncidentLog.belongsToEarlierWatch(900L, 0L))
     }
+
+    @Test
+    fun `the dial's reading stands as the reference when it predates the check`() {
+        // Taken a minute before the nudge went out, read at the moment of the incident.
+        assertTrue(IncidentLog.referenceUsable(referenceAtMillis = 940_000L, promptedAtMillis = 1_000_000L, nowMillis = 1_030_000L))
+        assertTrue(IncidentLog.referenceUsable(1_000_000L, 1_000_000L, 1_030_000L))
+    }
+
+    @Test
+    fun `a reading from inside the answer window is not a reference`() {
+        // The dial reads the pulse once a minute in always-on, so a window can land inside the
+        // thirty seconds the operator is not answering; that reading is the incident pulse's job.
+        assertFalse(IncidentLog.referenceUsable(1_010_000L, 1_000_000L, 1_030_000L))
+    }
+
+    @Test
+    fun `a reading older than a day is nobody's reference`() {
+        val day = IncidentLog.REFERENCE_MAX_AGE_MILLIS
+        assertTrue(IncidentLog.referenceUsable(1_000_000L, 1_000_000L + day - 60_000L, 1_000_000L + day))
+        assertFalse(IncidentLog.referenceUsable(1_000_000L, 1_000_000L + day, 1_000_000L + day + 1L))
+    }
+
+    @Test
+    fun `no reading and no check are no reference`() {
+        assertFalse(IncidentLog.referenceUsable(0L, 1_000_000L, 1_030_000L))
+        assertFalse(IncidentLog.referenceUsable(900_000L, 0L, 1_030_000L))
+    }
 }

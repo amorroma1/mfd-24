@@ -143,7 +143,13 @@ pouvoir.
 **Pourquoi pas depuis la montre ?** Parce que Wear OS ne le permet pas : la session est validée, la
 plateforme demande confirmation, et son propre installateur répond *« Install/Uninstall actions not
 supported on Wear »* — vérifié sur l'émulateur API 30 et sur une TicWatch Pro 3 Ultra en Wear 3.5.
-Toutes les voies de contournement sont fermées à une application ordinaire.
+Toutes les voies de contournement sont fermées à une application ordinaire, donc le bouton qui se
+trouvait ici était un bouton qui ne pouvait pas fonctionner, et le mur de notes de version à côté
+était un mur de texte sur un écran de 1,2 pouce. Les deux ont disparu ; le QR code les a remplacés.
+
+*(Si un APK est déjà sur la montre, faites-le passer par `adb push` dans `/data/local/tmp/` puis
+`adb shell pm install -r /data/local/tmp/…` — ce chemin fonctionne là où `/sdcard` provoque un
+refus SELinux.)*
 
 ## Après l'installation
 
@@ -151,8 +157,8 @@ Toutes les voies de contournement sont fermées à une application ordinaire.
   cadran a besoin, il le demande là — la localisation pour la météo, le Nadir et le verrouillage
   de site ; les permissions capteurs au moment où un emplacement qui en exige une est choisi. Rien
   n'est demandé à l'installation. La table complète des permissions est dans le
-  [README](../../README.md#permissions).
-- **Les mises à jour** arrivent d'elles-mêmes — voir [Mise à jour](#mise-à-jour) ci-dessus ;
+  [README](README.fr.md#permissions).
+- **Les mises à jour** se signalent et attendent — voir [Mise à jour](#mise-à-jour) ci-dessus ;
   `adb install -r` avec la nouvelle version marche toujours aussi. Les réglages survivent dans
   les deux cas, sauf pour les versions qui changent le schéma des réglages, ce que les notes de
   version signalent quand cela arrive.

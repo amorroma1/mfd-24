@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
-import android.util.Log
 import android.view.SurfaceHolder
 import androidx.wear.watchface.ComplicationSlot
 import androidx.wear.watchface.ComplicationSlotsManager
@@ -20,8 +19,8 @@ import androidx.wear.watchface.WatchFaceType
 import androidx.wear.watchface.WatchState
 import androidx.wear.watchface.style.CurrentUserStyleRepository
 import androidx.wear.watchface.style.UserStyleSchema
-import com.avdesign.mfd24.data.TelemetryRepository
 import com.avdesign.mfd24.data.SensorSlots
+import com.avdesign.mfd24.data.TelemetryRepository
 import com.avdesign.mfd24.data.TelemetryWorker
 import com.avdesign.mfd24.data.VigilanceMonitor
 import com.avdesign.mfd24.data.VigilanceState
@@ -106,7 +105,7 @@ class MfdWatchFaceService : WatchFaceService() {
         runCatching {
             registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
             batteryRegistered = true
-        }.onFailure { Log.w(TAG, "Could not follow the battery level", it) }
+        }.onFailure { Diag.w(TAG, "Could not follow the battery level", it) }
     }
 
     override fun onDestroy() {
@@ -159,6 +158,12 @@ class MfdWatchFaceService : WatchFaceService() {
                     sensorSlots.configure(left, right, slotsWanted(watchState))
                 }
             },
+            // A headless preview draws its ambient thumbnail without lighting anything.
+            onAmbientMinute = if (headless) {
+                { }
+            } else {
+                { sensorSlots.ambientMinute() }
+            },
             descriptions = FaceDescriptions(
                 onDuty = getString(R.string.a11y_on_duty),
                 dutyBooked = getString(R.string.a11y_duty_booked),
@@ -186,6 +191,9 @@ class MfdWatchFaceService : WatchFaceService() {
         // network or location work, and must not register receivers their teardown will not undo.
         if (!headless) {
             followBatteryLevel()
+            // A window's reading, or its expiry, redraws the slot now rather than at the next
+            // minute: the whole point of the window is a figure that is current when read.
+            sensorSlots.onAmbientReading = { renderer.invalidate() }
             // The sensors follow the screen being *looked at*, which is not the same as the face
             // being visible.
             //
@@ -263,10 +271,10 @@ class MfdWatchFaceService : WatchFaceService() {
         if (now - lastOpportunisticRefresh < OPPORTUNISTIC_INTERVAL_MS) return
         lastOpportunisticRefresh = now
         val coldStart = !repository.hasCachedPosition()
-        Log.d(TAG, "screen on: refreshing telemetry (coldStart=$coldStart)")
+        Diag.d(TAG, "screen on: refreshing telemetry (coldStart=$coldStart)")
         serviceScope.launch {
             runCatching { repository.refresh(allowActiveFix = coldStart, nowMillis = now) }
-                .onFailure { Log.w(TAG, "Opportunistic telemetry refresh failed", it) }
+                .onFailure { Diag.w(TAG, "Opportunistic telemetry refresh failed", it) }
         }
     }
 

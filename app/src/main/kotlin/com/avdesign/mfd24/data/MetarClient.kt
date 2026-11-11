@@ -3,12 +3,12 @@
 
 package com.avdesign.mfd24.data
 
-import android.util.Log
-import org.json.JSONArray
+import com.avdesign.mfd24.Diag
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.roundToInt
+import org.json.JSONArray
 
 /**
  * The locked aerodrome's own METAR, from aviationweather.gov.
@@ -53,15 +53,15 @@ object MetarClient {
                 )
             }
             if (connection.responseCode !in 200..299) {
-                Log.i(TAG, "aviationweather returned HTTP ${connection.responseCode} for $icao")
+                Diag.i(TAG, "aviationweather returned HTTP ${connection.responseCode} for $icao")
                 return null
             }
             parse(connection.inputStream.bufferedReader().use { it.readText() }, nowMillis)
         } catch (e: IOException) {
-            Log.i(TAG, "METAR fetch failed for $icao", e)
+            Diag.i(TAG, "METAR fetch failed for $icao", e)
             null
         } catch (e: org.json.JSONException) {
-            Log.i(TAG, "Malformed METAR payload for $icao", e)
+            Diag.i(TAG, "Malformed METAR payload for $icao", e)
             null
         } finally {
             connection?.disconnect()

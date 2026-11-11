@@ -6,7 +6,7 @@ package com.avdesign.mfd24.export
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import android.util.Log
+import com.avdesign.mfd24.Diag
 
 /**
  * Plays a [LogPacket] through the speaker as [Afsk] tones.
@@ -68,7 +68,7 @@ class LogTransmitter {
                     play()
                 }
         }.onFailure {
-            Log.w(TAG, "Could not transmit the log", it)
+            Diag.w(TAG, "Could not transmit the log", it)
             onDone()
         }.getOrNull()
         track = fresh

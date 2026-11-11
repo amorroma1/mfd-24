@@ -30,12 +30,12 @@ dimmed, minus the seconds cursor and the background wash.*
 |---|---|
 | **24-hour dial** | One revolution per day. Noon up or midnight up. Minutes on their own ring; the second is a cursor that steps, so nothing sweeps. |
 | **Watch timer** | Start now or book ahead. An arc spans the hours on duty and dims as they are served; `DUTY: 04:40 REM` counts down. Both boundaries beep and buzz with the screen off. A finished watch clears itself an hour later. |
-| **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optional: your pulse during the missed check, against your last moving reading. |
-| **Zulu + date-time group** | `Z 22AUG 12:16:13`, the clock a log entry is written in. |
+| **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optional: your pulse during the missed check, against the dial's own last reading before it. |
+| **Zulu + date-time group** | `Z 22AUG 12:16`, the clock a log entry is written in. |
 | **Weather** | Temperature, METAR-style condition and QNH. At an aerodrome it is that field's **own METAR**; everywhere else Open-Meteo. Refreshed every 30 minutes. |
 | **5 km site lock** | Names the nearest airfield, port, heliport or spaceport from 9,649 sites in a 194 KB on-device index. Military sites are drawn in the accent colour. |
 | **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass**. The moon carries its honest phase. |
-| **Sensor slots** | Two optional readouts beside the hub: heart rate, the platform's own daily step total, or station pressure. Off by default; they run only while the screen is on. |
+| **Sensor slots** | Two optional readouts beside the hub: heart rate, the platform's own daily step total, or station pressure. Off by default; they run only while the screen is on. In always-on the pulse is re-read once a minute while the watch is worn — a fifteen-second window, dashes after three minutes without a lock. |
 | **Always-on** | The same dial, dimmed. `AUTO` thins it to every other pixel after sunset — never during a night watch. |
 | **Direct boot** | Draws populated before the watch is unlocked. |
 
@@ -205,7 +205,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ and the Android SDK. 178 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ and the Android SDK. 192 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## How it was built
 
