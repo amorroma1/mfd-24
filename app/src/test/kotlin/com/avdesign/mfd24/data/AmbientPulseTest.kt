@@ -52,6 +52,54 @@ class AmbientPulseTest {
     }
 
     @Test
+    fun `three empty windows slow the cadence to a quarter of an hour, and a wrist resets it`() {
+        val misses = SensorSlots.BACKOFF_AFTER_MISSES
+        // Under the threshold the minute cadence stands, whatever the last window's age.
+        assertTrue(
+            SensorSlots.windowDue(
+                now, SensorSlots.NEVER, onBody = true, interactive = false, windowOpen = false,
+                missedWindows = misses - 1, lastWindowElapsed = now - 60_000L,
+            ),
+        )
+        // At the threshold a window a minute ago is too soon; one a quarter of an hour ago is due.
+        assertFalse(
+            SensorSlots.windowDue(
+                now, SensorSlots.NEVER, onBody = true, interactive = false, windowOpen = false,
+                missedWindows = misses, lastWindowElapsed = now - 60_000L,
+            ),
+        )
+        assertTrue(
+            SensorSlots.windowDue(
+                now, SensorSlots.NEVER, onBody = true, interactive = false, windowOpen = false,
+                missedWindows = misses, lastWindowElapsed = now - SensorSlots.BACKOFF_MILLIS,
+            ),
+        )
+        // The night of 2026-11-12: 600 windows on a table that the detector called a wrist.
+        // Forty-odd is the bill with the back-off, and it never needs the detector.
+        val night = 10 * 60 * 60_000L
+        var opened = 0
+        var missed = 0
+        var last = SensorSlots.NEVER
+        var t = now
+        while (t < now + night) {
+            if (SensorSlots.windowDue(t, SensorSlots.NEVER, true, false, false, missed, last)) {
+                opened++
+                missed++
+                last = t
+            }
+            t += 60_000L
+        }
+        assertTrue("$opened windows in a night", opened in 40..44)
+        // The back-off is a cadence, not a lockout: the count is what a wrist resets.
+        assertTrue(
+            SensorSlots.windowDue(
+                now, SensorSlots.NEVER, onBody = true, interactive = false, windowOpen = false,
+                missedWindows = 0, lastWindowElapsed = now - 60_000L,
+            ),
+        )
+    }
+
+    @Test
     fun `a reading stands for three windows and then comes off`() {
         assertFalse(SensorSlots.stale(now, now - SensorSlots.STALE_MILLIS))
         assertTrue(SensorSlots.stale(now, now - SensorSlots.STALE_MILLIS - 1L))

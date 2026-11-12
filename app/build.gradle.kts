@@ -63,14 +63,14 @@ android {
         // Bump both for every published release. versionCode is what the platform compares when
         // deciding whether an APK is an update, so a release that forgets it cannot be installed
         // over its predecessor.
-        versionCode = 23
-        versionName = "2.9.1"
+        versionCode = 24
+        versionName = "2.10.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // The app's own strings are English only — the six translated documents are documentation,
-        // not resources. Without this the APK carries every AndroidX and Compose string in some
-        // eighty locales, none of which this face can ever display.
-        resourceConfigurations += listOf("en")
+        // The app's own strings exist in these locales and no others. Without this the APK carries
+        // every AndroidX and Compose string in some eighty locales, none of which this face can
+        // display; each locale added here costs about 30 KB of library strings beside our own.
+        resourceConfigurations += listOf("en", "de", "fr", "it", "ja", "zh")
     }
 
     // Release signing, in order of preference. The key is a property of the machine, never of the

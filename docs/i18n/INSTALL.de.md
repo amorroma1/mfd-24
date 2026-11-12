@@ -15,14 +15,14 @@ Benötigt Wear OS 3.0 oder neuer (API 30). Gebaut und getragen auf einer TicWatc
 
 Eine Entscheidung, kein Rückstand. Drei Gründe:
 
-- **Ein Totmann-Monitor darf keine Impuls-Installation sein.** Die Vigilanz-Funktion ist ein
+- **Ein Totmannschalter darf keine Impuls-Installation sein.** Der Totmann ist ein
   unzertifiziertes Hilfsmittel — nützlich genau für die, die lesen, was sie tut und was sie nicht
   verspricht, bevor sie ihr vertrauen. Ein Store-Eintrag ist dafür gebaut, in dreißig Sekunden
   angetippt zu werden; ein Sideload wird gelesen, geprüft und mit Absicht installiert — vom
   Publikum, für das dieses Zifferblatt gebaut wurde.
-- **Die Berechtigungen sind die teure Sorte.** Hintergrund-Standort, Körpersensoren und ein
+- **Die Berechtigungen sind die teure Sorte.** Ortung im Hintergrund, Körpersensoren und ein
   Vordergrunddienst vom Typ Gesundheit sind hier legitim — der Wetterabruf läuft im Hintergrund,
-  der Monitor liest den Beschleunigungssensor bei dunklem Display — aber bei Play stecken sie ein
+  der Totmann liest den Beschleunigungssensor bei dunklem Display — aber bei Play stecken sie ein
   Hobbyprojekt in dieselbe Dauerprüfungsmaschinerie wie kommerzielle Wellness-Apps, mit jährlich
   wechselnden Richtlinien und Entfernung als Standardausgang des Schweigens. Diese Zeit ist am
   Zifferblatt besser angelegt.
@@ -32,7 +32,7 @@ Eine Entscheidung, kein Rückstand. Drei Gründe:
   Gewissheit.
 
 Mit der Lizenz hat all das nichts zu tun — GPL-Software ist bei Play zugelassen. Es geht darum,
-wer ein Wachdienst-Instrument installiert, und wie bewusst.
+wer ein Instrument für Wachgänger installiert, und wie bewusst.
 
 ## Zuerst: die Entwickleroptionen auf der Uhr
 
@@ -131,7 +131,7 @@ der eigenen Uhr installieren.
 
 **Die Signatur ist die Grenze:** Eine selbstgebaute APK und das GitHub-Release können einander
 nicht überschreiben, weil Android für Updates denselben Signaturschlüssel verlangt. Der Wechsel
-bedeutet vorheriges Deinstallieren — und Einstellungen, Wachdienst-Zustand und Vorfallsprotokoll
+bedeutet vorheriges Deinstallieren — und Einstellungen, die laufende Wache und das Logbuch
 gehen mit. Eine Spur wählen — Releases zum Tragen, eigene Builds zum Basteln — und dort bleiben.
 
 ## Aktualisieren
@@ -139,10 +139,10 @@ gehen mit. Eine Spur wählen — Releases zum Tragen, eigene Builds zum Basteln 
 Die Uhr sagt Ihnen, dass es ein neues Release gibt. Installieren wird sie es nicht, und sie tut
 auch nicht so.
 
-- **Einmal täglich, außerhalb der Wache, fragt sie GitHub nach etwas Neuerem.** Ein kleiner
+- **Einmal täglich, wachfrei, fragt sie GitHub nach etwas Neuerem.** Ein kleiner
   JSON-Körper. **Es wird nie etwas heruntergeladen.** Nie während einer Wache, und
-  **ABOUT → RELEASE CHECK** schaltet alles ab.
-- **Eine Benachrichtigung pro Release**, und **ABOUT → RELEASES** nennt die Version, sobald eine
+  **INFO → RELEASE-CHECK** schaltet alles ab.
+- **Eine Benachrichtigung pro Release**, und **INFO → VERSIONEN** nennt die Version, sobald eine
   wartet.
 - **Ein Antippen zeigt die Release-Seite als QR-Code.** Ein Telefon darauf richten: Notizen,
   SHA-256 und APK stehen dort, im Browser, in lesbarer Größe.
@@ -166,8 +166,8 @@ SELinux-Verweigerung scheitert.)*
 ## Nach der Installation
 
 - **Die Einstellungen** liegen hinter einem langen Druck aufs Zifferblatt, dann dem Stift. Alles,
-  was das Zifferblatt braucht, erfragt es dort — den Standort für Wetter, Nadir und die
-  Standorterkennung; Sensor-Berechtigungen in dem Moment, in dem ein Slot gewählt wird, der eine
+  was das Zifferblatt braucht, erfragt es dort — die Ortung für Wetter, Nadir und die
+  Standortkennung; Sensor-Berechtigungen in dem Moment, in dem ein Slot gewählt wird, der eine
   braucht. Bei der Installation wird nichts angefragt. Die vollständige Berechtigungstabelle steht
   im [README](README.de.md#permissions).
 - **Updates** melden sich und warten — siehe [Aktualisieren](#aktualisieren) oben; `adb install -r`

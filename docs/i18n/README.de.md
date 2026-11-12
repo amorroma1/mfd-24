@@ -8,10 +8,11 @@
 
 Ein 24-Stunden-Instrumentenzifferblatt für Menschen, die Wache gehen — Piloten, Seeleute,
 Drohnenbesatzungen, Diensthabende. Eine Umdrehung des Stundenzeigers pro Tag, die eigene Wache als
-Bogen auf diesem Tag, ein Totmann-Monitor, der zum SOS eskaliert und einen Eintrag hinterlässt, und
+Bogen auf diesem Tag, ein Totmannschalter, der zum SOS eskaliert und einen Logbucheintrag hinterlässt, und
 die Telemetrie, mit der eine Wache tatsächlich läuft.
 
-Alles funktioniert offline, außer dem Wetter und der täglichen Release-Prüfung. Keine Begleit-App, kein Konto, keine Analytik. GPL.
+Alles funktioniert offline, außer dem Wetter und dem täglichen Release-Check. Keine Begleit-App,
+kein Konto, keine Analytik. GPL-3.0.
 
 | Interaktiv | Always-on |
 |---|---|
@@ -30,33 +31,45 @@ interaktive Blatt, gedimmt, ohne den Sekundencursor und ohne die Hintergrundtön
 | | |
 |---|---|
 | **24-h-Zifferblatt** | Eine Umdrehung pro Tag. Mittag oben oder Mitternacht oben. Die Minuten auf ihrem eigenen Ring; die Sekunde ist ein Cursor, der von Strich zu Strich springt — nichts wischt über das Blatt. |
-| **Wachen-Timer** | Sofort starten oder vorbestellen. Ein Bogen spannt die Dienststunden auf und verblasst, während sie abgeleistet werden; `DUTY: 04:40 REM` zählt herunter. Beide Grenzen piepen und vibrieren, auch bei dunklem Display. Eine beendete Wache räumt sich eine Stunde später selbst ab. |
-| **Vigilanz-Monitor** | Standardmäßig aus. Alle 5/10/15 Minuten verlangt er ein Lebenszeichen; dreißig Sekunden später sendet er SOS in Salven und hinterlässt `MAN DOWN` mit dem Zulu-Moment auf dem Blatt. Optional: Ihr Puls während des versäumten Checks, neben dem letzten, den der Puls-Slot gelesen hat, während Sie in Bewegung waren — einmal pro Minute vermerkt, einen Tag lang aufbewahrt. |
-| **Log-Export** | Das Vorfallsprotokoll verlässt die Uhr auf zwei Wegen: als **QR-Code** für die Handykamera und als **Ton** — Bell 202 AFSK, 1200 Bd, `minimodem --rx 1200` am anderen Ende. Der Ton trägt alles; der QR-Code trägt die neuesten Zeilen, die in einen 1,2-Zoll-Code passen, und sagt es (`END 14 OF 32`). |
+| **Wach-Timer** | Sofort antreten oder ansetzen. Ein Wachbogen spannt die Wachstunden auf und verblasst, während sie abgeleistet werden; `DUTY: 04:40 REM` zählt herunter. Antritt und Ablösung piepen und vibrieren, auch bei dunklem Display. Eine übergebene Wache räumt sich eine Stunde später selbst ab. |
+| **Totmannschalter** | Standardmäßig aus. Alle 5/10/15 Minuten fragt er ein Lebenszeichen ab; bleibt die Quittung dreißig Sekunden aus, sendet er SOS in Salven und hinterlässt `MAN DOWN` — Totmann ausgelöst — mit dem Zulu-Moment auf dem Blatt. Optional vermerkt er Ihren Puls während der unquittierten Abfrage, neben Ihrem letzten Wert in Bewegung. |
+| **Logbuch senden** | Das Logbuch verlässt die Uhr als **QR-Code** für die Handykamera oder als **Ton** — Bell 202 AFSK, dekodiert von `minimodem`. Der Ton trägt alles; der QR-Code trägt, was hineinpasst, und sagt es. [Kanäle und Grenzen ↓](#export) |
 | **Zulu + Datum-Zeit-Gruppe** | `Z 11NOV 13:05`, die Uhr, in der ein Logbucheintrag geschrieben wird. |
 | **Wetter** | Temperatur, Zustand in METAR-Kürzeln und QNH. An einem Flugplatz ist es der **eigene METAR** dieses Platzes; überall sonst Open-Meteo. Alle 30 Minuten aufgefrischt. |
-| **5-km-Ortserkennung** | Nennt den nächstgelegenen Flugplatz, Hafen, Heliport oder die nächste Startanlage aus 9 649 Anlagen in einem 194-KB-Index an Bord. Militärische Anlagen werden in der Akzentfarbe gezeichnet. |
-| **Nadir, Sonne und Mond** | Das Tageslicht als Schattierung über dem Stundenband, offline berechnet. Sonne und Mond stehen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass**. Der Mond trägt seine echte Phase. |
-| **Sensor-Slots** | Zwei optionale Anzeigen neben der Nabe: Puls, die tägliche Schrittzahl der Plattform selbst oder Stationsdruck. Standardmäßig aus; sie laufen nur bei eingeschaltetem Display. Im Always-on wird der Puls einmal pro Minute neu gelesen, solange die Uhr getragen wird — ein Fenster von fünfzehn Sekunden, Striche nach drei Minuten ohne Erfassung. |
+| **5-km-Standortkennung** | Nennt den nächstgelegenen Flugplatz, Hafen, Heliport oder die nächste Startanlage aus 9 649 Anlagen in einem 194-KB-Index an Bord. Militärische Anlagen werden in der Akzentfarbe gezeichnet. |
+| **Nadir, Sonne und Mond** | Der Tagbogen als Schattierung über dem Stundenband, offline berechnet. Sonnenstand und Mondstand sitzen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass**. Der Mond trägt seine echte Phase. |
+| **Sensor-Slots** | Zwei optionale Anzeigen neben der Nabe: Puls, die Schritte des Tages oder Stationsdruck. Standardmäßig aus; sie laufen bei eingeschaltetem Display, und im Always-on wird der Puls einmal pro Minute neu gelesen, solange die Uhr getragen wird. [Wie dieses Fenster seinen Takt findet ↓](#pulse-window) |
 | **Always-on** | Dasselbe Blatt, gedimmt. `AUTO` dünnt es nach Sonnenuntergang auf jedes zweite Pixel aus — nie während einer Nachtwache. |
 | **Direct Boot** | Zeichnet mit Inhalt, bevor die Uhr entsperrt ist. |
 
 ## In Aktion
 
-| Ein versäumter Check, spät quittiert | JFK nach Heathrow, der ganze Flug | Aufwachen |
+| Eine versäumte Abfrage, spät quittiert | JFK nach Heathrow, der ganze Flug | Aufwachen |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| Das SOS blieb unbeantwortet: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Bogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 36 Sekunden: eine Acht-Stunden-Wache, am Gate gestartet, der Platz und sein METAR fünf Minuten nach dem Abheben weg, die Kabine bei 790 hPa, Sonnenuntergang über dem Atlantik, `EGLL` zurück im Endanflug, und die Zeiger am Boden nach London gewandert. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
+| Das SOS blieb unquittiert: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Wachbogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 36 Sekunden: eine Acht-Stunden-Wache, am Gate angetreten, der Standort und sein METAR fünf Minuten nach dem Abheben weg, die Kabine bei 790 hPa, Sonnenuntergang über dem Atlantik, `EGLL` zurück im Endanflug, und die Zeiger am Boden nach London gewandert. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
 
 *Der Flug dauert mit Absicht 36 Sekunden — ein ganzer Tag für alle, die einem zusehen wollen; am
 Boden geht es langsam, über dem Ozean schnell. Die Landung allein, in voller Geschwindigkeit:
-[landing.gif](../media/landing.gif). Zwei Dinge, nach denen oft gefragt wird: Die Zeiger wechseln
-die Zeitzone erst nach der Landung, weil eine Uhr ihre Zone vom Telefon bezieht und das Telefon
-erst am Boden ein Netz findet; und über dem Ozean steht die Sonnenmarke rechts vom Tageslichtband —
-die Marke ist der wahre Stundenwinkel der Sonne, das Band ist der Tag in der Zone der Uhr, und der
-Abstand zwischen beiden ist genau der Rückstand der Zone, den das Gleiten schließt. Puls,
-Kabinendruck und Akku sind auf dem Emulator inszeniert; Position, Wetter und Astronomie sind die
-des Zifferblatts selbst.*
+[landing.gif](../media/landing.gif).*
+
+<details>
+<summary><b>Zwei Dinge, nach denen beim Flug gefragt wird</b></summary>
+
+<br>
+
+**Warum wechseln die Zeiger die Zeitzone erst nach der Landung?** Eine Uhr bezieht ihre Zeitzone
+vom Telefon, und das Telefon findet erst am Boden ein Netz. Bis dahin behält das Zifferblatt die
+Abflugzone — und darum steht über dem Ozean auch der Sonnenstand rechts vom Tagbogen: Die Marke ist
+der wahre Stundenwinkel der Sonne, der Tagbogen ist der Tag in der Zone der Uhr, und der Abstand
+zwischen beiden ist genau der Rückstand der Zone. Das Gleiten am Boden schließt ihn.
+
+**Was daran ist echt?** Der Flugplan ist der von BA 178 an jenem Tag, und die Positionen folgen
+seiner üblichen Nordatlantikroute, dem Zifferblatt als GPS-Fixes zugespielt; Wetter und Astronomie
+sind daraus die eigene Arbeit des Zifferblatts. Puls, Kabinendruck und Akku sind auf dem Emulator
+inszeniert, denn ein Emulator hat kein Handgelenk.
+
+</details>
 
 ## Installation
 
@@ -80,13 +93,13 @@ von Dritten, beide in der Anleitung Schritt für Schritt beschrieben.
 
 <br>
 
-Die Uhr fragt GitHub **einmal täglich, außerhalb der Wache**, und meldet sich einmal pro Release.
+Die Uhr fragt GitHub **einmal täglich, wachfrei**, und meldet sich einmal pro Release.
 Sie lädt nichts herunter und installiert nichts: **Wear OS lässt eine App keine App installieren**
-(geprüft auf einer TicWatch Pro 3 Ultra). `ABOUT → RELEASES` zeigt die Release-Seite als QR-Code
-für die Handykamera, und die Installation bleibt `adb install -r`. `ABOUT → RELEASE CHECK` schaltet
+(geprüft auf einer TicWatch Pro 3 Ultra). `INFO → VERSIONEN` zeigt die Release-Seite als QR-Code
+für die Handykamera, und die Installation bleibt `adb install -r`. `INFO → RELEASE-CHECK` schaltet
 das Ganze ab.
 
-Nicht bei Google Play ist es mit Absicht: Ein Totmann-Monitor darf keine Impuls-Installation sein,
+Nicht bei Google Play ist es mit Absicht: Ein Totmannschalter darf keine Impuls-Installation sein,
 die Berechtigungen, die er legitim braucht, halten ein Hobbyprojekt in dauernder Store-Prüfung, und
 eine APK mit ihrer SHA-256 in den Release-Notizen ist nachprüfbarer als ein Store-Eintrag. Die
 vollständige Begründung steht in
@@ -99,23 +112,23 @@ vollständige Begründung steht in
 
 <br>
 
-Der Standort wird vom Einstellungsbildschirm aus erfragt, denn ein Zifferblatt ist ein
+Die Ortung wird vom Einstellungsbildschirm aus erfragt, denn ein Zifferblatt ist ein
 `WallpaperService` und kann selbst keinen Dialog öffnen.
 
 | Berechtigung | Wofür | Ohne sie |
 |---|---|---|
-| `ACCESS_FINE_LOCATION` | Wetter, Nadir, die Ortserkennung | diese drei bleiben leer; Uhr und Astronomie sind nicht betroffen |
+| `ACCESS_FINE_LOCATION` | Wetter, Nadir, die Standortkennung | diese drei bleiben leer; Uhr und Astronomie sind nicht betroffen |
 | `ACCESS_BACKGROUND_LOCATION` | dasselbe, aus dem 30-Minuten-Auffrischjob | die Plattform liefert null statt eines Fehlers, was genau wie kein Signal aussieht |
-| `WAKE_LOCK`, `FOREGROUND_SERVICE_HEALTH` | der Vigilanz-Monitor, der bei dunklem Display weiter messen muss | nur diese Funktion |
-| `VIBRATE` | Wachgrenzen und das SOS | stumme Grenzen |
-| `SCHEDULE_EXACT_ALARM` | Grenzen auf die Minute genau | angefragt, aber **nicht** erforderlich; ohne sie kann eine Grenze um ein paar Minuten rutschen |
-| `INTERNET` | Open-Meteo und METAR alle 30 Minuten, dazu die tägliche Versionsprüfung | kein Wetter, keine Versionsprüfung |
-| `BODY_SENSORS` | der Puls-Slot und der Puls in einem Vorfall | Striche; die Zeile `LOG PULSE` wird nicht angeboten |
-| `ACTIVITY_RECOGNITION` | der Schritte-Slot; auf Wear 5+ auch das, was den Vigilanz-Dienst starten lässt | Striche; auf neuerem Wear keine Vigilanz |
-| `POST_NOTIFICATIONS` | der laufende Hinweis des Monitors und die Update-Meldung einmal pro Release | der Monitor läuft unangekündigt |
+| `WAKE_LOCK`, `FOREGROUND_SERVICE_HEALTH` | der Totmannschalter, der bei dunklem Display weiter messen muss | nur diese Funktion |
+| `VIBRATE` | Antritt und Ablösung der Wache und das SOS | stumme Grenzen |
+| `SCHEDULE_EXACT_ALARM` | Antritt und Ablösung auf die Minute genau | angefragt, aber **nicht** erforderlich; ohne sie kann eine Grenze um ein paar Minuten rutschen |
+| `INTERNET` | Open-Meteo und METAR alle 30 Minuten, dazu der tägliche Release-Check | kein Wetter, kein Release-Check |
+| `BODY_SENSORS` | der Puls-Slot und der Puls zu einem Vorkommnis | Striche; die Zeile `PULS INS LOGBUCH` wird nicht angeboten |
+| `ACTIVITY_RECOGNITION` | der Schritte-Slot; auf Wear 5+ auch das, was den Totmann-Dienst starten lässt | Striche; auf neuerem Wear kein Totmann |
+| `POST_NOTIFICATIONS` | der laufende Hinweis des Totmanns und die Update-Meldung einmal pro Release | der Totmann läuft unangekündigt |
 
 Keine Kontakte, kein Speicher, kein Netz jenseits dieser Aufrufe. Eine von Hand eingegebene Position
-ersetzt den Standort vollständig — siehe **Position** in den Einstellungen.
+ersetzt die Ortung vollständig — siehe **Position** in den Einstellungen.
 
 </details>
 
@@ -124,21 +137,26 @@ ersetzt den Standort vollständig — siehe **Position** in den Einstellungen.
 **Lange aufs Zifferblatt drücken, dann auf den Stift tippen.** Sieben einklappbare Abschnitte,
 jeweils einer offen; der offene ist umrandet.
 
-| Abschnitte | Duty control | Scheduling | Display | About |
+Die Einstellungen folgen der Sprache der Uhr — Englisch, Deutsch, Französisch, Italienisch, Japanisch
+oder Chinesisch — im Vokabular des Dienstes, nicht des App-Stores: *Wache*, *quart*, *guardia*, 当直,
+值更. Das Zifferblatt selbst bleibt auf jeder Uhr Englisch: `DUTY`, `Z`, `QFE` und die METAR-Zeile
+sind Instrumentenbeschriftung, keine Prosa.
+
+| Abschnitte | Wache | Wachplan | Anzeige | Info |
 |---|---|---|---|---|
 | ![](../screenshots/settings-sections.png) | ![](../screenshots/settings-duty.png) | ![](../screenshots/settings-schedule.png) | ![](../screenshots/settings-display.png) | ![](../screenshots/settings-about.png) |
 
-- **Duty control** — Dauer `4h` `8h` `12h` `CST`, ein vorbestellter Start und ein Chip, der
-  `START NOW` oder ein terrakottafarbenes `END DUTY` zeigt. Ein Start in der Vergangenheit lässt
-  sich nicht buchen.
-- **Vigilance** — ein/aus, Prüfintervall, `VIBE STRENGTH`, `SOS SOUND` (OFF/LOW/MED/HIGH),
-  `LOG PULSE` und das Vorfallsprotokoll mit seinem Export.
-- **Sensors** — was jeder Slot an der Nabe liest.
-- **Position** — automatisch oder von Hand eingegebene Koordinaten.
-- **Display** — Palette, Oben auf dem Blatt, Mitternachtsmarke, Nadir, Sonnen- und Mondmarke,
-  Wetter, Always-on und `HINTS` für das Kleingedruckte unter jeder Zeile.
-- **Units** — °C/°F, hPa/mmHg.
-- **About** — Version, das Repository als QR-Code, die Versionsprüfung.
+- **Wache** — Wachdauer `4h` `8h` `12h` `FREI`, ein angesetzter Antritt und ein Chip, der
+  `WACHE ANTRETEN` oder ein terrakottafarbenes `WACHE ÜBERGEBEN` zeigt. Ein Antritt in der Vergangenheit lässt
+  sich nicht ansetzen.
+- **Totmann** — ein/aus, Abfrageintervall, `VIBRATION`, `SOS-SIGNAL` (AUS/MIN/MED/MAX),
+  `PULS INS LOGBUCH` und das Logbuch samt Senden.
+- **Sensoren** — was jeder Slot an der Nabe liest.
+- **Position** — Ortung oder von Hand eingegebene Koordinaten.
+- **Anzeige** — Leuchtfarbe, Zifferblatt oben, Mitternachtsmarke, Nadir, Sonnenstand und Mondstand,
+  Wetter, Always-on und `HINWEISE` für das Kleingedruckte unter jeder Zeile.
+- **Einheiten** — °C/°F, hPa/mmHg.
+- **Info** — Version, das Repository als QR-Code, der Release-Check.
 
 **[Jede Zeile, mit Begründung →](../DESIGN.md#settings)**
 
@@ -146,14 +164,24 @@ jeweils einer offen; der offene ist umrandet.
 
 | ![](../screenshots/duty.png) | ![](../screenshots/ambient-auto.png) | ![](../screenshots/ambient-duty.png) |
 |---|---|---|
-| Mitten in der Wache: Der Bogen ist die Schicht, der helle Teil das, was noch abzuleisten ist. | `ALWAYS-ON > AUTO` dünnt das Blatt nach Sonnenuntergang aus — halbes Licht, halber Einbrenn-Tastgrad. | Eine laufende Wache behält die ganze Nacht das volle Blatt: Eine Nachtwache ist genau dann, wenn das Blatt im Dunkeln gelesen wird. |
+| Mitten in der Wache: Der Wachbogen ist die Wache, der helle Teil das, was noch abzuleisten ist. | `ALWAYS-ON > AUTO` dünnt das Blatt nach Sonnenuntergang aus — halbes Licht, halber Einbrenn-Tastgrad. | Eine laufende Wache behält die ganze Nacht das volle Blatt: Eine Nachtwache ist genau dann, wenn das Blatt im Dunkeln gelesen wird. |
 
-**[Wie es funktioniert — Layout, Astronomie, der Zustandsautomat der Vigilanz, die Tests →](../DESIGN.md)**
+**[Wie es funktioniert — Layout, Astronomie, der Zustandsautomat des Totmanns, die Tests →](../DESIGN.md)**
 
 <details>
-<summary><b>Fußnoten — die Schrittzahl, die nötige Hardware und was es wiegt</b></summary>
+<summary><b>Fußnoten — das Pulsfenster, die Schrittzahl, die nötige Hardware und was es wiegt</b></summary>
 
 <br>
+
+<b id="pulse-window">Das Pulsfenster im Always-on.</b> Bei dunklem Display bleibt der Puls-Slot nicht
+einfach laufen: Einmal pro Minute öffnet das Zifferblatt ein Fenster von fünfzehn Sekunden, schaltet
+den Sensor ein, nimmt den ersten plausiblen Wert und schaltet den Sensor wieder aus. Drei Minuten ohne
+Erfassung, und die Zahl weicht auf dem Blatt Strichen. Drei leere Fenster in Folge verlangsamen
+zudem den Takt auf ein Fenster pro Viertelstunde, bis ein Wert, ein gehobenes Handgelenk oder die
+eigene *getragen*-Flanke des Tragedetektors es beendet — denn der Detektor kann sich bei einem Tisch
+irren, und hat es eine ganze Nacht lang getan: sechshundert Fenster gegen das Holz. Heute vierzig pro
+Nacht, und am Handgelenk ändert sich nichts, wo ein Slot nach drei Minuten ohne Erfassung ohnehin
+schon Striche zeigt.
 
 **Wie die Schrittzahl zustande kommt.** Die Zeile bevorzugt die Tageszahl der Plattform selbst, über
 Health Services, denn das ist die Zahl, mit der der Rest der Uhr übereinstimmt, und ihr ist egal,
@@ -177,45 +205,47 @@ GPU-Funktionen jenseits eines gewöhnlichen Canvas. `render()` allokiert nichts,
 Garbage-Collector-Pause, um die herum geplant werden müsste, und die Bildrate folgt dem Bedarf:
 **ein Bild pro Sekunde in Ruhe**, 16 ms nur, während ein Übergang animiert, und ein Bild pro Minute
 im Always-on. Die optionalen Sensoren sind die einzigen echten Kosten — der Puls ist eine LED, und
-der Vigilanz-Monitor lässt den Beschleunigungssensor im Sensor-Hub puffern, statt den Prozessor zu
+der Totmannschalter lässt den Beschleunigungssensor im Sensor-Hub puffern, statt den Prozessor zu
 wecken. Alles andere läuft aus zwischengespeicherten Werten.
 
 **Größe.** Etwa **3,5 MB** installiert, davon rund 2,8 MB Code, 190 KB der Standortindex an Bord
 und 220 KB die Vorschau für den Wähler. Der Index ist absichtlich unkomprimiert gespeichert, damit
-er ohne Entpacken gelesen werden kann. Nur englische Ressourcen: Der eigene Text der App ist
-Englisch, und achtzig Locales an Bibliotheks-Strings mitzuführen, die sie nie anzeigen kann,
-kostete 260 KB.
+er ohne Entpacken gelesen werden kann. Sechs Locales — Englisch, Deutsch, Französisch, Italienisch,
+Japanisch, Chinesisch — für die eigenen Strings der App; die übrigen achtzig Locales an
+Bibliotheks-Strings, die sie nie anzeigen könnte, kosteten 260 KB und bleiben draußen.
 
 </details>
 
 ## Was es nicht ist
 
-Ein persönliches Instrument, kein zertifiziertes. Der Vigilanz-Monitor ist ein unzertifiziertes
-Hilfsmittel: Er lässt sich abschalten, von einem losen Armband pausieren oder von den Doze-Grenzen
-der Plattform verzögern. Das Vorfallsprotokoll gilt für **eine Wache** — der Start der nächsten
-leert es, also verlässt alles Aufhebenswerte die Uhr vorher über `EXPORT LOG`. Nichts hier ersetzt
+Ein persönliches Instrument, kein zertifiziertes. Der Totmannschalter ist ein unzertifiziertes
+Hilfsmittel: Er lässt sich abschalten, von einem losen Armband aussetzen oder von den Doze-Grenzen
+der Plattform verzögern. Das Logbuch gilt für **eine Wache** — der Antritt der nächsten
+leert es, also verlässt alles Aufhebenswerte die Uhr vorher über `LOGBUCH · QR + ♪`. Nichts hier ersetzt
 ein Gerät, das eine Aufsichtsbehörde zugelassen hat.
 
 <details>
-<summary><b>Das Vorfallsprotokoll exportieren — zwei Kanäle und ihre Grenzen</b></summary>
+<summary><b id="export">Das Logbuch senden — zwei Kanäle und ihre Grenzen</b></summary>
 
-`EXPORT LOG`, im Vigilanz-Abschnitt, legt das Protokoll auf die beiden Kanäle, die eine Uhr
+<br>
+
+`LOGBUCH · QR + ♪`, im Abschnitt TOTMANN, legt das Logbuch auf die beiden Kanäle, die eine Uhr
 wirklich hat: einen **QR-Code** für die Handykamera, die ohnehin schon darauf zeigt, und **Ton** —
 Bell 202 AFSK, 1200 Bd, 8N1, die Bitübertragungsschicht von APRS, am anderen Ende also
 `minimodem --rx 1200`, ans Gehäuse gehalten. Beide tragen dasselbe Klartext-Paket: einen Kopf, das
-Rufzeichen des Instruments, eine `WATCH`-Zeile mit Beginn, Ende und Länge der Wache, einen Vorfall
-pro Zeile in Zulu-Zeit — mit `HR` und `BASE … AT`, wenn `LOG PULSE` an ist — und eine `END`-Zeile
+Rufzeichen des Instruments, eine `WATCH`-Zeile mit Antritt, Ablösung und Länge der Wache, ein Vorkommnis
+pro Zeile in Zulu-Zeit — mit `HR` und `BASE … AT`, wenn `PULS INS LOGBUCH` an ist — und eine `END`-Zeile
 mit der Anzahl und einer CRC32 über alles darüber, sodass ein verwackeltes Foto oder eine
 verrauschte Aufnahme laut scheitert, statt leise eine Zeile zu verlieren.
 
-- **Das Protokoll hält die neuesten 32 Vorfälle der laufenden Wache**, höchstens 30 Tage lang. Der
-  Start der nächsten Wache leert es; vorher exportieren.
-- **Der Ton trägt immer das ganze Protokoll** — achtzehn Sekunden Töne an der Obergrenze. Die
+- **Das Logbuch hält die neuesten 32 Vorkommnisse der laufenden Wache**, höchstens 30 Tage lang. Der
+  Antritt der nächsten Wache leert es; vorher senden.
+- **Der Ton trägt immer das ganze Logbuch** — achtzehn Sekunden Töne an der Obergrenze. Die
   Übertragung beginnt, wenn der Bildschirm sich öffnet, und wiederholt sich auf ein Tippen.
 - **Der QR-Code trägt die neuesten Einträge, die hineinpassen** — in den größten Code, den ein
   1,2-Zoll-Display zeigen kann: alle 32, wenn die Zeilen bloße Zeitpunkte sind, etwa 14, wenn jede
   Zeile einen Puls und seinen Bezugswert trägt. Ein gekürzter Code sagt es: Seine `END`-Zeile
-  lautet `END 14 OF 32`, nie `END 14`. Für jede Zeile eines so langen Protokolls den Ton nehmen.
+  lautet `END 14 OF 32`, nie `END 14`. Für jede Zeile eines so langen Logbuchs den Ton nehmen.
 - **Nur lesend.** Es gibt keinen Importpfad, also kann nichts, was ein Paket liest, den Datensatz
   schreiben.
 
@@ -229,7 +259,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ und das Android-SDK. 192 JVM-Tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ und das Android-SDK. 193 JVM-Tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Wie es entstanden ist
 

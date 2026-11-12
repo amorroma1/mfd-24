@@ -46,7 +46,9 @@ import java.util.concurrent.TimeUnit
  * until the first plausible reading or [WINDOW_MILLIS], whichever is first; then a redraw with the
  * figure. Two rules round it: a reading older than [STALE_MILLIS] is dashes, never a stale
  * number, and no window opens off the wrist, where the LED would light against a table every
- * minute all night for nothing.
+ * minute all night for nothing. The wrist detector can be wrong about a table — it was, for a
+ * whole night — so three empty windows in a row slow the cadence to [BACKOFF_MILLIS] until a
+ * lock, a screen-on or the detector's own *worn* edge says a wrist is back.
  *
  * The window length was measured, not reasoned. Two and a half days of wear at thirty seconds:
  * 747 windows, one a minute of always-on as intended, and 92 % of them ran to the timeout with
@@ -141,7 +143,20 @@ class SensorSlots(context: Context) : SensorEventListener {
     /** `elapsedRealtime` of the last pulse put on the dial, by either path; [NEVER] until one is. */
     private var pulseReadAt = NEVER
 
-    private val windowTimeout = Runnable { closeWindow("no lock inside the window") }
+    /**
+     * Windows that have run to their timeout since the last lock, screen-on or return to the
+     * wrist — the back-off counter, see [windowDue]. Measured 2026-11-12: a watch left face
+     * down on a table reported *worn* all night, and 600 windows lit the LED against the table.
+     */
+    private var missedWindows = 0
+
+    /** `elapsedRealtime` the last window opened at; [NEVER] until one has. */
+    private var windowOpenedAt = NEVER
+
+    private val windowTimeout = Runnable {
+        missedWindows++
+        closeWindow("no lock inside the window")
+    }
     private val ambientTick = Runnable { ambientMinuteNow() }
 
     /** The window's own listener, so closing it cannot touch the interactive registration. */
@@ -155,6 +170,7 @@ class SensorSlots(context: Context) : SensorEventListener {
             if (!IncidentLog.plausibleBpm(bpm)) return
             state.heartRate = bpm
             pulseReadAt = SystemClock.elapsedRealtime()
+            missedWindows = 0
             noteReference(bpm)
             closeWindow("locked")
             onAmbientReading?.invoke()
@@ -171,7 +187,8 @@ class SensorSlots(context: Context) : SensorEventListener {
             if (worn == onBody) return
             onBody = worn
             Diag.d(TAG, if (worn) "back on the wrist" else "off the wrist")
-            if (!worn) closeWindow("off the wrist")
+            // A wrist that has just come back is a new chance; the back-off was about a table.
+            if (worn) missedWindows = 0 else closeWindow("off the wrist")
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -242,7 +259,9 @@ class SensorSlots(context: Context) : SensorEventListener {
         }
         if (!permitted(Kind.HEART_RATE)) return
         val sensor = heartSensor ?: return
-        if (!windowDue(now, pulseReadAt, onBody, listening, windowOpen)) return
+        if (!windowDue(now, pulseReadAt, onBody, listening, windowOpen, missedWindows, windowOpenedAt)) {
+            return
+        }
         runCatching { wakeLock?.acquire(WAKE_LOCK_TIMEOUT_MILLIS) }
         val registered = runCatching {
             manager?.registerListener(windowListener, sensor, SensorManager.SENSOR_DELAY_NORMAL) == true
@@ -252,6 +271,7 @@ class SensorSlots(context: Context) : SensorEventListener {
             return
         }
         windowOpen = true
+        windowOpenedAt = now
         handler.postDelayed(windowTimeout, WINDOW_MILLIS)
     }
 
@@ -348,6 +368,8 @@ class SensorSlots(context: Context) : SensorEventListener {
 
     private fun start() {
         val sensorManager = manager ?: return
+        // The screen is on, so a wrist was raised: whatever the windows had given up on is over.
+        missedWindows = 0
         var any = false
         for (kind in Kind.entries) {
             if (kind == Kind.OFF || (kind != left && kind != right)) continue
@@ -537,9 +559,37 @@ class SensorSlots(context: Context) : SensorEventListener {
             onBody: Boolean,
             interactive: Boolean,
             windowOpen: Boolean,
+            missedWindows: Int = 0,
+            lastWindowElapsed: Long = NEVER,
         ): Boolean =
             onBody && !interactive && !windowOpen &&
-                (readingElapsed == NEVER || nowElapsed - readingElapsed >= FRESH_MILLIS)
+                (readingElapsed == NEVER || nowElapsed - readingElapsed >= FRESH_MILLIS) &&
+                (
+                    missedWindows < BACKOFF_AFTER_MISSES || lastWindowElapsed == NEVER ||
+                        nowElapsed - lastWindowElapsed >= BACKOFF_MILLIS
+                    )
+
+        /**
+         * Empty windows in a row before the minute cadence gives way to [BACKOFF_MILLIS].
+         *
+         * The wrist detector is the gate that should stop a window opening on a table, and on
+         * 2026-11-12 it did not: the watch lay on a table from 23:21 to 09:14, the detector said
+         * *worn* throughout, and 600 windows lit the LED for 2 h 47 m against the wood — 1.6 %/h
+         * of battery against 0.94 without. A table never gives a lock, so three misses in a row
+         * is the one signal that does not depend on the detector; three because that is also when
+         * the reading comes off the dial ([STALE_MILLIS]), so the slot is showing dashes anyway
+         * and a slower cadence changes nothing on it. The count resets on a lock, on the screen
+         * coming on (a wrist was raised) and on the detector's own *worn* edge.
+         */
+        const val BACKOFF_AFTER_MISSES: Int = 3
+
+        /**
+         * The cadence after [BACKOFF_AFTER_MISSES]: a quarter of an hour. A night on the table
+         * costs forty windows instead of six hundred, and a wrist that merely kept moving for
+         * three minutes waits at most this long for its next chance in always-on — or not at
+         * all, because raising it to look is what resets the count.
+         */
+        const val BACKOFF_MILLIS: Long = 15 * 60_000L
 
         /** Whether the reading on the dial has stopped being true. Never, for a dial with none. */
         fun stale(nowElapsed: Long, readingElapsed: Long): Boolean =

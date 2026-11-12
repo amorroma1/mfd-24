@@ -719,7 +719,14 @@ figure from when the wrist was last raised, for as long as the screen stayed dim
 ambient redraw opens a *window* — the LED until the first plausible reading or fifteen seconds,
 whichever comes first — and the slot redraws with the figure. A reading older than three minutes
 comes off the dial as `--`, and no window opens while the watch is off the wrist, where the LED
-would light against a table all night for nothing. Fifteen seconds is a measurement: on a lowered,
+would light against a table all night for nothing. The wrist detector is not trusted alone for
+that: on 2026-11-12 a watch left on a table reported *worn* from 23:21 to 09:14 and six hundred
+windows lit the LED against the wood, 2 h 47 m of it, 1.6 %/h of battery against 0.94 without.
+A table never gives a lock, so three empty windows in a row — the same three that take the
+figure off the dial — slow the cadence to one window a quarter of an hour, until a lock, a
+screen-on or the detector's own *worn* edge says a wrist is back. Forty windows a night, and
+nothing visible changes on a wrist, because a slot three minutes without a lock is already
+showing dashes. Fifteen seconds is a measurement: on a lowered,
 still wrist the sensor locks in seven to eleven, and on a wrist that is walking or typing it does
 not lock in thirty either, so `--` on the move is the honest answer and the window is sized for
 the case it can win. The cost is the LED for up to a quarter of every always-on minute; the number
@@ -905,7 +912,7 @@ The face never prints placeholder dashes; a row simply is not there. So:
 
 ## Tests
 
-`gradlew :app:testEarthDebugUnitTest` — **192 JVM tests** in 33 classes. Everything with arithmetic
+`gradlew :app:testEarthDebugUnitTest` — **193 JVM tests** in 33 classes. Everything with arithmetic
 in it sits behind a pure, Android-free function so it can be pinned here rather than eyeballed on a
 wrist, and several of these tests exist to stop a specific bug coming back rather than to describe a
 feature:
@@ -948,9 +955,14 @@ feature:
   proxy that does not implement `collect` (the library logs
   `userStyle proxy encountered unexpected method name 'collect'`), so the editor mirrors the
   selections in local state and pushes each change into the session.
-- **The APK carries English only.** `resourceConfigurations` is pinned to `en`: the app's own text is
-  English, and the eighty locales of AndroidX and Compose strings it can never display cost 260 KB.
-  The six translated documents are documentation, not resources.
+- **The APK carries all six README languages.** `resourceConfigurations` is pinned to
+  `en, de, fr, it, ja, zh`: the app's own strings exist in them and no others, and the eighty remaining locales of
+  AndroidX and Compose strings cost 260 KB. The dial is English in every locale — its rows are
+  instrument nomenclature, drawn as `char[]` on a fixed width budget — and the editor's segment
+  labels are abbreviated per language to fit a quarter of a row, which is why French `ARRÊT`
+  becomes `MUET` and `NON` wherever four cells share a line. The terminology is the naval and
+  aviation one in each language: *Wache antreten*, *Totmann*, *Logbuch*; *prendre le quart*,
+  *homme mort*, *journal de bord*.
 - **The site index ships uncompressed.** It is read in place through a random-access `ByteBuffer`, so
   packing it would mean unpacking 194 KB at every start to save 60 KB of download. CI asserts it is
   present *and* stored uncompressed, because that wiring has silently slipped twice.

@@ -16,14 +16,14 @@ convenir.
 
 Une décision, pas un retard. Trois raisons :
 
-- **Un moniteur « homme mort » ne doit pas être une installation impulsive.** La fonction de
-  vigilance est une aide non certifiée — utile précisément à ceux qui lisent ce qu'elle fait, et ce
+- **Un dispositif d'homme mort ne doit pas être une installation impulsive.** L'homme
+  mort est une aide non certifiée — utile précisément à ceux qui lisent ce qu'elle fait, et ce
   qu'elle ne promet pas, avant de s'y fier. Une fiche de magasin est faite pour être tapée en
   trente secondes ; un sideload est lu, vérifié et installé délibérément, par le public pour
   lequel ce cadran a été conçu.
 - **Les permissions sont du genre coûteux.** Localisation en arrière-plan, capteurs corporels et
   service de premier plan de type santé sont légitimes ici — la météo se rafraîchit en
-  arrière-plan, le moniteur lit l'accéléromètre écran éteint — mais sur Play elles placent un
+  arrière-plan, l'homme mort lit l'accéléromètre écran éteint — mais sur Play elles placent un
   projet de loisir dans la même machinerie de révision permanente que les applications commerciales
   de bien-être, avec un renouvellement des règles chaque année et le retrait comme issue par
   défaut du silence. Ce temps est mieux employé sur le cadran.
@@ -134,7 +134,7 @@ retombe sur le keystore de debug et l'APK s'installe quand même sur votre propr
 **La signature est la frontière :** un APK auto-compilé et la release GitHub ne peuvent pas
 s'installer l'un par-dessus l'autre, car Android exige qu'une mise à jour partage la clé de
 signature. Traverser signifie désinstaller d'abord — et les réglages, l'état du quart et le
-journal d'incidents partent avec. Choisissez une voie — les releases pour porter, vos builds pour
+journal de bord partent avec. Choisissez une voie — les releases pour porter, vos builds pour
 bidouiller — et restez-y.
 
 ## Mise à jour
@@ -144,8 +144,8 @@ pouvoir.
 
 - **Une fois par jour, hors quart, elle demande à GitHub s'il existe quelque chose de plus récent.**
   Un petit corps JSON. **Rien n'est jamais téléchargé.** Jamais pendant un quart, et
-  **ABOUT → RELEASE CHECK** désactive tout.
-- **Une notification par version**, et **ABOUT → RELEASES** nomme celle qui attend.
+  **À PROPOS → MISES À JOUR** désactive tout.
+- **Une notification par version**, et **À PROPOS → VERSIONS** nomme celle qui attend.
 - **Un appui affiche la page de la version en QR code.** Pointez-y un téléphone : les notes, le
   SHA-256 et l'APK sont sur cette page, dans un navigateur, à une taille lisible.
 - **Puis installez normalement**, depuis un ordinateur :
@@ -168,8 +168,8 @@ refus SELinux.)*
 ## Après l'installation
 
 - **Les réglages** sont derrière un appui long sur le cadran, puis le crayon. Tout ce dont le
-  cadran a besoin, il le demande là — la localisation pour la météo, le Nadir et le verrouillage
-  de site ; les permissions capteurs au moment où un emplacement qui en exige une est choisi. Rien
+  cadran a besoin, il le demande là — votre point pour la météo, le Nadir et l'accrochage
+  de site ; les permissions capteurs au moment où une lecture qui en exige une est choisie. Rien
   n'est demandé à l'installation. La table complète des permissions est dans le
   [README](README.fr.md#permissions).
 - **Les mises à jour** se signalent et attendent — voir [Mise à jour](#mise-à-jour) ci-dessus ;

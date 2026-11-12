@@ -15,13 +15,13 @@ Richiede Wear OS 3.0 o più recente (API 30). Costruito e indossato su un TicWat
 
 Una decisione, non un arretrato. Tre ragioni:
 
-- **Un monitor a uomo morto non deve essere un'installazione d'impulso.** La funzione di
-  vigilanza è un ausilio non certificato — utile esattamente a chi legge cosa fa, e cosa non
+- **Un dispositivo uomo morto non deve essere un'installazione d'impulso.** L'uomo
+  morto è un ausilio non certificato — utile esattamente a chi legge cosa fa, e cosa non
   promette, prima di fidarsene. Una scheda di store è fatta per essere toccata in trenta secondi;
   un sideload viene letto, verificato e installato di proposito, dal pubblico per cui questo
   quadrante è stato costruito.
 - **I permessi sono del tipo costoso.** Posizione in background, sensori corporei e un servizio in
-  primo piano di tipo salute qui sono legittimi — il meteo si aggiorna in background, il monitor
+  primo piano di tipo salute qui sono legittimi — il meteo si aggiorna in background, l'uomo morto
   legge l'accelerometro a schermo spento — ma su Play mettono un progetto amatoriale nella stessa
   macchina di revisione permanente delle app commerciali di benessere, con regole che cambiano
   ogni anno e la rimozione come esito predefinito del silenzio. Quel tempo è speso meglio sul
@@ -130,18 +130,18 @@ configurata ripiega sul keystore di debug e l'APK si installa comunque sul propr
 
 **La firma è il confine:** un APK auto-compilato e la release GitHub non possono installarsi
 l'uno sopra l'altra, perché Android esige che gli aggiornamenti condividano la chiave di firma.
-Attraversare significa prima disinstallare — e impostazioni, stato del turno e registro degli
-incidenti se ne vanno con la disinstallazione. Scegliete una corsia — le release per indossare, le
+Attraversare significa prima disinstallare — e impostazioni, stato della guardia e giornale di
+bordo se ne vanno con la disinstallazione. Scegliete una corsia — le release per indossare, le
 proprie build per smanettare — e restateci.
 
 ## Aggiornare
 
 L'orologio vi dirà che esiste una nuova release. Non la installerà, e non finge di poterlo fare.
 
-- **Una volta al giorno, fuori turno, chiede a GitHub se esiste qualcosa di più recente.** Un
-  piccolo corpo JSON. **Non scarica mai nulla.** Il controllo non gira mai mentre un turno è in
-  corso, e **ABOUT → RELEASE CHECK** lo disattiva del tutto.
-- **Una notifica per release**, e **ABOUT → RELEASES** nomina la versione ogni volta che ce n'è
+- **Una volta al giorno, fuori guardia, chiede a GitHub se esiste qualcosa di più recente.** Un
+  piccolo corpo JSON. **Non scarica mai nulla.** Il controllo non gira mai mentre una guardia è in
+  corso, e **INFO → AGGIORNAMENTI** lo disattiva del tutto.
+- **Una notifica per release**, e **INFO → VERSIONI** nomina la versione ogni volta che ce n'è
   una in attesa.
 - **Toccandolo compare la pagina della release come codice QR.** Puntateci un telefono: le note,
   lo SHA-256 e l'APK sono tutti su quella pagina, in un browser, a una dimensione che una persona
@@ -166,7 +166,7 @@ SELinux.)*
 ## Dopo l'installazione
 
 - **Le impostazioni** stanno dietro una pressione lunga sul quadrante, poi la matita. Tutto ciò
-  che serve al quadrante viene chiesto lì — la posizione per meteo, Nadir e l'aggancio del sito; i
+  che serve al quadrante viene chiesto lì — il punto per meteo, Nadir e l'aggancio del sito; i
   permessi dei sensori nel momento in cui si sceglie uno slot che ne richiede uno.
   All'installazione non viene chiesto nulla. La tabella completa dei permessi è nel
   [README](README.it.md#permissions).

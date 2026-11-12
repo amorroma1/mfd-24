@@ -10,7 +10,8 @@ A 24-hour instrument dial for people who stand watches — pilots, mariners, UAV
 officers. One turn of the hour hand per day, your shift drawn as an arc of that day, a dead-man's
 monitor that escalates to SOS and leaves a record, and the telemetry a watch actually runs on.
 
-Everything works offline except the weather and the once-a-day release check. No companion app, no account, no analytics. GPL.
+Everything works offline except the weather and the once-a-day release check. No companion app,
+no account, no analytics. GPL-3.0.
 
 | Interactive | Always-on |
 |---|---|
@@ -30,13 +31,13 @@ dimmed, minus the seconds cursor and the background wash.*
 |---|---|
 | **24-hour dial** | One revolution per day. Noon up or midnight up. Minutes on their own ring; the second is a cursor that steps, so nothing sweeps. |
 | **Watch timer** | Start now or book ahead. An arc spans the hours on duty and dims as they are served; `DUTY: 04:40 REM` counts down. Both boundaries beep and buzz with the screen off. A finished watch clears itself an hour later. |
-| **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optional: your pulse during the missed check, beside the last one the heart-rate slot took while you were moving — noted once a minute, kept for a day. |
-| **Log export** | The incident log leaves the watch two ways: a **QR code** for a phone camera and **sound** — Bell 202 AFSK, 1200 Bd, `minimodem --rx 1200` on the other end. The sound carries everything; the QR carries the newest lines that fit a 1.2-inch code and says so (`END 14 OF 32`). |
+| **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optionally it notes your pulse during the missed check, beside your last reading on the move. |
+| **Log export** | The incident log leaves the watch as a **QR code** for a phone camera or as **sound** — Bell 202 AFSK, decoded by `minimodem`. The sound carries everything; the QR carries what fits and says so. [Channels and limits ↓](#export) |
 | **Zulu + date-time group** | `Z 11NOV 13:05`, the clock a log entry is written in. |
 | **Weather** | Temperature, METAR-style condition and QNH. At an aerodrome it is that field's **own METAR**; everywhere else Open-Meteo. Refreshed every 30 minutes. |
 | **5 km site lock** | Names the nearest airfield, port, heliport or spaceport from 9,649 sites in a 194 KB on-device index. Military sites are drawn in the accent colour. |
 | **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass**. The moon carries its honest phase. |
-| **Sensor slots** | Two optional readouts beside the hub: heart rate, the platform's own daily step total, or station pressure. Off by default; they run only while the screen is on. In always-on the pulse is re-read once a minute while the watch is worn — a fifteen-second window, dashes after three minutes without a lock. |
+| **Sensor slots** | Two optional readouts beside the hub: heart rate, the day's steps, or station pressure. Off by default; they run while the screen is on, and in always-on the pulse is re-read once a minute while the watch is worn. [How that window paces itself ↓](#pulse-window) |
 | **Always-on** | The same dial, dimmed. `AUTO` thins it to every other pixel after sunset — never during a night watch. |
 | **Direct boot** | Draws populated before the watch is unlocked. |
 
@@ -49,12 +50,25 @@ dimmed, minus the seconds cursor and the background wash.*
 
 *The flight runs 36 seconds on purpose — a whole day for whoever wants to watch one; the ground
 goes slowly and the ocean fast. The landing alone, at full speed:
-[landing.gif](docs/media/landing.gif). Two things people ask about: the hands change zone only
-after landing, because a watch takes its zone from the phone and the phone finds a network on
-the ground; and over the ocean the sun mark stands right of the daylight band — the mark is the
-sun's true hour angle, the band is the day in the watch's zone, and the gap between them is
-exactly the zone's lag, which the glide closes. Pulse, cabin pressure and battery are staged on
-the emulator; the position, the weather and the astronomy are the face's own.*
+[landing.gif](docs/media/landing.gif).*
+
+<details>
+<summary><b>Two things people ask about the flight</b></summary>
+
+<br>
+
+**Why do the hands change zone only after landing?** A watch takes its time zone from the phone,
+and the phone finds a network on the ground. Until then the dial keeps the departure zone — which
+is also why, over the ocean, the sun mark stands to the right of the daylight band: the mark is the
+sun's true hour angle, the band is the day in the watch's zone, and the gap between them is exactly
+the zone's lag. The glide on the ground closes it.
+
+**What is real in it?** The timetable is BA 178's of that day and the positions follow its usual
+North Atlantic routing, fed to the face as GPS fixes; the weather and the astronomy are the face's
+own work from them. Pulse, cabin pressure and battery are staged on the emulator, because an
+emulator has no wrist.
+
+</details>
 
 ## Install
 
@@ -120,6 +134,11 @@ entirely — see **Position** in the settings.
 **Long-press the face, then tap the pencil.** Seven collapsible sections, one open at a time; the
 open one is outlined.
 
+The settings follow the watch's language — English, German, French, Italian, Japanese or Chinese —
+in the vocabulary of the service, not of the app store: *Wache*, *quart*, *guardia*, 当直, 值更. The
+dial itself stays English on every watch: `DUTY`, `Z`, `QFE` and the METAR line are instrument
+nomenclature, not prose.
+
 | Sections | Duty control | Scheduling | Display | About |
 |---|---|---|---|---|
 | ![](docs/screenshots/settings-sections.png) | ![](docs/screenshots/settings-duty.png) | ![](docs/screenshots/settings-schedule.png) | ![](docs/screenshots/settings-display.png) | ![](docs/screenshots/settings-about.png) |
@@ -146,9 +165,18 @@ open one is outlined.
 **[How it works — layout, astronomy, the vigilance state machine, the tests →](docs/DESIGN.md)**
 
 <details>
-<summary><b>Footnotes — the step count, the hardware it needs, and what it weighs</b></summary>
+<summary><b>Footnotes — the pulse window, the step count, the hardware it needs, and what it weighs</b></summary>
 
 <br>
+
+<b id="pulse-window">The always-on pulse window.</b> With the screen off the heart-rate slot is not
+left running: once a minute the face opens a fifteen-second window, lights the sensor, takes the
+first plausible reading and puts the sensor out again. Three minutes without a lock and the figure
+comes off the dial as dashes. Three empty windows in a row also slow the cadence to one window a
+quarter of an hour, until a reading, a raised wrist or the wrist detector's own *worn* edge ends it
+— because the detector can be wrong about a table, and was, for a whole night: six hundred windows
+against the wood. Forty a night now, and nothing changes on a wrist, where a slot three minutes
+without a lock is already showing dashes.
 
 **How the step count is arrived at.** The row prefers the platform's own daily figure, through
 Health Services, because that is the number the rest of the watch agrees with and it does not care
@@ -175,8 +203,9 @@ cached values.
 
 **Size.** About **3.5 MB** installed, of which roughly 2.8 MB is code, 190 KB the on-device site
 index and 220 KB the picker preview. The index is stored uncompressed on purpose so it can be read
-without unpacking. English resources only: the app's own text is English, and carrying eighty
-locales of library strings it can never display cost 260 KB.
+without unpacking. Six locales — English, German, French, Italian, Japanese, Chinese — for the
+app's own strings; the other eighty locales of library strings, which it could never display,
+cost 260 KB and are left out.
 
 </details>
 
@@ -188,7 +217,9 @@ log covers **one watch** — starting another empties it, so anything worth keep
 `EXPORT LOG` first. Nothing here substitutes for a device a regulator has approved.
 
 <details>
-<summary><b>Exporting the incident log — two channels, and their limits</b></summary>
+<summary><b id="export">Exporting the incident log — two channels, and their limits</b></summary>
+
+<br>
 
 `EXPORT LOG`, in the vigilance section, puts the log on the two channels a watch actually has: a
 **QR code** for the phone camera already pointed at it, and **sound** — Bell 202 AFSK, 1200 Bd,
@@ -218,7 +249,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ and the Android SDK. 192 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ and the Android SDK. 193 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## How it was built
 

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">MFD-24</string>
-    <string name="watch_face_name">MFD-24</string>
-    <string name="config_title">MFD-24</string>
+    <string name="app_name" translatable="false">MFD-24</string>
+    <string name="watch_face_name" translatable="false">MFD-24</string>
+    <string name="config_title" translatable="false">MFD-24</string>
 
     <!-- Planet mode -->
 
@@ -37,9 +37,9 @@
     <!-- Midnight numeral -->
     <string name="style_midnight_name">Midnight mark</string>
     <string name="style_midnight_desc">Whether midnight reads as the start or the end of the day</string>
-    <string name="midnight_00">00</string>
+    <string name="midnight_00" translatable="false">00</string>
     <string name="midnight_00_sr" tools:ignore="Typos">Midnight shown as zero zero</string>
-    <string name="midnight_24">24</string>
+    <string name="midnight_24" translatable="false">24</string>
     <string name="midnight_24_sr">Midnight shown as twenty four</string>
 
 
@@ -158,7 +158,7 @@
     <string name="editor_incidents_none">None on record</string>
     <string name="editor_tx_log">EXPORT LOG · QR + ♪</string>
     <string name="editor_tx_caption" tools:ignore="TypographyDashes">QR plus Bell 202 tones — receive with: minimodem --rx 1200</string>
-    <string name="export_sounding">TX ♪ 1200 Bd AFSK</string>
+    <string name="export_sounding" translatable="false">TX ♪ 1200 Bd AFSK</string>
     <string name="export_idle">TAP TO REPLAY ♪</string>
     <string name="editor_incidents_clear">CLEAR LOG</string>
     <string name="editor_label_dial_top">DIAL TOP</string>
@@ -182,8 +182,8 @@
     <string name="editor_label_ambient">ALWAYS-ON</string>
     <string name="editor_position_auto">AUTOMATIC</string>
     <string name="editor_position_manual">MANUAL</string>
-    <string name="editor_manual_lat">LAT %1$s</string>
-    <string name="editor_manual_lon">LON %1$s</string>
+    <string name="editor_manual_lat" translatable="false">LAT %1$s</string>
+    <string name="editor_manual_lon" translatable="false">LON %1$s</string>
     <string name="editor_manual_apply">USE THIS POSITION</string>
     <string name="editor_manual_clear">CLEAR POSITION</string>
     <string name="editor_nadir_needs_position">Needs a position</string>
@@ -204,25 +204,25 @@
     <string name="editor_seg_palette_amber">AMBER</string>
     <string name="editor_seg_palette_green">GREEN</string>
     <string name="editor_seg_palette_red">RED</string>
-    <string name="editor_seg_temp_celsius">°C</string>
-    <string name="editor_seg_temp_fahrenheit">°F</string>
-    <string name="editor_seg_pressure_hpa">hPa</string>
-    <string name="editor_seg_pressure_mmhg">mmHg</string>
+    <string name="editor_seg_temp_celsius" translatable="false">°C</string>
+    <string name="editor_seg_temp_fahrenheit" translatable="false">°F</string>
+    <string name="editor_seg_pressure_hpa" translatable="false">hPa</string>
+    <string name="editor_seg_pressure_mmhg" translatable="false">mmHg</string>
     <string name="editor_label_midnight">MIDNIGHT MARK</string>
-    <string name="editor_duration_4h">4h</string>
+    <string name="editor_duration_4h" translatable="false">4h</string>
     <string name="editor_duration_4h_sr">Four hours</string>
-    <string name="editor_duration_8h">8h</string>
+    <string name="editor_duration_8h" translatable="false">8h</string>
     <string name="editor_duration_8h_sr">Eight hours</string>
-    <string name="editor_duration_12h">12h</string>
+    <string name="editor_duration_12h" translatable="false">12h</string>
     <string name="editor_duration_12h_sr">Twelve hours</string>
     <string name="editor_duration_custom">CST</string>
     <string name="editor_duration_custom_sr">Custom length, set below in five-minute steps</string>
     <!-- Hours and minutes of a duty length, e.g. 07:35. -->
-    <string name="editor_duration_value">%1$02d:%2$02d</string>
+    <string name="editor_duration_value" translatable="false">%1$02d:%2$02d</string>
     <!-- Start time of a scheduled duty, e.g. 06:35. -->
-    <string name="editor_start_time">%1$02d:%2$02d</string>
-    <string name="editor_step_down">–</string>
-    <string name="editor_step_up">+</string>
+    <string name="editor_start_time" translatable="false">%1$02d:%2$02d</string>
+    <string name="editor_step_down" translatable="false">–</string>
+    <string name="editor_step_up" translatable="false">+</string>
     <string name="editor_label_palette">LUME PALETTE</string>
     <string name="editor_section_units">UNITS</string>
     <string name="editor_location_rationale">Weather and the site lock need your position</string>
@@ -233,14 +233,14 @@
 
     <!-- ABOUT: version, the repository as a QR, and the update path. -->
     <string name="editor_section_about">ABOUT</string>
-    <string name="editor_about_version">MFD-24 %1$s · build %2$d</string>
-    <string name="editor_about_github">GITHUB · QR</string>
+    <string name="editor_about_version" translatable="false">MFD-24 %1$s · build %2$d</string>
+    <string name="editor_about_github" translatable="false">GITHUB · QR</string>
     <string name="editor_about_update">RELEASES</string>
     <string name="editor_about_update_available">UPDATE AVAILABLE</string>
-    <string name="release_qr_version">MFD-24 %1$s</string>
-    <string name="release_qr_latest">MFD-24 RELEASES</string>
+    <string name="release_qr_version" translatable="false">MFD-24 %1$s</string>
+    <string name="release_qr_latest" translatable="false">MFD-24 RELEASES</string>
     <string name="editor_about_update_note">Release page as a QR — notes, checksum, APK. Installing needs adb</string>
-    <string name="about_qr_top">MFD-24 %1$s</string>
+    <string name="about_qr_top" translatable="false">MFD-24 %1$s</string>
     <string name="editor_label_hints">HINTS</string>
     <string name="editor_hints_note">The small print under each row. Off once you know your way around.</string>
     <string name="hints_on">ON</string>
