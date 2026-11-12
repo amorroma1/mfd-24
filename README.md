@@ -173,9 +173,9 @@ nomenclature, not prose.
 left running: once a minute the face opens a fifteen-second window, lights the sensor, takes the
 first plausible reading and puts the sensor out again. Three minutes without a lock and the figure
 comes off the dial as dashes. Three empty windows in a row also slow the cadence to one window a
-quarter of an hour, until a reading, a raised wrist or the wrist detector's own *worn* edge ends it
-— because the detector can be wrong about a table, and was, for a whole night: six hundred windows
-against the wood. Forty a night now, and nothing changes on a wrist, where a slot three minutes
+quarter of an hour, until a reading, a raised wrist or the wrist detector's own *worn* edge ends it:
+the wrist detector can call a table *worn*, and a table never gives a lock. Nothing changes on a
+wrist, where a slot three minutes
 without a lock is already showing dashes.
 
 **How the step count is arrived at.** The row prefers the platform's own daily figure, through
@@ -263,8 +263,7 @@ JDK 17+ and the Android SDK. 193 JVM tests: `./gradlew :app:testEarthDebugUnitTe
 
 Designed, decided and worn by one person, written with Claude (Anthropic) as a pair-programmer.
 Every constant that could be measured was measured on the watch rather than reasoned about, every
-invariant is pinned by a test, and nothing ships that has not run on the wrist. The working notes
-in `CLAUDE.md` are the record of that collaboration and stay in the repository on purpose.
+invariant is pinned by a test, and nothing ships that has not run on the wrist.
 
 ## Licence
 

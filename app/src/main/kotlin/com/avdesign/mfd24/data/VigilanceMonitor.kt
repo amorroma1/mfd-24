@@ -55,6 +55,10 @@ class VigilanceMonitor private constructor(context: Context) {
      * force. The log keeps the entry either way.
      */
     fun noteShiftStart(shiftStartMillis: Long, shiftEndMillis: Long = 0L) {
+        // A booked start is not a start. The renderer withholds it until the watch is under way;
+        // this is the same rule kept here, so no caller can empty a running watch's log by
+        // booking the next one.
+        if (shiftStartMillis > System.currentTimeMillis()) return
         // A new watch takes the log with it. The log is the record of *this* shift — what the
         // question "how did it go" is asked of at the end of one — and the shift it belongs to is
         // written beside it, so starting another is what closes the old record. Anything wanted

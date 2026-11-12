@@ -22,3 +22,7 @@ tools/poi/raw/
 
 # Default output of tools/poi/preview_glyphs.py, which is a thing you look at, not a thing you keep.
 tools/poi/glyph_preview.png
+
+# Working notes stay local; the public repository carries the README and docs/ only.
+CLAUDE.md
+__pycache__/

@@ -179,9 +179,8 @@ cardiaque n'est pas laissée en marche : une fois par minute le cadran ouvre une
 secondes, allume le capteur, prend la première lecture plausible et l'éteint à nouveau. Trois
 minutes sans accrochage et le chiffre quitte le cadran, remplacé par des tirets. Trois fenêtres
 vides d'affilée ralentissent aussi la cadence à une fenêtre par quart d'heure, jusqu'à ce qu'une
-lecture, un poignet levé ou le front *portée* du détecteur de poignet lui-même y mette fin — parce
-que le détecteur peut se tromper sur une table, et l'a fait, une nuit entière : six cents fenêtres
-contre le bois. Quarante par nuit désormais, et rien ne change au poignet, où une lecture trois
+lecture, un poignet levé ou le front *portée* du détecteur de poignet lui-même y mette fin : le détecteur de poignet peut prendre une table pour *portée*, et une table ne donne
+jamais d'accrochage. Rien ne change au poignet, où une lecture trois
 minutes sans accrochage affiche déjà des tirets.
 
 **D'où vient le compte de pas.** La ligne préfère le total du jour fourni par la plateforme
@@ -277,8 +276,7 @@ JDK 17+ et le SDK Android. 193 tests JVM : `./gradlew :app:testEarthDebugUnitTes
 
 Conçu, décidé et porté par une seule personne, écrit avec Claude (Anthropic) en binôme de
 programmation. Chaque constante qui pouvait être mesurée l'a été sur la montre plutôt que déduite,
-chaque invariant est fixé par un test, et rien n'est publié qui n'ait tourné au poignet. Les notes
-de travail dans `CLAUDE.md` sont la trace de cette collaboration et restent dans le dépôt à dessein.
+chaque invariant est fixé par un test, et rien n'est publié qui n'ait tourné au poignet.
 
 ## Licence
 

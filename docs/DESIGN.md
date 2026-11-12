@@ -139,7 +139,7 @@ anything up to sixteen in five-minute steps.
 
 | ![](screenshots/duty-arc.png) |
 |---|
-| An eight-hour watch, just begun. The arc runs 13:56 to 21:56 and `DUTY: 08:00 REM` says the same in words. Nothing is dim yet because nothing has been served. |
+| An eight-hour watch at JFK, past its half: 12:10 local (`Z 24JUN 16:10`), begun at 07:40 and ending at 15:40. The arc spans the whole watch; the part behind the hour hand, 07:40 to 12:10, is dimmed because it has been served, the bright part ahead of it is what is left, and `DUTY: 03:30 REM` says the same in words. |
 
 The readout above the hub says which of four things is true:
 
@@ -232,7 +232,9 @@ The record itself is not lost — only the incident *in force* is cleared, and t
 #### The incident log
 
 Every unanswered escalation is appended to a log in the same device-protected storage, and **the
-log covers one watch**: starting a new one empties it. That is the scope this instrument claims. A
+log covers one watch**: starting a new one empties it — starting, not booking; a watch booked for
+tomorrow in the middle of today's leaves today's record alone until it begins. That is the scope
+this instrument claims. A
 finished shift is the moment its record is read — "how did that go" — and by the time another shift
 begins the answer has either been taken or was never wanted. The watch's own start, end and booked
 length are stored beside the entries and printed above them, because an instant on its own is
@@ -595,10 +597,10 @@ type and a flag bitfield, and the two together pick the pictogram:
 
 | Site | Civil | Military (flag 1) |
 |---|---|---|
-| airfield | airliner | fast jet |
-| airfield + helipad (flag 2) | rotorcraft | armed rotorcraft |
-| port | merchantman | warship |
-| spaceport | launch complex | launch complex |
+| airfield | ![](media/site-airfield-civil.png) airliner | ![](media/site-airfield-military.png) fast jet |
+| airfield + helipad (flag 2) | ![](media/site-helipad-civil.png) rotorcraft | ![](media/site-helipad-military.png) armed rotorcraft |
+| port | ![](media/site-port-civil.png) merchantman | ![](media/site-port-military.png) warship |
+| spaceport | ![](media/site-spaceport-civil.png) launch complex | ![](media/site-spaceport-military.png) launch complex, in the accent |
 
 **Military sites are drawn in the palette's accent colour**, civil ones in the primary. That is what
 actually carries the distinction: the glyph box is `0.100 r`, about 23 device pixels, and a
@@ -691,9 +693,9 @@ default.
 
 | Slot | Shows | Costs |
 |---|---|---|
-| heart | heart rate, in beats per minute | `BODY_SENSORS`, and an LED against the wrist |
-| walking figure | steps since the most recent local midnight | `ACTIVITY_RECOGNITION` |
-| `QFE` | station pressure, from the watch's own barometer | nothing |
+| ![heart](media/slot-heart.png) | heart rate, in beats per minute | `BODY_SENSORS`, and an LED against the wrist |
+| ![walking figure](media/slot-steps.png) | steps since the most recent local midnight | `ACTIVITY_RECOGNITION` |
+| ![QFE](media/slot-qfe.png) | station pressure, from the watch's own barometer | nothing |
 
 Each slot is **one line at one size**: a pictogram and its value side by side, in the same type as
 the battery row. A picture over a number in two sizes was the first attempt, and three type sizes
@@ -721,12 +723,9 @@ ambient redraw opens a *window* — the LED until the first plausible reading or
 whichever comes first — and the slot redraws with the figure. A reading older than three minutes
 comes off the dial as `--`, and no window opens while the watch is off the wrist, where the LED
 would light against a table all night for nothing. The wrist detector is not trusted alone for
-that: on 2026-11-12 a watch left on a table reported *worn* from 23:21 to 09:14 and six hundred
-windows lit the LED against the wood, 2 h 47 m of it, 1.6 %/h of battery against 0.94 without.
-A table never gives a lock, so three empty windows in a row — the same three that take the
+that: a table never gives a lock, so three empty windows in a row — the same three that take the
 figure off the dial — slow the cadence to one window a quarter of an hour, until a lock, a
-screen-on or the detector's own *worn* edge says a wrist is back. Forty windows a night, and
-nothing visible changes on a wrist, because a slot three minutes without a lock is already
+screen-on or the detector's own *worn* edge says a wrist is back. Nothing visible changes on a wrist, because a slot three minutes without a lock is already
 showing dashes. Fifteen seconds is a measurement: on a lowered,
 still wrist the sensor locks in seven to eleven, and on a wrist that is walking or typing it does
 not lock in thirty either, so `--` on the move is the honest answer and the window is sized for
@@ -836,10 +835,7 @@ Collapsed, the whole editor including `DONE` is a screen and a half.
 **Opening a section does not scroll the list.** The tapped header stays exactly where the finger
 found it, even when that leaves the rows it just revealed below the fold — which is the right
 trade, because a list that moves under a finger costs the reader their place, while rows below the
-fold cost one flick they were going to make anyway. An earlier build scrolled the opened section
-into view and lurched on every tap. Holding the header still takes two things: the list is
-re-anchored for a few frames after the reflow, and each header carries a lazy-list **key**, because
-a header's *index* moves when a section above it collapses while its key does not.
+fold cost one flick they were going to make anyway.
 
 Which section is open is deliberately **not** remembered between openings. The editor is a fresh
 activity each time, so the list always starts in the same shape — worth more than continuity for a

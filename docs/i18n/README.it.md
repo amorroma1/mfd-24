@@ -178,9 +178,8 @@ frequenza cardiaca non resta acceso: una volta al minuto il quadrante apre una f
 secondi, accende il sensore, prende la prima lettura plausibile e lo spegne di nuovo. Tre minuti
 senza aggancio e la cifra lascia il quadrante come trattini. Tre finestre vuote di fila rallentano
 anche la cadenza a una finestra ogni quarto d'ora, finché una lettura, un polso sollevato o il
-fronte *indossato* del rilevatore stesso non la chiudono — perché il rilevatore può sbagliarsi su
-un tavolo, e l'ha fatto, per una notte intera: seicento finestre contro il legno. Quaranta a notte
-adesso, e al polso non cambia nulla, dove uno slot da tre minuti senza aggancio mostra già
+fronte *indossato* del rilevatore stesso non la chiudono: il rilevatore può scambiare un tavolo per *indossato*, e un tavolo non dà mai un
+aggancio. Al polso non cambia nulla, dove uno slot da tre minuti senza aggancio mostra già
 trattini.
 
 **Come si arriva al conteggio dei passi.** La riga preferisce la cifra giornaliera della
@@ -276,8 +275,7 @@ JDK 17+ e l'SDK Android. 193 test JVM: `./gradlew :app:testEarthDebugUnitTest`.
 Progettato, deciso e indossato da una sola persona, scritto con Claude (Anthropic) come
 pair-programmer. Ogni costante che si poteva misurare è stata misurata sull'orologio anziché
 dedotta, ogni invariante è fissata da un test, e nulla viene pubblicato che non abbia girato al
-polso. Le note di lavoro in `CLAUDE.md` sono la traccia di questa collaborazione e restano nel
-repository di proposito.
+polso.
 
 ## Licenza
 

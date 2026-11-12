@@ -449,6 +449,13 @@ class MfdRenderer(
         // Vigilance follows the shift: it exists to watch someone on duty, and there is no sense
         // nagging anyone who is not. Reported only on a change, so a frame never pokes the service.
         val wantVigilance = vigilanceEnabled && dutyState == WatchShiftState.DUTY_ACTIVE
+        // A watch is reported once it is under way, never while it is only booked: the report is
+        // what retires the previous incident and empties the log, and a watch booked for tomorrow
+        // in the middle of today's must not take today's record with it. Measured against the
+        // state rather than the instant so the first active frame after a reboot reports it too.
+        val reportedShiftStart = if (
+            dutyState == WatchShiftState.DUTY_ACTIVE || dutyState == WatchShiftState.DUTY_SERVED
+        ) watchShift.startMillis else 0L
         // The shift's start is one of the things a change is watched for, not just something sent
         // along: ending a watch and beginning another is the case where a stale incident has to be
         // retired, and it need not pass through a frame in which no watch is running.
@@ -459,17 +466,17 @@ class MfdRenderer(
             (wantVigilance && logHeartRate != lastLogHeartRate) ||
             // Not guarded by wantVigilance: a new watch has to be reported even when nothing is
             // being monitored, because that is what retires the previous watch's incident.
-            watchShift.startMillis != lastShiftStart
+            reportedShiftStart != lastShiftStart
         ) {
             lastVigilanceRequest = wantVigilance
             lastVigilanceInterval = vigilanceIntervalMillis
             lastVibeAmplitude = vibeAmplitude
             lastSosVolume = sosVolume
             lastLogHeartRate = logHeartRate
-            lastShiftStart = watchShift.startMillis
+            lastShiftStart = reportedShiftStart
             onVigilanceRequest(
                 wantVigilance, vigilanceIntervalMillis, vibeAmplitude, sosVolume, logHeartRate,
-                watchShift.startMillis, watchShift.endMillis,
+                reportedShiftStart, watchShift.endMillis,
             )
         }
 

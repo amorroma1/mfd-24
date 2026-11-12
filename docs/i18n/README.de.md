@@ -178,9 +178,8 @@ einfach laufen: Einmal pro Minute öffnet das Zifferblatt ein Fenster von fünfz
 den Sensor ein, nimmt den ersten plausiblen Wert und schaltet den Sensor wieder aus. Drei Minuten ohne
 Erfassung, und die Zahl weicht auf dem Blatt Strichen. Drei leere Fenster in Folge verlangsamen
 zudem den Takt auf ein Fenster pro Viertelstunde, bis ein Wert, ein gehobenes Handgelenk oder die
-eigene *getragen*-Flanke des Tragedetektors es beendet — denn der Detektor kann sich bei einem Tisch
-irren, und hat es eine ganze Nacht lang getan: sechshundert Fenster gegen das Holz. Heute vierzig pro
-Nacht, und am Handgelenk ändert sich nichts, wo ein Slot nach drei Minuten ohne Erfassung ohnehin
+eigene *getragen*-Flanke des Tragedetektors es beendet: der Tragedetektor kann einen Tisch für *getragen* halten, und ein Tisch liefert nie
+eine Erfassung. Am Handgelenk ändert sich nichts, wo ein Slot nach drei Minuten ohne Erfassung ohnehin
 schon Striche zeigt.
 
 **Wie die Schrittzahl zustande kommt.** Die Zeile bevorzugt die Tageszahl der Plattform selbst, über
@@ -274,8 +273,7 @@ JDK 17+ und das Android-SDK. 193 JVM-Tests: `./gradlew :app:testEarthDebugUnitTe
 Entworfen, entschieden und getragen von einer Person, geschrieben mit Claude (Anthropic) als
 Pair-Programmer. Jede Konstante, die sich messen ließ, wurde auf der Uhr gemessen statt hergeleitet,
 jede Invariante ist durch einen Test festgehalten, und nichts wird veröffentlicht, was nicht am
-Handgelenk gelaufen ist. Die Arbeitsnotizen in `CLAUDE.md` sind das Protokoll dieser Zusammenarbeit
-und bleiben absichtlich im Repository.
+Handgelenk gelaufen ist.
 
 ## Lizenz
 
