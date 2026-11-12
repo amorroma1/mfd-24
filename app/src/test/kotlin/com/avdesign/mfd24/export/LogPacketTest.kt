@@ -20,10 +20,10 @@ class LogPacketTest {
 
     @Test
     fun `a packet is header, identity, zulu lines, then a checkable END line`() {
-        val packet = LogPacket.build(arrayOf(IncidentRecord(1_787_230_037_000L)), "RAVEN-42", "10396EB9")
+        val packet = LogPacket.build(arrayOf(IncidentRecord(1_787_230_037_000L)), "RAVEN-42")
         val lines = packet.split("\r\n")
         assertEquals("MFD24 INCIDENT LOG", lines[0])
-        assertEquals("CALLSIGN RAVEN-42 ID 10396EB9", lines[1])
+        assertEquals("CALLSIGN RAVEN-42", lines[1])
         assertEquals("2026-08-20T12:47:17Z", lines[2])
         assertTrue(lines[3].startsWith("END 1 CRC32 "))
         assertEquals("", lines[4])
@@ -32,7 +32,7 @@ class LogPacketTest {
     @Test
     fun `the crc covers everything above the END line`() {
         val packet = LogPacket.build(
-            arrayOf(IncidentRecord(1_787_230_037_000L), IncidentRecord(1_787_240_000_000L)), "RAVEN-42", "10396EB9",
+            arrayOf(IncidentRecord(1_787_230_037_000L), IncidentRecord(1_787_240_000_000L)), "RAVEN-42",
         )
         val body = packet.substringBeforeLast("END ")
         val expected = CRC32().apply { update(body.toByteArray(Charsets.US_ASCII)) }.value
@@ -44,9 +44,9 @@ class LogPacketTest {
     fun `an empty log still transmits a verifiable frame`() {
         // Sending "END 0" with a good checksum tells the debrief there is genuinely nothing on
         // file — silence would only say the transmission failed.
-        val lines = LogPacket.build(emptyArray(), "RAVEN-42", "10396EB9").split("\r\n")
+        val lines = LogPacket.build(emptyArray(), "RAVEN-42").split("\r\n")
         assertEquals("MFD24 INCIDENT LOG", lines[0])
-        assertEquals("CALLSIGN RAVEN-42 ID 10396EB9", lines[1])
+        assertEquals("CALLSIGN RAVEN-42", lines[1])
         assertTrue(lines[2].startsWith("END 0 CRC32 "))
     }
     @Test
@@ -59,7 +59,7 @@ class LogPacketTest {
                 IncidentRecord(at, bpm = 48, baselineBpm = 72, baselineAtMillis = evening),
                 IncidentRecord(at, bpm = 48, baselineBpm = 72, baselineAtMillis = lastWeek),
             ),
-            "RAVEN-42", "10396EB9",
+            "RAVEN-42",
         ).split("\r\n")
         // Same watch, so the date is the incident's own and a time of day says it all.
         assertEquals("2026-08-20T12:47:17Z HR 048 BASE 072 AT 21:47:17Z", lines[2])
@@ -70,11 +70,11 @@ class LogPacketTest {
     @Test
     fun `the fitted packet keeps the newest entries and says how many it dropped`() {
         val log = Array(5) { IncidentRecord(1_787_230_037_000L + it * 600_000L) }
-        val whole = LogPacket.build(log, "RAVEN-42", "10396EB9", 1_787_220_000_000L, 1_787_260_000_000L)
+        val whole = LogPacket.build(log, "RAVEN-42", 1_787_220_000_000L, 1_787_260_000_000L)
         // Room for three lines of the five, to the byte: the whole packet less two lines, plus
         // the " OF 5" the truncated END line grows.
         val fitted = LogPacket.fitting(
-            log, "RAVEN-42", "10396EB9", 1_787_220_000_000L, 1_787_260_000_000L,
+            log, "RAVEN-42", 1_787_220_000_000L, 1_787_260_000_000L,
             capacityBytes = whole.length - 2 * "2026-08-20T12:47:17Z\r\n".length + " OF 5".length,
         )
         val lines = fitted.split("\r\n")
@@ -87,7 +87,7 @@ class LogPacketTest {
         // A packet that fits whole is the whole packet, with no OF on it.
         assertEquals(
             whole,
-            LogPacket.fitting(log, "RAVEN-42", "10396EB9", 1_787_220_000_000L, 1_787_260_000_000L, whole.length),
+            LogPacket.fitting(log, "RAVEN-42", 1_787_220_000_000L, 1_787_260_000_000L, whole.length),
         )
     }
 
@@ -104,15 +104,15 @@ class LogPacketTest {
         val full = Array(IncidentLog.MAX_ENTRIES) {
             IncidentRecord(t0 + it * 600_000L, bpm = 48, baselineBpm = 72, baselineAtMillis = t0 + it * 600_000L - 3_600_000L)
         }
-        val bareFitted = LogPacket.fitting(bare, "RAVEN-42", "10396EB9", start, end, QrCode.MAX_BYTES)
-        assertEquals(LogPacket.build(bare, "RAVEN-42", "10396EB9", start, end), bareFitted)
+        val bareFitted = LogPacket.fitting(bare, "RAVEN-42", start, end, QrCode.MAX_BYTES)
+        assertEquals(LogPacket.build(bare, "RAVEN-42", start, end), bareFitted)
         assertEquals(97, QrCode.encode(bareFitted).size)
 
-        val wholeFull = LogPacket.build(full, "RAVEN-42", "10396EB9", start, end)
+        val wholeFull = LogPacket.build(full, "RAVEN-42", start, end)
         assertTrue("the whole log must still be what the sound carries", wholeFull.contains("END 32 CRC32"))
         assertTrue(runCatching { QrCode.encode(wholeFull) }.isFailure)
 
-        val fullFitted = LogPacket.fitting(full, "RAVEN-42", "10396EB9", start, end, QrCode.MAX_BYTES)
+        val fullFitted = LogPacket.fitting(full, "RAVEN-42", start, end, QrCode.MAX_BYTES)
         assertTrue(fullFitted.contains("\r\nEND 14 OF 32 CRC32 "))
         assertEquals(97, QrCode.encode(fullFitted).size)
     }

@@ -166,6 +166,8 @@ adb install -r app-earth-release.apk
 - **声音始终携带完整日志** —— 到上限时是十八秒的音调。传输在屏幕打开时开始，点一下重播。
 - **二维码携带能装进最大码的最新条目**，即 1.2 英寸屏幕所能显示的最大二维码：各行仅为时刻时全部 32 条，每行都带脉搏及其参照时约 14 条。被截断的码会明说 —— 其 `END` 行读作 `END 14 OF 32`，绝不是 `END 14`。要取得那么长的日志的每一行，用声音。
 - **只读。** 没有导入路径，所以任何读取数据包的东西都写不了记录。
+- **呼号是推导出来的，从不输入。** `KILO-15` 是手表自身 Android ID 加盐后的 SHA-256，映射到二十个前缀 × 99 个编号：同一块手表每次重装都得到同一个呼号，恢复出厂设置才换新的，ID 本身从不离开手表。它是网络上 1 980 个名字之一，不是序列号 —— 数据包不携带比它更细的东西。
+- **没有 minimodem？** [`tools/afsk/decode_afsk.py`](../../tools/afsk/decode_afsk.py) `recording.m4a` 是同一个接收端的单文件 Python 版：读入手机录下的任何音频，打印数据包并校验 CRC。在 Windows 上，[`tools/afsk/AfskListener`](../../tools/afsk/AfskListener) ([`AfskListener.exe`](../../tools/afsk/AfskListener.exe), .NET 8) 是同一个接收端的单键应用：按下 *Listen*，把手表贴近麦克风，数据包边到边读。
 
 </details>
 

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- SPDX-License-Identifier: GPL-3.0-or-later
+       Copyright (C) 2026 R. Kravcov
+
+       One button and a text box: listen on the microphone for the watch's EXPORT LOG tones
+       (Bell 202 AFSK, 1200 Bd) and show the packet as it arrives, with the CRC verdict.
+       Build:  dotnet build -c Release     Run:  dotnet run  (or the exe under bin/) -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>AfskListener</AssemblyName>
+    <RootNamespace>Mfd24.AfskListener</RootNamespace>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Microphone capture. The decoder itself has no dependencies. -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>

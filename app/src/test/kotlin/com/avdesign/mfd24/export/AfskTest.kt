@@ -63,7 +63,7 @@ class AfskTest {
     @Test
     fun `the signal decodes back to its own text`() {
         val text = LogPacket.build(
-            arrayOf(IncidentRecord(1_787_230_037_000L), IncidentRecord(1_787_240_000_000L)), "RAVEN-42", "10396EB9",
+            arrayOf(IncidentRecord(1_787_230_037_000L), IncidentRecord(1_787_240_000_000L)), "RAVEN-42",
         )
         assertEquals(text, demodulate(Afsk.modulate(text)))
     }

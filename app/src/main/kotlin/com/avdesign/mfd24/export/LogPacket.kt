@@ -45,14 +45,13 @@ object LogPacket {
     fun build(
         log: Array<IncidentRecord>,
         callsign: String,
-        shortId: String,
         shiftStartMillis: Long = 0L,
         shiftEndMillis: Long = 0L,
         keep: Int = log.size,
     ): String {
         val kept = keep.coerceIn(0, log.size)
         val body = StringBuilder(HEADER)
-        body.append("CALLSIGN ").append(callsign).append(" ID ").append(shortId).append(CRLF)
+        body.append("CALLSIGN ").append(callsign).append(CRLF)
         // Which watch these instants belong to. Without it every line is a bare moment: "20:22Z"
         // cannot say whether that was ten minutes into a night watch or the last hour of a
         // sixteen-hour one, and that is most of what a debrief wants to know.
@@ -90,14 +89,13 @@ object LogPacket {
     fun fitting(
         log: Array<IncidentRecord>,
         callsign: String,
-        shortId: String,
         shiftStartMillis: Long,
         shiftEndMillis: Long,
         capacityBytes: Int,
     ): String {
         var keep = log.size
         while (true) {
-            val packet = build(log, callsign, shortId, shiftStartMillis, shiftEndMillis, keep)
+            val packet = build(log, callsign, shiftStartMillis, shiftEndMillis, keep)
             if (packet.length <= capacityBytes || keep == 0) return packet
             keep--
         }

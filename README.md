@@ -238,6 +238,14 @@ blurred photograph or a noisy recording fails loudly rather than quietly losing 
   A truncated code says so — its `END` line reads `END 14 OF 32`, never `END 14`. For every line
   of a log that long, use the sound.
 - **Read-only.** There is no import path, so nothing that reads a packet can write the record.
+- **The callsign is derived, never entered.** `KILO-15` is a salted SHA-256 of the watch's own
+  Android ID, mapped onto twenty prefixes × 99 numbers: the same watch gives the same callsign
+  through every reinstall, a factory reset issues a new one, and the ID itself never leaves the
+  watch. One of 1 980 names on a net, not a serial number — the packet carries nothing finer.
+- **No minimodem?** [`tools/afsk/decode_afsk.py`](tools/afsk/decode_afsk.py) `recording.m4a` is the same receiver in one Python
+  file: it takes any recording a phone makes, prints the packet and checks the CRC. On Windows,
+  [`tools/afsk/AfskListener`](tools/afsk/AfskListener) ([`AfskListener.exe`](tools/afsk/AfskListener.exe), .NET 8) is the same receiver as a one-button app: press *Listen*, hold the
+  watch to the microphone, read the packet as it lands.
 
 </details>
 

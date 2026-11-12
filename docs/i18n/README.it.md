@@ -249,6 +249,15 @@ una riga in silenzio.
   `END 14 OF 32`, mai `END 14`. Per ogni riga di un giornale così lungo, usare il suono.
 - **Sola lettura.** Non esiste un percorso di importazione, quindi nulla che legga un pacchetto
   può scrivere il giornale.
+- **Il nominativo è derivato, mai digitato.** `KILO-15` è uno SHA-256 salato dell'ID Android
+  dell'orologio, proiettato su venti prefissi × 99 numeri: lo stesso orologio dà lo stesso
+  nominativo a ogni reinstallazione, un ripristino di fabbrica ne assegna uno nuovo, e l'ID in sé
+  non lascia mai l'orologio. Un nome fra 1 980 su una rete, non un numero di serie — il pacchetto
+  non porta nulla di più fine.
+- **Niente minimodem?** [`tools/afsk/decode_afsk.py`](../../tools/afsk/decode_afsk.py) `registrazione.m4a` è lo stesso ricevitore in
+  un file Python: prende qualsiasi registrazione fatta col telefono, stampa il pacchetto e verifica
+  il CRC. Su Windows, [`tools/afsk/AfskListener`](../../tools/afsk/AfskListener) ([`AfskListener.exe`](../../tools/afsk/AfskListener.exe), .NET 8) è lo stesso ricevitore come app a un pulsante:
+  *Listen*, l'orologio al microfono, il pacchetto si legge mentre arriva.
 
 </details>
 

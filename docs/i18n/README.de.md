@@ -248,6 +248,14 @@ verrauschte Aufnahme laut scheitert, statt leise eine Zeile zu verlieren.
   lautet `END 14 OF 32`, nie `END 14`. Für jede Zeile eines so langen Logbuchs den Ton nehmen.
 - **Nur lesend.** Es gibt keinen Importpfad, also kann nichts, was ein Paket liest, den Datensatz
   schreiben.
+- **Das Rufzeichen wird abgeleitet, nie eingegeben.** `KILO-15` ist ein gesalzener SHA-256 der
+  Android-ID der Uhr, abgebildet auf zwanzig Präfixe × 99 Nummern: dieselbe Uhr ergibt bei jeder
+  Neuinstallation dasselbe Rufzeichen, ein Werksreset vergibt ein neues, und die ID selbst verlässt
+  die Uhr nie. Einer von 1 980 Namen im Netz, keine Seriennummer — feiner trägt das Paket nichts.
+- **Kein minimodem?** [`tools/afsk/decode_afsk.py`](../../tools/afsk/decode_afsk.py) `aufnahme.m4a` ist derselbe Empfänger in einer
+  Python-Datei: er nimmt jede Aufnahme, die ein Telefon macht, druckt das Paket und prüft die CRC.
+  Unter Windows ist [`tools/afsk/AfskListener`](../../tools/afsk/AfskListener) ([`AfskListener.exe`](../../tools/afsk/AfskListener.exe), .NET 8) derselbe Empfänger als Ein-Knopf-App: *Listen*
+  drücken, die Uhr ans Mikrofon halten, das Paket beim Eintreffen lesen.
 
 </details>
 

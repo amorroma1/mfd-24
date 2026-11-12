@@ -78,7 +78,7 @@ class QrCodeTest {
     @Test
     fun `a real packet produces the geometry every decoder locks onto`() {
         val matrix = QrCode.encode(
-            LogPacket.build(arrayOf(IncidentRecord(1_787_230_037_000L)), "RAVEN-42", "10396EB9")
+            LogPacket.build(arrayOf(IncidentRecord(1_787_230_037_000L)), "RAVEN-42")
         )
         val n = matrix.size
         assertEquals("odd size", 1, n % 2)

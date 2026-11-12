@@ -302,9 +302,10 @@ sound for it. The transfer is **read-only by construction**: there is no import 
 that reads a packet can write the record.
 
 The packet's second line names the instrument: a **callsign** derived from a salted SHA-256 of the
-watch's own `ANDROID_ID`, mapped onto `PREFIX-NN` plus a short hex id, and printed over the QR.
-Identity lives at the exit only — the stored log is pure instants — which keeps the record itself
-free of anything about the wearer while still letting two exported packets be told apart. The prefix
+watch's own `ANDROID_ID`, mapped onto `PREFIX-NN` and printed over the QR — one of 1 980 names
+on a net, not a serial number: an eight-hex id that used to stand beside it was cut in 2.10.1,
+because a watch that promises no identification cannot carry one. Identity lives at the exit
+only — the stored log is pure instants. The prefix
 list and the salt are part of every identity issued: reorder or re-salt them and every watch in the
 field is renamed.
 

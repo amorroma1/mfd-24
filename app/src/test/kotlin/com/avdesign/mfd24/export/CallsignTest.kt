@@ -18,7 +18,6 @@ class CallsignTest {
     fun `a known device id keeps its issued callsign`() {
         // SHA-256("MFD24" + id), first four bytes — computed outside this codebase.
         assertEquals("RAVEN-42", Callsign.of("89ab4f2c1d3e5a67"))
-        assertEquals("10396EB9", Callsign.shortId("89ab4f2c1d3e5a67"))
     }
 
     @Test

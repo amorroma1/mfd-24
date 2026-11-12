@@ -251,6 +251,15 @@ silence.
   `END 14 OF 32`, jamais `END 14`. Pour chaque ligne d'un journal aussi long, utilisez le son.
 - **Lecture seule.** Il n'y a pas de chemin d'import, donc rien de ce qui lit un paquet ne peut
   écrire l'enregistrement.
+- **L'indicatif est dérivé, jamais saisi.** `KILO-15` est un SHA-256 salé de l'identifiant
+  Android de la montre, projeté sur vingt préfixes × 99 numéros : la même montre donne le même
+  indicatif à chaque réinstallation, une remise à zéro d'usine en attribue un nouveau, et
+  l'identifiant lui-même ne quitte jamais la montre. Un nom parmi 1 980 sur un réseau, pas un
+  numéro de série — le paquet ne porte rien de plus fin.
+- **Pas de minimodem ?** [`tools/afsk/decode_afsk.py`](../../tools/afsk/decode_afsk.py) `enregistrement.m4a` est le même récepteur en
+  un fichier Python : il prend n'importe quel enregistrement fait au téléphone, imprime le paquet
+  et vérifie le CRC. Sous Windows, [`tools/afsk/AfskListener`](../../tools/afsk/AfskListener) ([`AfskListener.exe`](../../tools/afsk/AfskListener.exe), .NET 8) est le même récepteur en
+  application à un bouton : *Listen*, la montre contre le micro, le paquet se lit à l'arrivée.
 
 </details>
 

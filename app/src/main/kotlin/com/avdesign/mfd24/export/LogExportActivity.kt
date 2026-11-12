@@ -41,21 +41,18 @@ class LogExportActivity : Activity() {
             ?: "UNIDENTIFIED"
         val callsign = Callsign.of(deviceId)
         val vigilanceState = VigilanceMonitor.get(this).state
-        val shortId = Callsign.shortId(deviceId)
         // The sound carries the whole log; the QR carries the newest entries that fit the largest
         // code the encoder draws, and its END line says how many it left out. Handing the encoder
         // the full packet crashed this screen at the twelfth incident with pulse logging on.
         val packet = LogPacket.build(
             vigilanceState.incidents,
             callsign,
-            shortId,
             vigilanceState.logShiftStartMillis,
             vigilanceState.logShiftEndMillis,
         )
         val shown = LogPacket.fitting(
             vigilanceState.incidents,
             callsign,
-            shortId,
             vigilanceState.logShiftStartMillis,
             vigilanceState.logShiftEndMillis,
             QrCode.MAX_BYTES,

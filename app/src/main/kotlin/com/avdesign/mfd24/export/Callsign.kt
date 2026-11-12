@@ -18,9 +18,11 @@ import java.security.MessageDigest
  * The derivation is SHA-256 over a salted device id, not `hashCode()`: the hash is even where
  * `String.hashCode` is not, and there is no `Int.MIN_VALUE` corner where `absoluteValue` comes
  * back negative. Twenty prefixes by ninety-nine numbers is 1 980 callsigns — namesakes are
- * possible in a large crew, the way they are on any net, which is why the packet also carries
- * [shortId]: eight hex characters of the same digest, unique for any crew this side of a
- * regiment.
+ * possible in a large crew, the way they are on any net, and that is the whole of it: the
+ * packet used to carry eight hex characters of the same digest beside the callsign, and that
+ * was an identifier for a watch that promises no identification. A callsign is a name on a
+ * net, not a serial number, and 1 980 of them is as fine as this instrument will ever tell
+ * two watches apart.
  *
  * **The prefix list and the salt are part of every issued identity.** Reorder, rename or re-salt
  * and every watch in the field gets a new callsign — that is a re-issue, not a refactor.
@@ -34,10 +36,6 @@ object Callsign {
         val number = (h / PREFIXES.size % 99L).toInt() + 1
         return "%s-%02d".format(prefix, number)
     }
-
-    /** The disambiguator beside the callsign: the first four digest bytes, hex, uppercase. */
-    fun shortId(deviceId: String): String =
-        digest(deviceId).take(4).joinToString("") { "%02X".format(it) }
 
     private fun hash32(deviceId: String): Long {
         val d = digest(deviceId)
