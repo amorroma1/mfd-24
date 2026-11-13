@@ -21,8 +21,12 @@ kein Konto, keine Analytik. GPL-3.0.
 *Eine laufende Wache in New York JFK. Dasselbe Zifferblatt in beiden Aufnahmen: Always-on ist das
 interaktive Blatt, gedimmt, ohne den Sekundencursor und ohne die Hintergrundtönung.*
 
-**Wear OS 3.0+ (API 30).** Gebaut und getragen auf einer TicWatch Pro 3 Ultra (454 × 454).
+**Wear OS 3 und 4 (API 30–33).** Gebaut und getragen auf einer TicWatch Pro 3 Ultra (Wear OS 3.5,
+454 × 454); Wear OS 4 nur im Emulator geprüft. **Wear OS 5 und neuer lehnen Zifferblätter dieser
+Art ab** — siehe [Kompatibilität](#kompatibilität).
 **[Installieren →](INSTALL.de.md)**
+
+*Kein Medizinprodukt, kein Ersatz für zertifizierte Ausrüstung. Geliefert wie besehen, unter der GPL.*
 
 ---
 
@@ -132,6 +136,27 @@ ersetzt die Ortung vollständig — siehe **Position** in den Einstellungen.
 
 </details>
 
+## Kompatibilität
+
+| | |
+|---|---|
+| **Am Handgelenk geprüft** | TicWatch Pro 3 Ultra GPS, Wear OS 3.5 (API 30) — die Uhr, auf der das hier gebaut und getragen wird |
+| **Im Emulator geprüft** | Wear OS 4 (API 33): installiert, rendert, der Editor öffnet sich, und eine vorgemerkte Wache startet ihren Wachdienst aus dem Hintergrund |
+| **Von der Plattform abgelehnt** | Wear OS 5 und neuer (API 34+) auf Geräten, deren Hersteller ältere Zifferblätter nicht freigeschaltet gelassen hat |
+
+MFD-24 ist ein AndroidX-(Jetpack-)Zifferblatt, und Google stellt diese Art ein: Seit Januar 2026
+nimmt der Play Store nur noch das deklarative Watch Face Format an, und Wear OS 5 trägt einen
+Schalter, `config_support_legacy_watch_faces`, den der Gerätehersteller setzt. Im Wear-OS-5-Emulator
+ist er aus: Das Zifferblatt lässt sich installieren, aber das System protokolliert `Unsupported
+legacy watch face` und hält es aus der Auswahl heraus. Uhren, die mit Wear OS 5 ausgeliefert wurden,
+dürften sich genauso verhalten; von Wear OS 4 aktualisierte Uhren behalten den Schalter womöglich an.
+Berichte in beide Richtungen sind in den [Discussions](https://github.com/amorroma1/mfd-24/discussions)
+willkommen.
+
+Eine Portierung gibt es nicht: Das Watch Face Format ist XML ohne Code, und ein Totmannschalter, ein
+METAR-Abruf oder eine Ortung lassen sich darin nicht schreiben. Wo dieses Zifferblatt läuft, läuft es
+vollständig.
+
 ## Einstellungen
 
 **Lange aufs Zifferblatt drücken, dann auf den Stift tippen.** Sieben einklappbare Abschnitte,
@@ -199,7 +224,8 @@ vorgesehen und beschneiden die äußere Skala. Auch der Text ist vom Radius abge
 Breitenbudget der Anzeigen ist Arithmetik, und ein Test schlägt fehl, wenn eine Zeile die
 Stundenziffern erreichen würde.
 
-**Hardware und Leistung.** Wear OS 3.0+ (API 30), jede Uhr, auf der die Plattform läuft; keine
+**Hardware und Leistung.** Wear OS 3 oder 4 (API 30–33), jede runde Uhr, auf der die Plattform
+läuft — Wear OS 5 ist die Ausnahme, siehe [Kompatibilität](#kompatibilität); keine
 GPU-Funktionen jenseits eines gewöhnlichen Canvas. `render()` allokiert nichts, also gibt es keine
 Garbage-Collector-Pause, um die herum geplant werden müsste, und die Bildrate folgt dem Bedarf:
 **ein Bild pro Sekunde in Ruhe**, 16 ms nur, während ein Übergang animiert, und ein Bild pro Minute
@@ -217,6 +243,8 @@ Bibliotheks-Strings, die sie nie anzeigen könnte, kosteten 260 KB und bleiben d
 
 ## Was es nicht ist
 
+**MFD-24 ist kein Medizinprodukt, nicht als Ersatz für zertifizierte Hard- und Softwaresysteme
+zertifiziert und wird wie besehen, ohne Gewähr, unter der [GPL](../../LICENSE) geliefert.**
 Ein persönliches Instrument, kein zertifiziertes. Der Totmannschalter ist ein unzertifiziertes
 Hilfsmittel: Er lässt sich abschalten, von einem losen Armband aussetzen oder von den Doze-Grenzen
 der Plattform verzögern. Das Logbuch gilt für **eine Wache** — der Antritt der nächsten

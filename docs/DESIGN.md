@@ -598,15 +598,16 @@ type and a flag bitfield, and the two together pick the pictogram:
 | Site | Civil | Military (flag 1) |
 |---|---|---|
 | airfield | ![](media/site-airfield-civil.png) airliner | ![](media/site-airfield-military.png) fast jet |
-| airfield + helipad (flag 2) | ![](media/site-helipad-civil.png) rotorcraft | ![](media/site-helipad-military.png) armed rotorcraft |
-| port | ![](media/site-port-civil.png) merchantman | ![](media/site-port-military.png) warship |
-| spaceport | ![](media/site-spaceport-civil.png) launch complex | ![](media/site-spaceport-military.png) launch complex, in the accent |
+| airfield + helipad (flag 2) | ![](media/site-helipad-civil.png) helicopter | ![](media/site-helipad-military.png) helicopter, in the accent |
+| port | ![](media/site-port-civil.png) anchor | ![](media/site-port-military.png) anchor, in the accent |
+| spaceport | ![](media/site-spaceport-civil.png) rocket | ![](media/site-spaceport-military.png) rocket, in the accent |
 
 **Military sites are drawn in the palette's accent colour**, civil ones in the primary. That is what
 actually carries the distinction: the glyph box is `0.100 r`, about 23 device pixels, and a
-silhouette that size can just about say "ship" or "rotorcraft" — asking it to also say "military"
-costs more than it buys. The silhouettes still differ and confirm it close up, but colour is what
-reads at a glance, works at any size, and covers the spaceport, where both owners share one shape.
+silhouette that size can just about say "anchor" or "rotorcraft" — asking it to also say "military"
+costs more than it buys. Only the airfield keeps two shapes; a second ship and a second helicopter
+were tried and cut after the watch showed both pairs side by side at real sites. Colour is what
+reads at a glance, works at any size, and is the whole distinction everywhere but the airfield.
 
 The helipad bit outranks the military one: "rotorcraft only" is the more useful thing to know about
 a landing site than whose roundel is on the aircraft. `SiteGlyphTest` enumerates the order.

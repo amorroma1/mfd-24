@@ -4,7 +4,7 @@
 
 MFD-24 只有一种分发方式:[GitHub 发布页](https://github.com/amorroma1/mfd-24/releases/latest)上带签名的 `app-earth-release.apk`。Wear OS 没有侧载界面,所以下面每条路线最终都落在 ADB 上 —— 唯一的问题是由哪台机器来运行它。三条路线,从最简单的开始。全部都需要先打开[开发者选项](#第一步手表上的开发者选项),从那里开始。
 
-需要 Wear OS 3.0 或更新(API 30)。在 TicWatch Pro 3 Ultra(454 × 454)上开发并佩戴;布局按半径等比缩放,其他圆形屏幕应该也没问题。
+需要 Wear OS 3 或 4（API 30–33）；Wear OS 5 及更新版本不接受此类表盘，见 README 的[兼容性](README.zh.md#兼容性)。在 TicWatch Pro 3 Ultra(454 × 454)上开发并佩戴;布局按半径等比缩放,其他圆形屏幕应该也没问题。
 
 ## 为什么 MFD-24 不上架 Google Play
 

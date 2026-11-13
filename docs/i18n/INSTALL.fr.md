@@ -8,7 +8,9 @@ pas d'interface de sideloading, donc chaque route ci-dessous finit par ADB — l
 de savoir quelle machine l'exécute. Trois routes, de la plus simple à la plus avancée. Toutes
 exigent les [options développeur](#dabord--les-options-développeur-sur-la-montre) : commencez là.
 
-Nécessite Wear OS 3.0 ou plus récent (API 30). Conçu et porté sur une TicWatch Pro 3 Ultra
+Nécessite Wear OS 3 ou 4 (API 30–33) ; Wear OS 5 et plus récents refusent les cadrans de ce type —
+voir [Compatibilité](README.fr.md#compatibilité) dans le README. Conçu et porté sur une
+TicWatch Pro 3 Ultra
 (454 × 454) ; la disposition est proportionnelle au rayon, les autres écrans ronds devraient
 convenir.
 

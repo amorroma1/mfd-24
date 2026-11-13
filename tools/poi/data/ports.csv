@@ -5,8 +5,9 @@
 # No record carries flag 1 yet. The source has no navy field, and a LOCODE names a place
 # rather than a facility -- USSAN is San Diego the commercial port, which also happens to
 # host a fleet, and JPYOK is Yokohama, not the naval base at Yokosuka (JPYOS). Flagging
-# these from memory is how you ship a warship glyph on a container terminal, so they stay
-# civil until someone checks each one. The warship silhouette is wired up and tested.
+# these from memory is how you paint a container terminal in the naval colour, so they stay
+# civil until someone checks each one. The flag is wired up and tested: it turns the anchor
+# to the accent colour.
 code,lat,lon,type,flags
 AEAJM,25.40522,55.51364,1,0
 AEAUH,24.47000,54.37000,1,0

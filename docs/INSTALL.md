@@ -8,7 +8,9 @@ sideloading UI, so every route below ends in ADB — the only question is which 
 Three routes, easiest first. All of them need [developer options](#first-developer-options-on-the-watch)
 switched on, so start there.
 
-Requires Wear OS 3.0 or newer (API 30). Built and worn on a TicWatch Pro 3 Ultra (454 × 454); the
+Requires Wear OS 3 or 4 (API 30–33); Wear OS 5 and newer refuse watch faces of this kind — see
+[Compatibility](../README.md#compatibility) in the README. Built and worn on a TicWatch Pro 3 Ultra
+(454 × 454); the
 layout is proportional to the radius, so other round screens should be fine.
 
 ## Why MFD-24 is not on Google Play

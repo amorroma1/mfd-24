@@ -40,7 +40,7 @@ def bezier(p0, p1, p2, p3, steps=24):
 
 
 def parse(source, name):
-    """Returns a list of sub-shapes: ('poly', points) or ('ellipse', bbox)."""
+    """Returns a list of sub-shapes: ('poly', points), ('ellipse', bbox) or ('hole', bbox)."""
     match = re.search(
         r"private fun %s\(\): Path = Path\(\)\.apply \{(.*?)\n    \}" % name, source, re.S)
     if not match:
@@ -78,9 +78,12 @@ def parse(source, name):
             current.extend(pts)
             cursor = pts[-1]
             continue
-        m = re.match(r"addOval\(%s, %s, %s, %s," % ((NUM,) * 4), line)
+        m = re.match(r"addOval\(%s, %s, %s, %s, Path\.Direction\.(CW|CCW)" % ((NUM,) * 4), line)
         if m:
-            shapes.append(("ellipse", tuple(float(g) for g in m.groups())))
+            # A counter-clockwise oval is a hole: under non-zero winding it cancels the
+            # clockwise disc around it, which is how the anchor gets its ring.
+            kind = "hole" if m.group(5) == "CCW" else "ellipse"
+            shapes.append((kind, tuple(float(g) for g in m.groups()[:4])))
             continue
         m = re.match(r"addCircle\(%s, %s, %s," % ((NUM,) * 3), line)
         if m:
@@ -102,7 +105,7 @@ def render(shapes, px):
         if kind == "poly":
             draw.polygon([(x * SUPERSAMPLE, y * SUPERSAMPLE) for x, y in value], fill=255)
         else:
-            draw.ellipse([c * SUPERSAMPLE for c in value], fill=255)
+            draw.ellipse([c * SUPERSAMPLE for c in value], fill=0 if kind == "hole" else 255)
     return img.resize((px, px), Image.LANCZOS)
 
 
@@ -123,12 +126,12 @@ def main():
         source = handle.read()
 
     entries = [
-        ("merchantShip", "PORT\ncivil"),
-        ("warship", "PORT\nmilitary"),
+        ("anchor", "PORT\nany owner"),
         ("helicopter", "HELIPAD\nany owner"),
         ("aircraft", "AIRFIELD\ncivil"),
         ("fighter", "AIRFIELD\nmilitary"),
         ("rocket", "SPACEPORT\nany owner"),
+        ("rocketFlame", "SPACEPORT\nits exhaust"),
         # Not site pictograms: the two that label the optional sensor slots beside the hub.
         # They are drawn a shade smaller than the site set, at about 17 px rather than 22.
         ("heart", "SLOT\npulse"),

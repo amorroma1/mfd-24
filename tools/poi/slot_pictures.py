@@ -66,15 +66,18 @@ def slot(label_img, value, font, path):
 AMBER = (255, 176, 0)        # Palette.ALERT_AMBER: the green palette's accent, which military sites wear
 SITE_PX = 22 * SCALE         # the site pictograms are drawn at about 22 px on the 454 px dial
 
-# The site table in DESIGN.md: type, then the civil and the military silhouette. A helipad has a
-# silhouette of its own for each; a spaceport draws the one launch complex either way and lets the
-# colour say who owns it.
+# The site table in DESIGN.md: type, then the civil and the military silhouette. Only the
+# airfield has two shapes; helipad, port and spaceport draw one each and let the colour say
+# who owns it.
 SITES = [
     ("airfield", "aircraft", "fighter"),
-    ("helipad", "helicopter", "helicopterMilitary"),
-    ("port", "merchantShip", "warship"),
+    ("helipad", "helicopter", "helicopter"),
+    ("port", "anchor", "anchor"),
     ("spaceport", "rocket", "rocket"),
 ]
+
+
+FLAME = (255, 110, 0)         # Palette.FLAME_ORANGE, under the rocket whatever the lume
 
 
 def site(source, name, colour, path):
@@ -82,6 +85,9 @@ def site(source, name, colour, path):
     img = Image.new("RGB", (SITE_PX + 2 * PAD, SITE_PX + 2 * PAD), (0, 0, 0))
     tint = Image.new("RGB", mask.size, colour)
     img.paste(tint, (PAD, PAD), mask)
+    if name == "rocket":
+        flame = preview_glyphs.render(preview_glyphs.parse(source, "rocketFlame"), SITE_PX)
+        img.paste(Image.new("RGB", flame.size, FLAME), (PAD, PAD), flame)
     img.save(path, optimize=True)
     print(os.path.relpath(path), img.size)
 

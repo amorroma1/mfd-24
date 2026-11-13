@@ -120,6 +120,13 @@ class Palette {
     var moonMark: Int = MOON_GREY
         private set
 
+    /**
+     * The rocket's exhaust on the site row: a fixed orange, blue-free like everything else, and
+     * not a palette hue because it has to show under a green rocket and under an amber one alike.
+     */
+    var flame: Int = FLAME_ORANGE
+        private set
+
     fun update(paletteId: String, planetMode: Int) {
         lume = colorForId(paletteId)
         lumeSoft = withAlpha(lume, 0xC8)
@@ -147,6 +154,7 @@ class Palette {
         incidentMark = if (lume == PHOSPHOR_GREEN) NVG_RED else PHOSPHOR_GREEN
         sunMark = SUN_AMBER
         moonMark = MOON_GREY
+        flame = FLAME_ORANGE
     }
 
     /**
@@ -168,6 +176,7 @@ class Palette {
         incidentMark = dim(source.incidentMark, AMBIENT_LEVEL)
         sunMark = dim(source.sunMark, AMBIENT_LEVEL)
         moonMark = dim(source.moonMark, AMBIENT_LEVEL)
+        flame = dim(source.flame, AMBIENT_LEVEL)
         daylightBand = withAlpha(dim(source.lume, AMBIENT_LEVEL), NADIR_ALPHA)
         background = Color.BLACK
         horizon = Color.BLACK
@@ -188,6 +197,9 @@ class Palette {
 
         /** Moonlight grey, a step brighter than [SPENT_GREY] so the phase reads at ten pixels. */
         const val MOON_GREY: Int = 0xFFC5CAD1.toInt()
+
+        /** The exhaust under the rocket pictogram. Orange, zero blue. */
+        const val FLAME_ORANGE: Int = 0xFFFF6E00.toInt()
 
         /**
          * How bright always-on is, as a fraction of interactive.

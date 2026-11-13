@@ -52,8 +52,9 @@ object PoiFormat {
     const val TYPE_SPACEPORT: Int = 2
 
     /**
-     * Military airfield or naval base. Chooses the pictogram — a fast jet rather than an airliner,
-     * a warship rather than a merchantman — but does **not** affect [priorityOf]: which site is the
+     * Military airfield or naval base. Chooses the colour the pictogram is drawn in, and at an
+     * airfield the pictogram itself — a fast jet rather than an airliner — but does **not** affect
+     * [priorityOf]: which site is the
      * more interesting readout is a question about the kind of place, not about who owns it. The
      * helipad flag is the exception, because "rotorcraft only" really does say how significant a
      * place is.

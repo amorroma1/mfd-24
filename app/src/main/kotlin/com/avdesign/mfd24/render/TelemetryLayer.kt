@@ -98,6 +98,9 @@ class TelemetryLayer {
 
     private val glyphPath = Path()
 
+    /** The rocket's exhaust, built beside [glyphPath] for a spaceport and empty otherwise. */
+    private val flamePath = Path()
+
     /** Type and flags packed together — both pick the pictogram, so both are the cache key. */
     private var glyphKey = -1
     private var glyphLayout = -1
@@ -212,6 +215,8 @@ class TelemetryLayer {
             drawGlyphedLine(
                 canvas, g, glyphColor, glyphPath,
                 g.glyphBox.width(), g.glyphBox.height(), line2, g.telemetryLineY[3],
+                // Only the rocket has one; for every other site the path is empty and draws nothing.
+                flamePath, palette.flame,
             )
         } else {
             drawHaloed(canvas, line2, g.cx, g.telemetryLineY[3])
@@ -236,6 +241,8 @@ class TelemetryLayer {
         glyphHeight: Float,
         buf: TextBuf,
         baselineY: Float,
+        overlay: Path? = null,
+        overlayColor: Int = 0,
     ) {
         val textWidth = textPaint.measureText(buf.chars, 0, buf.length)
         // An empty buffer means the pictogram is the whole row, so it centres on its own rather
@@ -250,6 +257,10 @@ class TelemetryLayer {
         canvas.drawPath(path, symbolHaloPaint)
         glyphPaint.color = glyphColor
         canvas.drawPath(path, glyphPaint)
+        if (overlay != null) {
+            glyphPaint.color = overlayColor
+            canvas.drawPath(overlay, glyphPaint)
+        }
         canvas.restore()
 
         if (buf.length == 0) return
@@ -621,12 +632,14 @@ class TelemetryLayer {
 
     /** Rasterises whichever silhouette [SiteGlyph] chose for this site. */
     private fun buildGlyph(g: Geometry, type: Int, flags: Int) {
+        flamePath.reset()
         when (SiteGlyph.forSite(type, flags)) {
-            SiteGlyph.ROCKET -> Glyphs.buildRocket(g.glyphBox, glyphPath)
-            SiteGlyph.WARSHIP -> Glyphs.buildWarship(g.glyphBox, glyphPath)
-            SiteGlyph.MERCHANT_SHIP -> Glyphs.buildMerchantShip(g.glyphBox, glyphPath)
+            SiteGlyph.ROCKET -> {
+                Glyphs.buildRocket(g.glyphBox, glyphPath)
+                Glyphs.buildRocketFlame(g.glyphBox, flamePath)
+            }
+            SiteGlyph.ANCHOR -> Glyphs.buildAnchor(g.glyphBox, glyphPath)
             SiteGlyph.HELICOPTER -> Glyphs.buildHelicopter(g.glyphBox, glyphPath)
-            SiteGlyph.HELICOPTER_MILITARY -> Glyphs.buildHelicopterMilitary(g.glyphBox, glyphPath)
             SiteGlyph.FIGHTER -> Glyphs.buildFighter(g.glyphBox, glyphPath)
             else -> Glyphs.buildAircraft(g.glyphBox, glyphPath)
         }

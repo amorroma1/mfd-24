@@ -10,14 +10,17 @@ import android.graphics.RectF
 /**
  * Vector pictograms for the site-lock readout.
  *
- * Seven silhouettes for the site lock, plus a heart and a walking figure for the optional sensor
+ * Five silhouettes for the site lock, plus a heart and a walking figure for the optional sensor
  * slots beside the hub, where a pictogram says what two or three letters had to spell.
  *
- * The site set, chosen by the site's type and flags: an airliner or a fast jet for a civil
- * or military airfield, a plain or an armed rotorcraft for a helipad, a merchantman or a warship
- * for a civil or naval port, and a launch complex for a spaceport either way. Military sites are
- * additionally drawn in the palette's accent colour, which is what actually carries the
- * distinction at a glance -- the silhouette confirms it once you look.
+ * The site set, chosen by the site's type and flags: an airliner or a fast jet for a civil or
+ * military airfield, a helicopter for a helipad, an anchor for a port and a rocket for a
+ * spaceport. Only the airfield pair differs by shape; everywhere else the owner is carried by
+ * colour alone — military sites are drawn in the palette's accent — because at 22 px on a wrist
+ * a second ship or a second helicopter did not survive as a different thing, measured on the
+ * watch at eight real sites. The rocket alone has a second colour of its own: the exhaust under
+ * it, in a fixed orange, because a bare rocket and a delta-wing fighter are the same pointed
+ * body at 22 px.
  *
  * These are drawn as paths rather than as the `✈ ⚓ 🚀` code points on purpose — emoji coverage in
  * the Wear OS system fonts is unreliable, and colour emoji would ignore the lume palette and wreck
@@ -25,15 +28,17 @@ import android.graphics.RectF
  *
  * All of them are authored in a 100 x 100 box and scaled into place once per layout, and all of
  * them are built from clockwise sub-paths only: under the non-zero winding rule that makes the
- * result the union of the parts, which is how the ships get a superstructure and the helicopter a
- * rotor without a boolean op. The one exception is the moon, which genuinely needs a subtraction.
+ * result the union of the parts, which is how the anchor gets a stock and the helicopter a rotor
+ * without a boolean op. A hole is a counter-clockwise sub-path wholly inside a clockwise one (the
+ * anchor's ring); only the moon, whose cutter reaches past the disc, needs a real subtraction.
  *
  * ### Sized for 22 px
  * The glyph box is `0.096 r`, which is about 22 device pixels on a 454 px dial — small enough that
  * a detail thinner than four units of the authoring box disappears. The pairs that have to be told
  * apart are therefore separated by where the *mass* sits rather than by fine detail: the fast jet
- * by its delta planform against the airliner's straight wing, and the warship by a tall mast
- * amidships against the merchantman's slab and funnel hard aft.
+ * by its delta planform against the airliner's straight wing. Every stroke in the set is at least
+ * eight units wide, two device pixels, and the parts that must read as separate — rotor and
+ * cabin, cabin and skid — keep eight units of air between them.
  */
 object Glyphs {
 
@@ -45,10 +50,9 @@ object Glyphs {
     private val aircraft: Path by lazy(LazyThreadSafetyMode.NONE) { aircraft() }
     private val fighter: Path by lazy(LazyThreadSafetyMode.NONE) { fighter() }
     private val helicopter: Path by lazy(LazyThreadSafetyMode.NONE) { helicopter() }
-    private val helicopterMilitary: Path by lazy(LazyThreadSafetyMode.NONE) { helicopterMilitary() }
-    private val merchantShip: Path by lazy(LazyThreadSafetyMode.NONE) { merchantShip() }
-    private val warship: Path by lazy(LazyThreadSafetyMode.NONE) { warship() }
+    private val anchor: Path by lazy(LazyThreadSafetyMode.NONE) { anchor() }
     private val rocket: Path by lazy(LazyThreadSafetyMode.NONE) { rocket() }
+    private val rocketFlame: Path by lazy(LazyThreadSafetyMode.NONE) { rocketFlame() }
     private val heart: Path by lazy(LazyThreadSafetyMode.NONE) { heart() }
     private val pedestrian: Path by lazy(LazyThreadSafetyMode.NONE) { pedestrian() }
     private val earthSymbol: Path by lazy(LazyThreadSafetyMode.NONE) { earthSymbol() }
@@ -61,13 +65,10 @@ object Glyphs {
 
     fun buildHelicopter(box: RectF, out: Path) = build(helicopter, box, out)
 
-    fun buildHelicopterMilitary(box: RectF, out: Path) = build(helicopterMilitary, box, out)
-
-    fun buildMerchantShip(box: RectF, out: Path) = build(merchantShip, box, out)
-
-    fun buildWarship(box: RectF, out: Path) = build(warship, box, out)
+    fun buildAnchor(box: RectF, out: Path) = build(anchor, box, out)
 
     fun buildRocket(box: RectF, out: Path) = build(rocket, box, out)
+    fun buildRocketFlame(box: RectF, out: Path) = build(rocketFlame, box, out)
 
     fun buildHeart(box: RectF, out: Path) = build(heart, box, out)
 
@@ -150,83 +151,138 @@ object Glyphs {
     }
 
     /**
-     * Civil rotorcraft, plan view: rotor disc over a single rounded pod.
-     *
-     * The pod is compact and round on purpose -- it is what separates this from the military
-     * variant, which hangs a wide straight wing across the same rotor.
+     * Helipad, civil or military: a helicopter in profile, nose right — rotor seen edge-on as a
+     * bar, a bubble cabin, the tail boom running left to a fin, skids under it. Drawn once for
+     * both owners; the colour says whose pad it is. The silhouette is twice as wide as it is
+     * tall and sits centred in the square box, which is the price of keeping the proportions a
+     * reader knows: stretched to fill the box it became a blob with a bar over it.
      */
     private fun helicopter(): Path = Path().apply {
-        // Rotor disc: two blades, and the most recognisable part at any size.
-        moveTo(6.15f, 1.55f)
-        lineTo(97.51f, 42.23f)
-        lineTo(93.85f, 50.45f)
-        lineTo(2.49f, 9.77f)
+        moveTo(6f, 22f)
+        lineTo(96f, 22f)
+        lineTo(96f, 31f)
+        lineTo(6f, 31f)
         close()
-        moveTo(2.49f, 42.23f)
-        lineTo(93.85f, 1.55f)
-        lineTo(97.51f, 9.77f)
-        lineTo(6.15f, 50.45f)
+        moveTo(60f, 31f)
+        lineTo(68f, 31f)
+        lineTo(68f, 40f)
+        lineTo(60f, 40f)
         close()
-        moveTo(45f, 26f)
-        lineTo(55f, 26f)
-        lineTo(55f, 40f)
-        lineTo(45f, 40f)
+        addOval(44f, 38f, 86f, 70f, Path.Direction.CW)
+        moveTo(64f, 42f)
+        lineTo(98f, 58f)
+        lineTo(94f, 68f)
+        lineTo(64f, 70f)
         close()
-        // Cabin pod, rounded and compact.
-        addOval(39f, 38f, 61f, 66f, Path.Direction.CW)
-        // Tail boom and fin.
-        moveTo(46f, 60f)
-        lineTo(54f, 60f)
-        lineTo(54f, 86f)
-        lineTo(46f, 86f)
+        moveTo(50f, 58f)
+        lineTo(4f, 52f)
+        lineTo(4f, 42f)
+        lineTo(50f, 46f)
         close()
-        moveTo(50f, 76f)
-        lineTo(62f, 96f)
-        lineTo(38f, 96f)
+        moveTo(0f, 34f)
+        lineTo(9f, 34f)
+        lineTo(9f, 60f)
+        lineTo(0f, 60f)
         close()
-    }
-
-    /**
-     * Warship in profile, bow right: a lean hull, a tall mast amidships, a gun house forward.
-     *
-     * The mast is the whole glyph at small sizes. Everything else is kept low and sparse so
-     * that one vertical spike is the thing the eye lands on, against the merchantman's block.
-     */
-    private fun warship(): Path = Path().apply {
-        // Lean hull with a long raked bow.
-        moveTo(4f, 60f)
-        lineTo(98f, 60f)
-        lineTo(76f, 79f)
-        lineTo(4f, 79f)
+        moveTo(36f, 76f)
+        lineTo(92f, 76f)
+        lineTo(92f, 83f)
+        lineTo(36f, 83f)
         close()
-        // Low superstructure -- deliberately not a block.
-        moveTo(30f, 50f)
-        lineTo(50f, 50f)
-        lineTo(50f, 61f)
-        lineTo(30f, 61f)
+        moveTo(54f, 68f)
+        lineTo(60f, 68f)
+        lineTo(60f, 76f)
+        lineTo(54f, 76f)
         close()
-        // The mast: thin, and taller than anything else in the set.
-        moveTo(36f, 3f)
-        lineTo(44f, 3f)
-        lineTo(44f, 51f)
-        lineTo(36f, 51f)
-        close()
-        // Forward gun house.
-        moveTo(57f, 51f)
-        lineTo(70f, 51f)
-        lineTo(70f, 61f)
-        lineTo(57f, 61f)
+        moveTo(74f, 68f)
+        lineTo(80f, 68f)
+        lineTo(80f, 76f)
+        lineTo(74f, 76f)
         close()
     }
 
     /**
-     * Merchantman in profile, bow right: a long flush deck with one blunt mass hard aft.
-     *
-     * Deliberately the opposite shape to the warship rather than merely a different one. At
-     * 22 px the pair are told apart by where the weight sits and what it looks like -- a solid
-     * block at the stern here, a bare hull and a thin mast amidships there -- because nothing
-     * finer than that survives.
+     * Port, civil or naval: an anchor — ring, shank, stock and arms with flukes. Drawn once for
+     * both; colour says who owns the harbour. A ship in profile was tried first, twice, and at
+     * 22 px on the wrist neither a tanker nor a patrol ship said more than "bar with a lump";
+     * the anchor is the one harbour symbol every chart already uses. The ring's hole is a
+     * counter-clockwise oval wholly inside the clockwise disc, so non-zero winding cuts it
+     * cleanly — unlike the moon, nothing here reaches past its outer edge.
      */
+    private fun anchor(): Path = Path().apply {
+        addOval(36f, 0f, 64f, 26f, Path.Direction.CW)
+        addOval(44f, 8f, 56f, 18f, Path.Direction.CCW)
+        moveTo(43f, 24f)
+        lineTo(57f, 24f)
+        lineTo(57f, 90f)
+        lineTo(43f, 90f)
+        close()
+        moveTo(22f, 32f)
+        lineTo(78f, 32f)
+        lineTo(78f, 43f)
+        lineTo(22f, 43f)
+        close()
+        moveTo(91.7f, 67.4f)
+        lineTo(89.7f, 71.3f)
+        lineTo(87.3f, 74.9f)
+        lineTo(84.6f, 78.3f)
+        lineTo(81.6f, 81.5f)
+        lineTo(78.3f, 84.3f)
+        lineTo(74.7f, 86.8f)
+        lineTo(70.9f, 89f)
+        lineTo(67f, 90.7f)
+        lineTo(62.9f, 92.2f)
+        lineTo(58.6f, 93.2f)
+        lineTo(54.3f, 93.8f)
+        lineTo(50f, 94f)
+        lineTo(45.7f, 93.8f)
+        lineTo(41.4f, 93.2f)
+        lineTo(37.1f, 92.2f)
+        lineTo(33f, 90.7f)
+        lineTo(29.1f, 89f)
+        lineTo(25.3f, 86.8f)
+        lineTo(21.7f, 84.3f)
+        lineTo(18.4f, 81.5f)
+        lineTo(15.4f, 78.3f)
+        lineTo(12.7f, 74.9f)
+        lineTo(10.3f, 71.3f)
+        lineTo(8.3f, 67.4f)
+        lineTo(21f, 61.5f)
+        lineTo(22.4f, 64.2f)
+        lineTo(24.1f, 66.7f)
+        lineTo(25.9f, 69.1f)
+        lineTo(28f, 71.3f)
+        lineTo(30.3f, 73.2f)
+        lineTo(32.8f, 75f)
+        lineTo(35.4f, 76.5f)
+        lineTo(38.2f, 77.7f)
+        lineTo(41f, 78.7f)
+        lineTo(44f, 79.4f)
+        lineTo(47f, 79.9f)
+        lineTo(50f, 80f)
+        lineTo(53f, 79.9f)
+        lineTo(56f, 79.4f)
+        lineTo(59f, 78.7f)
+        lineTo(61.8f, 77.7f)
+        lineTo(64.6f, 76.5f)
+        lineTo(67.2f, 75f)
+        lineTo(69.7f, 73.2f)
+        lineTo(72f, 71.3f)
+        lineTo(74.1f, 69.1f)
+        lineTo(75.9f, 66.7f)
+        lineTo(77.6f, 64.2f)
+        lineTo(79f, 61.5f)
+        close()
+        moveTo(4f, 58f)
+        lineTo(18f, 64f)
+        lineTo(10f, 80f)
+        close()
+        moveTo(90f, 80f)
+        lineTo(82f, 64f)
+        lineTo(96f, 58f)
+        close()
+    }
+
     /**
      * Heart, for the pulse slot.
      *
@@ -283,141 +339,41 @@ object Glyphs {
         close()
     }
 
-    private fun merchantShip(): Path = Path().apply {
-        // Hull: long and low, the deck almost entirely empty.
-        moveTo(2f, 62f)
-        lineTo(98f, 62f)
-        lineTo(88f, 79f)
-        lineTo(2f, 79f)
-        close()
-        // Superstructure, blunt and wide, right at the stern.
-        moveTo(5f, 35f)
-        lineTo(33f, 35f)
-        lineTo(33f, 63f)
-        lineTo(5f, 63f)
-        close()
-        // Funnel, thick enough to read as part of the same mass.
-        moveTo(12f, 23f)
-        lineTo(26f, 23f)
-        lineTo(26f, 36f)
-        lineTo(12f, 36f)
-        close()
-    }
-
     /**
-     * Launch complex: a vehicle on the pad beside its service tower.
-     *
-     * Drawn as the *site* rather than as the vehicle, because a lone rocket is a pointed
-     * body with fins at the bottom and so is a delta-wing fighter — at 22 px the two were
-     * very nearly the same silhouette. The tower makes this the only asymmetric glyph in the
-     * set and the ground line the only one that sits on anything, which is what tells them
-     * apart at a glance.
+     * Spaceport: the vehicle alone — conical nose, body, two fins, a nozzle — and nothing of the
+     * pad. The exhaust is a separate path ([rocketFlame]) because it is drawn in its own colour:
+     * at 22 px a bare rocket and a delta-wing fighter are both a pointed body with fins, and the
+     * orange under the nozzle is what tells them apart.
      */
     private fun rocket(): Path = Path().apply {
-        // Vehicle on the pad: conical nose, long body.
-        moveTo(32f, 2f)
-        lineTo(42f, 26f)
-        lineTo(42f, 78f)
-        lineTo(22f, 78f)
-        lineTo(22f, 26f)
+        moveTo(50f, 2f)
+        lineTo(62f, 22f)
+        lineTo(62f, 74f)
+        lineTo(38f, 74f)
+        lineTo(38f, 22f)
         close()
-        // Fins.
-        moveTo(22f, 76f)
-        lineTo(10f, 84f)
-        lineTo(22f, 58f)
+        moveTo(38f, 50f)
+        lineTo(38f, 84f)
+        lineTo(24f, 92f)
+        lineTo(24f, 80f)
         close()
-        moveTo(42f, 58f)
-        lineTo(54f, 84f)
-        lineTo(42f, 76f)
+        moveTo(62f, 50f)
+        lineTo(76f, 80f)
+        lineTo(76f, 92f)
+        lineTo(62f, 84f)
         close()
-        // Service tower alongside — the asymmetry is the whole point at this size.
-        moveTo(64f, 6f)
-        lineTo(76f, 6f)
-        lineTo(76f, 84f)
-        lineTo(64f, 84f)
-        close()
-        // Access arms reaching to the vehicle.
-        moveTo(52f, 20f)
-        lineTo(76f, 20f)
-        lineTo(76f, 27f)
-        lineTo(52f, 27f)
-        close()
-        moveTo(52f, 42f)
-        lineTo(76f, 42f)
-        lineTo(76f, 49f)
-        lineTo(52f, 49f)
-        close()
-        moveTo(52f, 64f)
-        lineTo(76f, 64f)
-        lineTo(76f, 71f)
-        lineTo(52f, 71f)
-        close()
-        // Ground line: nothing else in the set has one.
-        moveTo(4f, 84f)
-        lineTo(96f, 84f)
-        lineTo(96f, 94f)
-        lineTo(4f, 94f)
+        moveTo(42f, 74f)
+        lineTo(58f, 74f)
+        lineTo(58f, 80f)
+        lineTo(42f, 80f)
         close()
     }
 
-    /**
-     * Military rotorcraft: the same rotor over a slim body carrying stub wings and pylons.
-     *
-     * The wings are what does the work. A rotor disc dominates any helicopter glyph, so the
-     * difference has to be underneath it and has to be wide: a straight bar with weight at both
-     * ends reads as armed where the civil pod reads as a bubble.
-     */
-    private fun helicopterMilitary(): Path = Path().apply {
-        // Rotor disc, shared with the civil variant so the family still reads.
-        moveTo(6.15f, 1.55f)
-        lineTo(97.51f, 42.23f)
-        lineTo(93.85f, 50.45f)
-        lineTo(2.49f, 9.77f)
-        close()
-        moveTo(2.49f, 42.23f)
-        lineTo(93.85f, 1.55f)
-        lineTo(97.51f, 9.77f)
-        lineTo(6.15f, 50.45f)
-        close()
-        moveTo(45f, 26f)
-        lineTo(55f, 26f)
-        lineTo(55f, 40f)
-        lineTo(45f, 40f)
-        close()
-        // Slim gunship body.
-        moveTo(45f, 34f)
-        lineTo(55f, 34f)
-        lineTo(57f, 54f)
-        lineTo(55f, 72f)
-        lineTo(45f, 72f)
-        lineTo(43f, 54f)
-        close()
-        // Stub wings, wide and thin.
-        moveTo(14f, 51f)
-        lineTo(86f, 51f)
-        lineTo(86f, 60f)
-        lineTo(14f, 60f)
-        close()
-        // Pylons at the wingtips.
-        moveTo(14f, 45f)
-        lineTo(24f, 45f)
-        lineTo(24f, 66f)
-        lineTo(14f, 66f)
-        close()
-        moveTo(76f, 45f)
-        lineTo(86f, 45f)
-        lineTo(86f, 66f)
-        lineTo(76f, 66f)
-        close()
-        // Tail boom and fin.
-        moveTo(46f, 66f)
-        lineTo(54f, 66f)
-        lineTo(54f, 86f)
-        lineTo(46f, 86f)
-        close()
-        moveTo(50f, 78f)
-        lineTo(63f, 97f)
-        lineTo(37f, 97f)
+    /** The rocket's exhaust, drawn under [rocket] in a fixed orange. Same box, same scale. */
+    private fun rocketFlame(): Path = Path().apply {
+        moveTo(40f, 82f)
+        lineTo(60f, 82f)
+        lineTo(50f, 98f)
         close()
     }
 

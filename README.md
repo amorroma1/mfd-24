@@ -20,8 +20,12 @@ no account, no analytics. GPL-3.0.
 *A watch under way at New York JFK. The same face in both shots: always-on is the interactive dial,
 dimmed, minus the seconds cursor and the background wash.*
 
-**Wear OS 3.0+ (API 30).** Built and worn on a TicWatch Pro 3 Ultra (454 × 454).
+**Wear OS 3 and 4 (API 30–33).** Built and worn on a TicWatch Pro 3 Ultra (Wear OS 3.5, 454 × 454);
+Wear OS 4 exercised on the emulator only. **Wear OS 5 and newer refuse watch faces of this kind** —
+see [Compatibility](#compatibility).
 **[Install →](docs/INSTALL.md)**
+
+*Not a medical device, not a substitute for certified equipment. Supplied as is, under the GPL.*
 
 ---
 
@@ -129,6 +133,25 @@ entirely — see **Position** in the settings.
 
 </details>
 
+## Compatibility
+
+| | |
+|---|---|
+| **Verified on the wrist** | TicWatch Pro 3 Ultra GPS, Wear OS 3.5 (API 30) — the watch this is built and worn on |
+| **Verified on the emulator** | Wear OS 4 (API 33): installs, renders, the editor opens, and a booked watch starts its vigilance service from the background |
+| **Refused by the platform** | Wear OS 5 and newer (API 34+), on devices whose maker has not kept legacy watch faces enabled |
+
+MFD-24 is an AndroidX (Jetpack) watch face, and Google is retiring that kind: since January 2026 the
+Play Store takes only the declarative Watch Face Format, and Wear OS 5 carries a switch,
+`config_support_legacy_watch_faces`, that the device maker sets. On the Wear OS 5 emulator it is off:
+the face installs, but the system logs `Unsupported legacy watch face` and keeps it out of the picker.
+Watches that shipped with Wear OS 5 are expected to behave the same; watches upgraded from Wear OS 4
+may keep the switch on. Reports either way are welcome in
+[Discussions](https://github.com/amorroma1/mfd-24/discussions).
+
+There is no port to make: the Watch Face Format is XML without code, and a dead-man's monitor, a
+METAR fetch or a site lock cannot be written in it. Where this face runs, it runs in full.
+
 ## Settings
 
 **Long-press the face, then tap the pencil.** Seven collapsible sections, one open at a time; the
@@ -193,7 +216,8 @@ radius, so other round sizes should be fine; square and chin-cut screens are not
 will crop the outer scale. Text is sized from the radius too — the readout width budget is
 arithmetic and there is a test that fails if a row would reach the hour numerals.
 
-**Hardware and performance.** Wear OS 3.0+ (API 30), any watch the platform runs on; no GPU
+**Hardware and performance.** Wear OS 3 or 4 (API 30–33), any round watch the platform runs on —
+Wear OS 5 is the exception, see [Compatibility](#compatibility); no GPU
 features beyond an ordinary canvas. `render()` allocates nothing, so there is no garbage collector
 pause to schedule around, and the frame rate is demand-driven: **one frame a second at rest**,
 16 ms only while a transition is animating, and one frame a minute in always-on. The optional
@@ -211,6 +235,8 @@ cost 260 KB and are left out.
 
 ## What it is not
 
+**MFD-24 is not a medical device, is not certified as a substitute for any certified
+hardware-and-software system, and is supplied as is, without warranty, under the [GPL](LICENSE).**
 A personal instrument, not a certified one. The vigilance monitor is an uncertified aid: it can be
 switched off, suspended by a loose strap, or delayed by the platform's own doze limits. The incident
 log covers **one watch** — starting another empties it, so anything worth keeping leaves via

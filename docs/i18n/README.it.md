@@ -21,8 +21,12 @@ companion, nessun account, nessuna analitica. GPL-3.0.
 *Una guardia in corso a New York JFK. Lo stesso quadrante in entrambe le immagini: l'always-on è il
 quadrante interattivo, attenuato, senza il cursore dei secondi e senza il velo di fondo.*
 
-**Wear OS 3.0+ (API 30).** Costruito e indossato su un TicWatch Pro 3 Ultra (454 × 454).
+**Wear OS 3 e 4 (API 30–33).** Costruito e indossato su un TicWatch Pro 3 Ultra (Wear OS 3.5,
+454 × 454); Wear OS 4 verificato solo sull'emulatore. **Wear OS 5 e successivi rifiutano i
+quadranti di questo tipo** — vedi [Compatibilità](#compatibilità).
 **[Installare →](INSTALL.it.md)**
+
+*Non è un dispositivo medico né un sostituto di apparecchiature certificate. Fornito così com'è, sotto GPL.*
 
 ---
 
@@ -133,6 +137,25 @@ mano sostituisce del tutto la localizzazione — vedere **Punto** nelle impostaz
 
 </details>
 
+## Compatibilità
+
+| | |
+|---|---|
+| **Verificato al polso** | TicWatch Pro 3 Ultra GPS, Wear OS 3.5 (API 30) — l'orologio su cui è costruito e indossato |
+| **Verificato sull'emulatore** | Wear OS 4 (API 33): si installa, disegna, l'editor si apre e una guardia prenotata avvia il suo servizio di vigilanza dallo sfondo |
+| **Rifiutato dalla piattaforma** | Wear OS 5 e successivi (API 34+), sui dispositivi in cui il produttore non ha lasciato abilitati i quadranti di vecchio tipo |
+
+MFD-24 è un quadrante AndroidX (Jetpack), e Google sta ritirando questo tipo: da gennaio 2026 il Play
+Store accetta solo il Watch Face Format dichiarativo, e Wear OS 5 porta un interruttore,
+`config_support_legacy_watch_faces`, impostato dal produttore. Sull'emulatore Wear OS 5 è spento: il
+quadrante si installa, ma il sistema registra `Unsupported legacy watch face` e lo tiene fuori dal
+selettore. Gli orologi usciti con Wear OS 5 dovrebbero comportarsi allo stesso modo; quelli
+aggiornati da Wear OS 4 potrebbero tenere l'interruttore acceso. Segnalazioni in entrambi i sensi
+sono benvenute nelle [Discussions](https://github.com/amorroma1/mfd-24/discussions).
+
+Non c'è un porting da fare: il Watch Face Format è XML senza codice, e un uomo morto, una lettura
+METAR o un punto su un sito non si possono scrivere lì. Dove questo quadrante gira, gira per intero.
+
 ## Impostazioni
 
 **Pressione lunga sul quadrante, poi un tocco sulla matita.** Sette sezioni a scomparsa, una
@@ -199,7 +222,8 @@ non sono previsti e taglieranno la scala esterna. Anche il testo è dimensionato
 budget di larghezza delle letture è aritmetica, e c'è un test che fallisce se una riga arrivasse
 a toccare i numerali delle ore.
 
-**Hardware e prestazioni.** Wear OS 3.0+ (API 30), qualsiasi orologio su cui giri la piattaforma;
+**Hardware e prestazioni.** Wear OS 3 o 4 (API 30–33), qualsiasi orologio rotondo su cui giri la
+piattaforma — Wear OS 5 è l'eccezione, vedi [Compatibilità](#compatibilità);
 nessuna funzione GPU oltre un canvas ordinario. `render()` non alloca nulla, quindi non c'è alcuna
 pausa del garbage collector da cui guardarsi, e il frame rate è a richiesta: **un fotogramma al
 secondo a riposo**, 16 ms solo mentre una transizione è in animazione, e un fotogramma al minuto
@@ -217,6 +241,8 @@ che non potrebbe mai mostrare, costavano 260 KB e restano fuori.
 
 ## Cosa non è
 
+**MFD-24 non è un dispositivo medico, non è certificato come sostituto di alcun sistema hardware e
+software certificato, ed è fornito così com'è, senza garanzia, sotto [GPL](../../LICENSE).**
 Uno strumento personale, non certificato. L'uomo morto è un ausilio non certificato:
 può essere spento, sospeso da un cinturino allentato, o ritardato dai limiti di doze della
 piattaforma stessa. Il giornale di bordo copre **una guardia** — montarne un'altra lo svuota,

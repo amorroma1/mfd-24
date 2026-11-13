@@ -8,7 +8,9 @@ keine Sideloading-Oberfläche, also endet jeder Weg unten bei ADB — die Frage 
 Maschine es ausführt. Drei Wege, der einfachste zuerst. Alle brauchen die
 [Entwickleroptionen](#zuerst-die-entwickleroptionen-auf-der-uhr), also dort anfangen.
 
-Benötigt Wear OS 3.0 oder neuer (API 30). Gebaut und getragen auf einer TicWatch Pro 3 Ultra
+Benötigt Wear OS 3 oder 4 (API 30–33); Wear OS 5 und neuer lehnen Zifferblätter dieser Art ab —
+siehe [Kompatibilität](README.de.md#kompatibilität) in der README. Gebaut und getragen auf einer
+TicWatch Pro 3 Ultra
 (454 × 454); das Layout ist proportional zum Radius, andere runde Displays sollten passen.
 
 ## Warum MFD-24 nicht bei Google Play ist

@@ -25,23 +25,21 @@ class SiteGlyphTest {
     }
 
     @Test
-    fun `ports split merchant from naval`() {
-        assertEquals(SiteGlyph.MERCHANT_SHIP, SiteGlyph.forSite(PoiFormat.TYPE_PORT, 0))
-        assertEquals(SiteGlyph.WARSHIP, SiteGlyph.forSite(PoiFormat.TYPE_PORT, military))
+    fun `a port is an anchor whoever runs it`() {
+        assertEquals(SiteGlyph.ANCHOR, SiteGlyph.forSite(PoiFormat.TYPE_PORT, 0))
+        assertEquals(SiteGlyph.ANCHOR, SiteGlyph.forSite(PoiFormat.TYPE_PORT, military))
     }
 
     @Test
     fun `a helipad stays a rotorcraft even when it is military`() {
         assertEquals(SiteGlyph.HELICOPTER, SiteGlyph.forSite(PoiFormat.TYPE_AIRPORT, helipad))
-        // Armed, but still never a fast jet: the family is decided by the pad, not the owner.
-        assertEquals(
-            SiteGlyph.HELICOPTER_MILITARY,
-            SiteGlyph.forSite(PoiFormat.TYPE_AIRPORT, helipad or military),
-        )
+        // Military, but still never a fast jet: the family is decided by the pad, not the
+        // owner, and the owner is colour.
+        assertEquals(SiteGlyph.HELICOPTER, SiteGlyph.forSite(PoiFormat.TYPE_AIRPORT, helipad or military))
     }
 
     @Test
-    fun `military is carried by colour for every type, not only the ones with two silhouettes`() {
+    fun `military is carried by colour for every type, not only the one with two silhouettes`() {
         assertTrue(SiteGlyph.isMilitary(military))
         assertTrue(SiteGlyph.isMilitary(military or helipad))
         assertFalse(SiteGlyph.isMilitary(0))
@@ -66,6 +64,6 @@ class SiteGlyphTest {
     @Test
     fun `unknown flag bits are ignored rather than changing the glyph`() {
         assertEquals(SiteGlyph.AIRLINER, SiteGlyph.forSite(PoiFormat.TYPE_AIRPORT, 0b1111_1100))
-        assertEquals(SiteGlyph.MERCHANT_SHIP, SiteGlyph.forSite(PoiFormat.TYPE_PORT, 0b1111_1100))
+        assertEquals(SiteGlyph.ANCHOR, SiteGlyph.forSite(PoiFormat.TYPE_PORT, 0b1111_1100))
     }
 }

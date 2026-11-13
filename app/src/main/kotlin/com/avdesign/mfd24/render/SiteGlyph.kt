@@ -18,18 +18,18 @@ object SiteGlyph {
     const val AIRLINER: Int = 0
     const val FIGHTER: Int = 1
     const val HELICOPTER: Int = 2
-    const val MERCHANT_SHIP: Int = 3
-    const val WARSHIP: Int = 4
-    const val ROCKET: Int = 5
-    const val HELICOPTER_MILITARY: Int = 6
+    const val ANCHOR: Int = 3
+    const val ROCKET: Int = 4
 
     /**
      * Whether a site should be drawn in the accent colour rather than the primary one.
      *
      * Ownership is orthogonal to what kind of place somewhere is, so it is carried by colour
      * rather than by shape. At the 22 px the glyph box allows, a silhouette can just about say
-     * "ship" or "rotorcraft"; asking it to also say "military" was costing more than it bought.
-     * The silhouettes still differ — they confirm it close up — but the colour is what reads.
+     * "anchor" or "rotorcraft"; asking it to also say "military" was costing more than it
+     * bought, and a second ship and a second helicopter were cut once the watch had shown both
+     * pairs side by side. Only the airfield still has two shapes, and even there the colour is
+     * what reads first.
      */
     fun isMilitary(flags: Int): Boolean = flags and PoiFormat.FLAG_MILITARY != 0
 
@@ -44,14 +44,14 @@ object SiteGlyph {
             // the specific thing, and no second silhouette would say more.
             PoiFormat.TYPE_SPACEPORT -> ROCKET
 
-            PoiFormat.TYPE_PORT -> if (military) WARSHIP else MERCHANT_SHIP
+            // A harbour is an anchor whoever runs it; the accent colour says naval.
+            PoiFormat.TYPE_PORT -> ANCHOR
 
-            // Rotorcraft-only decides the family, ownership only the variant. "You cannot land
-            // a fixed wing here" is the more useful fact about a landing site, so a military
-            // helipad is an armed helicopter and never a fast jet.
+            // Rotorcraft-only decides the family, and ownership is colour. "You cannot land a
+            // fixed wing here" is the more useful fact about a landing site, so a military
+            // helipad is a helicopter in the accent and never a fast jet.
             else -> when {
-                flags and PoiFormat.FLAG_HELIPAD != 0 ->
-                    if (military) HELICOPTER_MILITARY else HELICOPTER
+                flags and PoiFormat.FLAG_HELIPAD != 0 -> HELICOPTER
 
                 military -> FIGHTER
                 else -> AIRLINER

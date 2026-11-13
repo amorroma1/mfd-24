@@ -8,7 +8,9 @@ non ha un'interfaccia di sideloading, quindi ogni percorso qui sotto finisce in 
 domanda è quale macchina lo esegue. Tre percorsi, dal più semplice. Tutti richiedono le
 [opzioni sviluppatore](#prima-di-tutto-le-opzioni-sviluppatore-sullorologio): si comincia da lì.
 
-Richiede Wear OS 3.0 o più recente (API 30). Costruito e indossato su un TicWatch Pro 3 Ultra
+Richiede Wear OS 3 o 4 (API 30–33); Wear OS 5 e successivi rifiutano i quadranti di questo tipo —
+vedi [Compatibilità](README.it.md#compatibilità) nel README. Costruito e indossato su un
+TicWatch Pro 3 Ultra
 (454 × 454); il layout è proporzionale al raggio, altri schermi rotondi dovrebbero andare bene.
 
 ## Perché MFD-24 non è su Google Play

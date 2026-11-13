@@ -21,8 +21,12 @@ télémétrie vers qui que ce soit. GPL-3.0.
 *Un quart en cours à New York JFK. Le même cadran sur les deux images : l'always-on est le
 cadran interactif, atténué, sans le curseur des secondes ni le lavis de fond.*
 
-**Wear OS 3.0+ (API 30).** Conçu et porté sur une TicWatch Pro 3 Ultra (454 × 454).
+**Wear OS 3 et 4 (API 30–33).** Conçu et porté sur une TicWatch Pro 3 Ultra (Wear OS 3.5,
+454 × 454) ; Wear OS 4 vérifié sur l'émulateur seulement. **Wear OS 5 et plus récents refusent les
+cadrans de ce type** — voir [Compatibilité](#compatibilité).
 **[Installer →](INSTALL.fr.md)**
+
+*Ni dispositif médical, ni substitut d'un équipement certifié. Fourni tel quel, sous GPL.*
 
 ---
 
@@ -134,6 +138,27 @@ main remplace entièrement la localisation — voir **Position** dans les régla
 
 </details>
 
+## Compatibilité
+
+| | |
+|---|---|
+| **Vérifié au poignet** | TicWatch Pro 3 Ultra GPS, Wear OS 3.5 (API 30) — la montre sur laquelle il est conçu et porté |
+| **Vérifié sur l'émulateur** | Wear OS 4 (API 33) : s'installe, s'affiche, l'éditeur s'ouvre, et un quart programmé lance son service de veille depuis l'arrière-plan |
+| **Refusé par la plateforme** | Wear OS 5 et plus récents (API 34+), sur les appareils dont le fabricant n'a pas laissé les anciens cadrans activés |
+
+MFD-24 est un cadran AndroidX (Jetpack), et Google retire ce type de cadran : depuis janvier 2026 le
+Play Store n'accepte que le Watch Face Format déclaratif, et Wear OS 5 porte un commutateur,
+`config_support_legacy_watch_faces`, réglé par le fabricant. Sur l'émulateur Wear OS 5 il est
+désactivé : le cadran s'installe, mais le système journalise `Unsupported legacy watch face` et le
+tient hors du sélecteur. Les montres livrées avec Wear OS 5 devraient se comporter de même ; celles
+mises à niveau depuis Wear OS 4 gardent peut-être le commutateur actif. Les retours, dans un sens
+comme dans l'autre, sont bienvenus dans les
+[Discussions](https://github.com/amorroma1/mfd-24/discussions).
+
+Il n'y a pas de portage à faire : le Watch Face Format est du XML sans code, et un homme mort, une
+récupération METAR ou un point sur un site ne peuvent pas s'y écrire. Là où ce cadran tourne, il
+tourne en entier.
+
 ## Réglages
 
 **Appui long sur le cadran, puis touchez le crayon.** Sept sections repliables, une seule ouverte
@@ -201,7 +226,8 @@ pas prévus et rogneront l'échelle extérieure. Le texte est lui aussi dimensio
 le budget de largeur des affichages est de l'arithmétique, et un test échoue si une ligne devait
 atteindre les chiffres des heures.
 
-**Matériel et performances.** Wear OS 3.0+ (API 30), toute montre où la plateforme tourne ;
+**Matériel et performances.** Wear OS 3 ou 4 (API 30–33), toute montre ronde où la plateforme
+tourne — Wear OS 5 fait exception, voir [Compatibilité](#compatibilité) ;
 aucune fonction GPU au-delà d'un canvas ordinaire. `render()` n'alloue rien, il n'y a donc aucune
 pause du ramasse-miettes à contourner, et la cadence d'images suit la demande : **une image par
 seconde au repos**, 16 ms seulement pendant qu'une transition s'anime, et une image par minute en
@@ -219,6 +245,8 @@ pourrait jamais afficher, coûtaient 260 Ko et restent dehors.
 
 ## Ce qu'il n'est pas
 
+**MFD-24 n'est pas un dispositif médical, n'est pas certifié comme substitut d'un système matériel
+et logiciel certifié, et est fourni tel quel, sans garantie, sous [GPL](../../LICENSE).**
 Un instrument personnel, pas un instrument certifié. L'homme mort est une aide non
 certifiée : il peut être désactivé, suspendu par un bracelet lâche, ou retardé par les limites de
 sommeil (Doze) de la plateforme elle-même. Le journal de bord couvre **un seul quart** — en
