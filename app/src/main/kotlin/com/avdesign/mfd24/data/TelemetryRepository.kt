@@ -10,10 +10,15 @@ import com.avdesign.mfd24.astro.SolarDay
 import com.avdesign.mfd24.astro.SolarTime
 import com.avdesign.mfd24.geo.PoiFormat
 import com.avdesign.mfd24.geo.PoiResolver
+import com.avdesign.mfd24.geo.TzGrid
+import com.avdesign.mfd24.geo.ZoneHysteresis
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.time.ZoneId
+import kotlin.math.abs
 
 enum class RefreshOutcome {
     /** Everything that could be refreshed was. */
@@ -65,9 +70,28 @@ class TelemetryRepository private constructor(context: Context) {
     /** Where the 5 km search last ran, so a move of any kind can retrigger it. */
     private val resolveOrigin = ResolveOrigin()
 
+    /**
+     * The zone of the position in force, or null before the first lookup or without a grid.
+     * Declared above `init` with the window beside it, because `init` already looks the zone up:
+     * a field declared below it is still null at that moment, and on a release build that is a
+     * NullPointerException with an obfuscated name in `onCreate`, which takes the face down.
+     */
+    @Volatile
+    private var placeZone: ZoneId? = null
+
+    /** The grid's index for [placeZone], which the border band compares against. */
+    private var placeZoneIndex = -1
+    private var placeZoneSource = TelemetryState.POSITION_NONE
+    private var placeZoneLat = Double.NaN
+    private var placeZoneLon = Double.NaN
+
+    private val placeWindow = PlaceZone.Window()
+
     init {
         // Populate from the device-protected cache so the very first frame is not blank.
         store.restoreInto(state)
+        state.showCoordinates = store.showCoordinates
+        state.compassTicks = store.compassTicks
         adoptBestPosition()
         refreshDaylight(System.currentTimeMillis())
     }
@@ -91,6 +115,7 @@ class TelemetryRepository private constructor(context: Context) {
             state.positionLatDeg = activeLatitude
             state.positionLonDeg = activeLongitude
             state.positionSource = TelemetryState.POSITION_DEVICE
+            publishFixAge(TelemetryState.POSITION_DEVICE)
             return
         }
         if (store.hasManualPosition) {
@@ -99,6 +124,7 @@ class TelemetryRepository private constructor(context: Context) {
             state.positionLatDeg = activeLatitude
             state.positionLonDeg = activeLongitude
             state.positionSource = TelemetryState.POSITION_MANUAL
+            publishFixAge(TelemetryState.POSITION_MANUAL)
             // Left to the refresh that follows: the site is no longer forfeit just because the
             // position was typed rather than measured.
             return
@@ -113,20 +139,153 @@ class TelemetryRepository private constructor(context: Context) {
     }
 
     /**
-     * Recomputes the daylight window from the position in force. Cheap, offline and independent of
-     * the weather call, so it runs on every refresh and on start-up — the band would otherwise be
-     * a day stale after midnight.
+     * Recomputes the daylight window and the place's clock from the position in force. Cheap,
+     * offline and independent of the weather call, so it runs on every refresh and on start-up —
+     * the band would otherwise be a day stale after midnight, and the zone's transition window a
+     * season stale after a change of summer time.
      */
     @Synchronized
     fun refreshDaylight(nowMillis: Long) {
         val lat = activeLatitude
         val lon = activeLongitude
+        publishDialRule()
         if (lat.isNaN() || lon.isNaN()) {
             state.clearDaylight()
+            state.clearPlaceZone()
             return
         }
         SolarTime.compute(nowMillis, lat, lon, solarDay)
         state.setDaylight(solarDay.kind, solarDay.sunriseMillis, solarDay.sunsetMillis)
+        refreshPlaceZone(lat, lon, nowMillis)
+    }
+
+    // --- The place's clock -----------------------------------------------------------------
+
+    /**
+     * Whether the measured position sets the dial's clock: `LOCAL TIME` in the position section,
+     * offered only while the position is automatic and located. Setting it republishes at once,
+     * so the dial glides as the wearer flips it rather than half an hour later.
+     */
+    var zoneFromPosition: Boolean
+        get() = store.zoneFromPosition
+        set(value) {
+            if (store.zoneFromPosition == value) return
+            store.zoneFromPosition = value
+            refreshDaylight(System.currentTimeMillis())
+        }
+
+    /** `COORDINATES` in the position section; see [TelemetryStore.showCoordinates]. */
+    var showCoordinates: Boolean
+        get() = store.showCoordinates
+        set(value) {
+            store.showCoordinates = value
+            state.showCoordinates = value
+        }
+
+    /** `ACTIVE SN` in the display section; see [TelemetryStore.compassTicks]. */
+    var compassTicks: Boolean
+        get() = store.compassTicks
+        set(value) {
+            store.compassTicks = value
+            state.compassTicks = value
+        }
+
+    /**
+     * The zone the dial is set to: the place's when [TelemetryState.dialFollowsPlace], the
+     * device's otherwise. The editor formats a booked start with this, so the time it shows is
+     * the time the hour hand will point at.
+     */
+    fun dialZone(): ZoneId {
+        val place = placeZone
+        return if (state.dialFollowsPlace && place != null) place else ZoneId.systemDefault()
+    }
+
+    /**
+     * A typed position always brings its clock; a measured one only when the wearer asked for it
+     * and the platform still lets us locate. A revoked permission falls back to the phone's zone
+     * rather than to a fix that can no longer be refreshed.
+     */
+    private fun publishDialRule() {
+        state.dialFollowsPlace = when (state.positionSource) {
+            TelemetryState.POSITION_MANUAL -> true
+            TelemetryState.POSITION_DEVICE -> store.zoneFromPosition && location.hasPermission()
+            else -> false
+        }
+    }
+
+    /**
+     * Looks the zone up again when the position has moved or changed source; the window is
+     * recomputed every time, because that is what rolls it past a transition.
+     *
+     * A measured position goes through [ZoneHysteresis]: the zone in force is kept while the fix
+     * is within `max(3 km, its accuracy)` of it, so a wearer on a border does not watch the dial
+     * glide an hour and back on alternate refreshes. A typed one does not: it is a decision, and
+     * the zone is the point's own.
+     */
+    private fun refreshPlaceZone(lat: Double, lon: Double, nowMillis: Long) {
+        val source = state.positionSource
+        if (placeZone == null || source != placeZoneSource ||
+            abs(lat - placeZoneLat) >= ZONE_LOOKUP_DEGREES ||
+            abs(lon - placeZoneLon) >= ZONE_LOOKUP_DEGREES
+        ) {
+            val grid = loadZoneGrid()
+            if (grid == null) {
+                placeZone = null
+                placeZoneIndex = -1
+            } else {
+                val here = grid.zoneAt(lat, lon)
+                var chosen = here
+                if (source == TelemetryState.POSITION_DEVICE) {
+                    // The zone a measured position was last in, from memory or — first thing after
+                    // a restart — from the store.
+                    val held = if (placeZoneSource == TelemetryState.POSITION_DEVICE && placeZoneIndex >= 0) {
+                        placeZoneIndex
+                    } else {
+                        store.measuredZoneName?.let { grid.indexOf(it) } ?: -1
+                    }
+                    if (held >= 0 && held != here && ZoneHysteresis.keeps(
+                            grid, lat, lon, ZoneHysteresis.radiusFor(store.deviceAccuracyMeters), held,
+                        )
+                    ) {
+                        chosen = held
+                    }
+                    val name = grid.names(chosen)[0]
+                    if (store.measuredZoneName != name) store.measuredZoneName = name
+                }
+                if (placeZone == null || chosen != placeZoneIndex) {
+                    val known = ZoneId.getAvailableZoneIds()
+                    placeZone = PlaceZone.choose(grid.names(chosen), grid.standardOffsetSeconds(chosen)) {
+                        it in known
+                    }
+                    placeZoneIndex = chosen
+                }
+            }
+            placeZoneLat = lat
+            placeZoneLon = lon
+            placeZoneSource = source
+        }
+        val zone = placeZone
+        if (zone == null) {
+            state.clearPlaceZone()
+            return
+        }
+        PlaceZone.window(zone, nowMillis, placeWindow)
+        state.setPlaceZone(placeWindow)
+    }
+
+    /**
+     * The time-zone grid, read and dropped rather than held: 660 KB kept for a question asked when
+     * the position moves is a poor trade on a watch, and reading it costs a few milliseconds off
+     * the render thread.
+     */
+    private fun loadZoneGrid(): TzGrid? {
+        val bytes = try {
+            appContext.assets.open(TzGrid.ASSET_NAME).use { it.readBytes() }
+        } catch (e: IOException) {
+            Diag.w(TAG, "time-zone grid unavailable", e)
+            return null
+        }
+        return TzGrid.fromBytes(bytes)
     }
 
     fun hasLocationPermission(): Boolean = location.hasPermission()
@@ -233,8 +392,11 @@ class TelemetryRepository private constructor(context: Context) {
         // With manual selected there is nothing to ask the platform for: the position is already
         // decided, and waking the GPS to then ignore the answer is the worst of both.
         val manualChosen = store.manualPositionSelected && store.hasManualPosition
+        // A fix older than the one on file is no news: `lastKnown` picks the newest per provider,
+        // and a provider that has not heard anything since hands back what it had hours ago.
+        // Taken as new, it moved the position back and reset its age.
         val fix = if (!manualChosen && location.hasPermission()) {
-            obtainFix(allowActiveFix, nowMillis)
+            obtainFix(allowActiveFix, nowMillis)?.takeIf { it.time >= store.deviceFixMillis }
         } else {
             null
         }
@@ -244,7 +406,20 @@ class TelemetryRepository private constructor(context: Context) {
         if (fix != null) {
             lat = fix.latitude
             lon = fix.longitude
-            store.saveDevicePosition(lat, lon)
+            // The same fix read again keeps the speed it was saved with: recomputed against
+            // itself it would come out as standing still.
+            val previousMillis = store.deviceFixMillis
+            val speed = if (fix.time == previousMillis) {
+                store.deviceSpeedMps
+            } else {
+                PositionAge.speedFor(
+                    if (fix.hasSpeed()) fix.speed else -1f, lat, lon, fix.time,
+                    store.deviceLatitude, store.deviceLongitude, previousMillis,
+                )
+            }
+            store.saveDevicePosition(
+                lat, lon, if (fix.hasAccuracy()) fix.accuracy else Float.NaN, fix.time, speed,
+            )
             setActivePosition(lat, lon, TelemetryState.POSITION_DEVICE)
             maybeResolveSite(lat, lon)
         } else if (!manualChosen && location.hasPermission() && store.hasDevicePosition) {
@@ -269,6 +444,7 @@ class TelemetryRepository private constructor(context: Context) {
             poi.clear()
             state.clearWeather()
             state.clearDaylight()
+            state.clearPlaceZone()
             return if (location.hasPermission()) {
                 RefreshOutcome.NO_FIX
             } else {
@@ -380,6 +556,18 @@ class TelemetryRepository private constructor(context: Context) {
         state.positionLatDeg = lat
         state.positionLonDeg = lon
         state.positionSource = source
+        publishFixAge(source)
+    }
+
+    /** Only a measured position ages; a typed one is a decision, see [PositionAge]. */
+    private fun publishFixAge(source: Int) {
+        if (source == TelemetryState.POSITION_DEVICE) {
+            state.positionFixMillis = store.deviceFixMillis
+            state.positionSpeedMps = store.deviceSpeedMps
+        } else {
+            state.positionFixMillis = 0L
+            state.positionSpeedMps = 0f
+        }
     }
 
     companion object {
@@ -387,6 +575,13 @@ class TelemetryRepository private constructor(context: Context) {
 
         /** How stale a cached fix may be before we ask for a new one. */
         const val FIX_TTL_MS: Long = 15 * 60 * 1000L
+
+        /**
+         * The step of a typed position, and a fifth of the time-zone grid's cell: any change of a
+         * manual position looks the zone up again, while a device fix's few metres of jitter does
+         * not re-read the grid every half hour.
+         */
+        const val ZONE_LOOKUP_DEGREES: Double = 0.01
 
         /** Re-running the 5 km search below this displacement cannot change the answer much. */
         const val RESOLVE_DISTANCE_M: Double = 500.0

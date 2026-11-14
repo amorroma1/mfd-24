@@ -75,15 +75,20 @@ internal fun defaultBookedStart(nowMillis: Long): Long =
 internal fun earliestBookableNow(): Long =
     WatchShiftController.earliestBookableStart(System.currentTimeMillis())
 
-internal fun localDateTime(millis: Long): LocalDateTime =
-    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDateTime()
+/**
+ * A booked start as the dial will show it. [zone] is the dial's — the device's, or the place's
+ * when the position was typed in (`TelemetryRepository.dialZone`) — because a start printed in one
+ * clock and drawn on another is a watch that begins at a different hour from the one booked.
+ */
+internal fun localDateTime(millis: Long, zone: ZoneId): LocalDateTime =
+    Instant.ofEpochMilli(millis).atZone(zone).toLocalDateTime()
 
-internal fun hourOf(millis: Long): Int = localDateTime(millis).hour
+internal fun hourOf(millis: Long, zone: ZoneId): Int = localDateTime(millis, zone).hour
 
-internal fun minuteOf(millis: Long): Int = localDateTime(millis).minute
+internal fun minuteOf(millis: Long, zone: ZoneId): Int = localDateTime(millis, zone).minute
 
-internal fun formatBookedDate(millis: Long): String =
-    localDateTime(millis).format(BOOKED_DATE_FORMAT).uppercase(Locale.US)
+internal fun formatBookedDate(millis: Long, zone: ZoneId): String =
+    localDateTime(millis, zone).format(BOOKED_DATE_FORMAT).uppercase(Locale.US)
 
 /**
  * `19 AUG 21:14Z` — an incident, in the same Zulu the dial prints it in.

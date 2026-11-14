@@ -64,6 +64,14 @@ object PoiFormat {
     /** Rotorcraft-only aerodrome. Beats [FLAG_MILITARY] when choosing a pictogram. */
     const val FLAG_HELIPAD: Int = 2
 
+    /**
+     * Never written to the file. Set on a search result that is a civil airfield when a military
+     * airfield lies inside the same radius — Honolulu and Hickam, Brussels and Melsbroek, Changi
+     * and its air base share runways or fences. The answer names the civil field, because that
+     * is the one with a METAR to read, and this bit lets the pictogram say the other one is there.
+     */
+    const val FLAG_SHARED_MILITARY: Int = 0x40
+
     const val ASSET_NAME: String = "poi_v1.bin"
 
     /**

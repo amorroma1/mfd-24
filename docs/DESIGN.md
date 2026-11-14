@@ -11,29 +11,33 @@ for reading the code, reviewing a change, or settling an argument about a corner
 ## Layout
 
 ```
-tickwath3pro/
+mfd-24/
   shared/kotlin/…/geo/            Morton.kt, PoiFormat.kt — compiled into BOTH the app and the
                                   packer, so the reader and the writer cannot disagree
   tools/poi/                      CSV sources + the binary packer (JVM, no Android)
+  tools/tz/                       build_tz.py — the time-zone grid the dial reads its zone from
   app/src/main/kotlin/…/
     MfdWatchFaceService.kt        service, lifecycle, direct-boot handling
     MfdRenderer.kt                the frame loop
     WatchShiftReceiver.kt         end-of-watch alarm
     render/                       Geometry, DialLayer, HandsLayer, SecondsMarker, DutyArcLayer,
                                   DaylightLayer, TelemetryLayer, AmbientLayer, AmbientAuto,
-                                  SiteGlyph, Glyphs, DialTransition, WakeTransition
+                                  SiteGlyph, Glyphs, DialTransition, DialZone, WakeTransition,
+                                  CompassLayer, CompassTicks
     astro/                        AstroTime (dial angles, the UTC date-time group), SolarTime
                                   (sunrise/sunset), MoonSky (phase and hour angle)
-    geo/                          PoiDatabase (Morton range query), PoiResolver, Geo (haversine)
+    geo/                          PoiDatabase (Morton range query), PoiResolver, Geo (haversine),
+                                  TzGrid (zone lookup), ZoneHysteresis (the border band)
     data/                         TelemetryRepository/State/Store, ResolveOrigin, LocationRepository,
                                   OpenMeteoClient, MetarClient, WeatherCache, TelemetryWorker,
                                   WatchShift (timer state + alarm), Alerts (beep and buzz),
-                                  SensorSlots, DailySteps, MotionFilter, VigilanceService/Monitor/
+                                  PlaceZone, PositionAge, SensorSlots, DailySteps, MotionFilter,
+                                  VigilanceService/Monitor/
                                   State/Store, SosSchedule, SosSignal, IncidentLog
     export/                       LogPacket, QrCode, QrPanelView, Afsk, Callsign, LogExportActivity
     update/                       ReleaseCheck, UpdateStore, UpdateNotifier, ReleaseLinkActivity
     style/                        UserStyleSchema and the resolved Palette
-    text/TextBuf.kt               allocation-free number and text formatting
+    text/                         TextBuf (allocation-free number and text formatting), Coordinates
     editor/WatchConfigActivity.kt on-watch settings (Wear Compose)
 ```
 
@@ -78,6 +82,112 @@ twenty-four hour change that leaves the dial reading the same hour, and easing t
 would spin the hand a whole gratuitous turn. `DialTransitionTest` measures the travel distance of
 each hand for exactly these cases.
 
+### Whose clock the dial keeps
+
+The hour scale runs on one UTC offset at a time, and there are two candidates: the device's zone —
+the phone's, or one the wearer set by hand — and the zone of the position the dial is set to. They
+agree almost everywhere on the ground and part company in the air, at a border, and whenever a
+position is typed in for somewhere else. When they part, the dial's two kinds of mark part with
+them: the hour hand and the daylight band are clock-time, the sun and moon marks are sky-time
+(their hour angles), and drawn against another place's clock the sun can stand hours outside its
+own day. A hand-typed JFK on a watch kept in Kyiv put it seven hours out; the flight film, before
+this, showed the same thing over the Atlantic and explained it rather than fixing it.
+
+So the clock follows the place whenever the wearer has said the dial is *there*:
+
+- **A typed position always brings its clock.** Site, weather, band, sun and moon already followed
+  it; the hour scale now does too, and the editor prints a booked start in that zone, so the time
+  booked is the time the hand will point at.
+- **A measured position brings its clock when `LOCAL TIME` is set to `POSITION`** (the position
+  section, offered while the position is automatic and located; off by default, because the
+  phone's zone is what every other screen on the watch shows). The dial then crosses zones under
+  the wearer, half-hour ones included. On BA 178 that is seven glides between JFK and Heathrow:
+  −5, −4 off Nova Scotia, −3 over Saint-Pierre, −3:30 over Newfoundland and back to −3 fifteen
+  minutes later, then −2, −1 and 0. The Newfoundland half hour is not smoothed away. It is the
+  local time of the ground below, and the readout says so.
+- **Otherwise the device's zone rules**, and the face does not overrule it — UTC on a pilot's wrist
+  included. But a compass drawn against another place's clock points somewhere false, so when the
+  device's offset differs from the place's the sun and moon leave the dial, as they already do with
+  no position. Offsets are compared, not names: Kiev and Kyiv are one clock.
+
+**The readout states which clock is in force.** Zulu is followed by the hour scale's offset, a
+step dimmer: `Z 13NOV 13:58 -5`, `+5:30`, `+0` in London in winter rather than nothing, because an
+empty slot would read as "not known". An offset, not an abbreviation — plenty of zones have none,
+and `CST` is Chicago, Shanghai and Havana at once. At worst it is `Z 13NOV 13:58 +12:45`, twenty
+characters, and `GeometryBudgetTest` holds that inside the numerals. The location row ends with
+where the position came from: a satellite for a measured one, the cross in a map pin for one
+typed in. That row sits above the weather, on the wider of the two data rows, because the
+symbol describes the place and not the temperature: `✈ KJFK 0.2KM ⊛` over `4°C BKN Q1008`.
+The symbol closes the row, a character's space after the text, rather than standing in front of
+the site pictogram, where two signs came before anything was said. The upper row pays for two
+pictograms; the weather row below fits its sixteen characters as bare text.
+
+**A measured position is never dropped, and says how much it is still worth.** A cabin hides the
+sky for hours, and a dial that went to dashes there would give up the band, the sun and the zone
+exactly when they are wanted. So the last fix stays, and the satellite at the end of the location row
+carries its age (`PositionAge`): full brightness while it can be trusted, dimmed once it may have
+drifted past the site lock's five kilometres, struck out after half an hour on the move without a fix. Age is
+measured as distance — speed × time — because a watch on a desk routinely holds an hour-old fix
+that is exactly right, and a rule on time alone would strike it out at home all day. The speed is
+the platform's own where the fix carries one, otherwise the average from the previous fix, and
+only from a previous fix within half an hour: JFK at the gate and Heathrow seven hours later
+average 220 m/s for a watch standing on the jet bridge. Below 20 km/h the watch counts as standing
+still. A fix older than the one on file is ignored rather than taken as news — `lastKnown` hands
+back hours-old fixes from providers that have heard nothing since. The satellite replaced the
+Earth cross for this: a stroke through a circled cross is a cross in a cross at 24 px, while a
+stroke across a satellite's axis reads at once. It is the first one — a disc trailing four
+antennas from its rim — because a modern satellite, a body between two panels, read as a dumbbell
+at that size.
+
+**`COORDINATES` puts the position where `NO SITE` would stand**, as a chart writes it: `50°27N
+30°31E`, latitude first, hemisphere after the figure — the convention charts, deck logs and
+position reports share, where the letter in front is an aviation habit and `5027N03031E` a flight
+plan's. Whole minutes, about 1.8 km. Thirteen characters at worst (`S89°59W179°59`): the minute
+marks go, and the space goes once the longitude needs three figures. Off by default, because with
+it on a photograph of the dial says where its wearer lives.
+
+**The place's zone comes from a grid on the watch.** `tools/tz/build_tz.py` cuts the
+[timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder) polygons —
+every IANA zone, plus the nautical `Etc/GMT±N` bands over open water — into a 0.05° grid (about
+5.5 km), one zone per cell, run-length packed along each row: 660 KB, 184 KB in the APK. Only the
+zone's *name* comes from the grid. Its offsets, summer time and history come from the platform's
+own tzdata, which system updates keep current; anything copied into the APK would be frozen on the
+day it was built. The window the renderer reads — the offset now, the next transition, the offset
+after it — is worked out off the render thread every half hour, so a change of summer time lands on
+the second with nothing running at that second and `render()` still allocates nothing.
+
+Four things the grid has to get right, and its tests pin each one on the shipped asset:
+
+- **Offsets that are not whole hours**: Mumbai +5:30, Kathmandu +5:45, Eucla +8:45, Chatham +12:45,
+  St John's −3:30, and Lord Howe's summer time of thirty minutes.
+- **Borders that are close**: Badajoz and Elvas, seventeen kilometres and an hour apart; Arizona on
+  standard time, the Navajo Nation inside it on summer time, the Hopi inside that on standard time
+  again; Kiribati at +14 a few hundred kilometres from Hawaii at −10. Enclaves survive because
+  every polygon part is painted largest first.
+- **Names a dated watch does not know.** The grid is cut from current IANA data and a watch's
+  tzdata can be years older — the API 30 image carries 2022f, the TicWatch 2023a. `Europe/Kyiv` is
+  a 2022 spelling of `Europe/Kiev`; `America/Ciudad_Juarez` did not exist before late 2022. Each
+  zone carries its newest name, then the names a device of the oldest supported platform knows it
+  by (links with byte-identical rules), then an established zone whose clocks agree for the next
+  ten years, and finally its standard offset as a fixed floor. On the API 30 emulator a typed
+  position in Ciudad Juárez reads UTC−7, through the fallback.
+- **Open water.** The nautical bands are fifteen degrees wide and centred on the multiples of
+  fifteen, and IANA writes their names inverted: `Etc/GMT+3` is three hours *behind* UTC.
+
+**A measured position has a border band.** A fix near a border is a cloud, not a point — tens of
+metres from GPS, hundreds from the network fix a watch gets in the background, a kilometre or two
+from towers — and looked up raw it would glide the dial an hour and back on alternate refreshes.
+So the zone in force is kept while any point within `max(3 km, the fix's reported accuracy)` of the
+fix still lies in it (`ZoneHysteresis`, probing two rings of eight). Crossing from A to B switches
+three kilometres into B; coming back switches three kilometres into A; a fix has to jump six
+kilometres across the line to move the dial twice. Three because twice that covers the ordinary
+worst of a background fix, and because the grid only knows a border to its 5.5 km cell, so a band
+much narrower would be decided by quantisation; not five, because the band is also a delay — at
+Badajoz and Elvas a wider one would keep the wrong hour for much of the road between them. The
+zone held is stored by name, so a face restarted on a border holds it too. There is no delay in
+time on top of this: arriving in St John's shows St John's time as soon as the fix does. A typed
+position never goes through the band: it is a decision, not a measurement.
+
 ### Nadir
 
 With **Nadir** on, the hours between sunrise and sunset at the wearer's position are shaded across
@@ -91,15 +201,41 @@ transit, so the equation of time and your longitude-versus-zone offset are price
 last part matters: a mark at the *clock* hour would sit exactly under the hour hand and add
 nothing to the old point-the-hand-at-the-sun trick; hour angle is what the extra few degrees of
 accuracy actually live in. To orient: hold the watch flat and turn it until the mark points at
-the real sun — the dial's noon now faces the equator (south in the northern hemisphere, north in
-the southern), and every bearing reads off the 24-hour scale. `LUNAR MARK` is the same compass
+the real sun — the dial's noon now faces the sun's side of the sky, and every bearing reads off the
+24-hour scale. `LUNAR MARK` is the same compass
 for the night: the moon at its own hour angle, from a truncated lunar theory good to a third of
 a degree, drawn grey and outlined with its **honest phase** — the lit side faces the sun's mark,
 because that is where the light comes from. Both marks are zone-free (the sky does not know what
 time zone it is under, so neither moves when the scale glides across a border) and both are
 honest about their limits: no position, no band, no mark — and each leaves the dial while its
 body is below the horizon, because a compass with nothing in the sky to point at is not a
-degraded reading, it is no reading.
+degraded reading, it is no reading. Both also leave the dial whenever its clock is not the place's
+own — see [Whose clock the dial keeps](#whose-clock-the-dial-keeps) — because a compass drawn
+against another place's hours points somewhere false.
+
+**South of the sun, the marks run backwards.** The trick needs the mark to cross the dial the way
+the body crosses the sky. Seen from above, a body that culminates south of the wearer runs east,
+south, west — clockwise, with the hands. One that culminates north — the southern hemisphere, and
+the tropics while the sun stands north of them — runs anticlockwise, and a clockwise mark aimed at
+it was wrong by about twice the hour angle: in Sydney at three on a December afternoon the noon
+tick pointed 131° from north, and swapping which end is called north fixes nothing, because the
+fault is the angle, not the label. Until 2.11.0 this section promised the compass worked there.
+It did not. Where a body culminates north its mark now stands at minus its hour angle, mirrored at
+the meridian, so it runs against the hands as the body does and the noon tick points north; the
+errors are then the northern ones mirrored. Decided per body from its own declination
+(`CompassTicks`), since in the tropics the sun and the moon can culminate on opposite sides. The
+cost is visible and accepted: there the sun mark meets the hour hand only at noon.
+
+**`ACTIVE SN` paints the compass the marks make.** While the screen is on, the meridian's two
+cardinal ticks are drawn red at the north end and white at the south — the midnight tick is north
+where the body culminates south, the noon tick where it culminates north. The ticks are **pointed**
+only while aiming a mark really orients the dial: the watch knows the body's true azimuth, so it
+knows how far the hour-angle method is out, and points the ticks while that is within 15°. Kyiv in
+December is within four degrees all day; Kyiv at nine on a June morning is twenty-four out, high
+summer sun being the method's known weakness; the equator at noon, with the sun near the zenith
+and its azimuth swinging half a turn in minutes, is never pointed. Plain ticks keep their colours,
+because which end is north stays true. Interactive only: the white end carries blue, and nothing
+on this face that carries blue is held on the screen overnight.
 
 Sunrise and sunset come from the standard low-precision solar model
 in `astro/SolarTime.kt` — pure arithmetic on UTC milliseconds, so it is unit-tested against published
@@ -139,7 +275,7 @@ anything up to sixteen in five-minute steps.
 
 | ![](screenshots/duty-arc.png) |
 |---|
-| An eight-hour watch at JFK, past its half: 12:10 local (`Z 24JUN 16:10`), begun at 07:40 and ending at 15:40. The arc spans the whole watch; the part behind the hour hand, 07:40 to 12:10, is dimmed because it has been served, the bright part ahead of it is what is left, and `DUTY: 03:30 REM` says the same in words. |
+| An eight-hour watch at JFK, past its half: 12:10 local (`Z 24JUN 16:10 -4`), begun at 07:40 and ending at 15:40. The arc spans the whole watch; the part behind the hour hand, 07:40 to 12:10, is dimmed because it has been served, the bright part ahead of it is what is left, and `DUTY: 03:30 REM` says the same in words. |
 
 The readout above the hub says which of four things is true:
 
@@ -440,18 +576,18 @@ grid, split either side of the hub:
 
 ```
             DUTY: 07:50 REM
-         Z 22AUG 12:16
+          Z 22AUG 12:16 -4
       ♥ 67   ( hub )   QFE 1013
+           ✈ KJFK 0.2KM ⊛
            18°C OVC Q1018
-          ✈ KJFK 0.2KM
               BAT 95%
 ```
 
 The zulu row carries an ICAO date-time group — day, three-letter month, time, all UTC — behind the
 bare `Z` prefix a date-time group actually uses. It carries no seconds: the rim cursor already
 shows them while the screen is on, and in always-on the row is redrawn once a minute, so a seconds
-field there stood still and read as a stopped clock. Thirteen characters, in the inner slot of the
-upper block where the dial is widest.
+field there stood still and read as a stopped clock. Thirteen characters, twenty with the dial's
+offset after it (`Z 13NOV 13:58 +12:45`), in the inner slot of the upper block where the dial is widest.
 
 **One size for every piece of type on the dial**, the hour numerals included: `0.100 r`, about
 23 px on a 454 px dial, for the readout, the sensor slots beside the hub, the battery and the
@@ -601,6 +737,7 @@ type and a flag bitfield, and the two together pick the pictogram:
 | airfield + helipad (flag 2) | ![](media/site-helipad-civil.png) helicopter | ![](media/site-helipad-military.png) helicopter, in the accent |
 | port | ![](media/site-port-civil.png) anchor | ![](media/site-port-military.png) anchor, in the accent |
 | spaceport | ![](media/site-spaceport-civil.png) rocket | ![](media/site-spaceport-military.png) rocket, in the accent |
+| airfield, with a military one in the same radius | ![](media/site-airfield-shared.png) airliner, its right half in the accent | — |
 
 **Military sites are drawn in the palette's accent colour**, civil ones in the primary. That is what
 actually carries the distinction: the glyph box is `0.100 r`, about 23 device pixels, and a
@@ -616,6 +753,14 @@ When several sites fall inside the radius, **rank decides before distance**: spa
 airfield, then port, then helipad. A helipad sits below the port it shares a waterfront with rather
 than with the airfields it shares a type with — it is a landing spot, not a facility, and ranking it
 with the aerodromes made the naval base at Toulon report a helipad four kilometres inland.
+
+**Inside the airfield rank, a civil field is named ahead of a nearer military one.** Nineteen pairs
+in the data sit within five kilometres of each other — Honolulu and Hickam share runways, Brussels
+and Melsbroek a fence, Changi its air base — and the nearer reference point was often the military
+one. The weather row reads the named field's METAR and military fields mostly publish none, so in
+the Honolulu terminal the wearer got a model forecast instead of the airport's own observation.
+The civil field is now named, and its airliner takes the accent on its right half to say the other
+is there. Ownership still does not decide rank — this only chooses which of two airfields to name.
 
 The naval bases and heliports are generated, not curated: `tools/poi/fetch_osm.py` pulls them from
 Overpass into `tools/poi/raw/`, and `tools/poi/build_poi.py` turns that snapshot into CSV. The two
@@ -640,6 +785,9 @@ what the airfield reads, not an interpolation of it, so when the site lock holds
 real ICAO code the weather comes from `aviationweather.gov` — no key, and the observation the tower
 is working to. The gate is deliberately hard: an aerodrome and not a helipad, a code of exactly four
 upper-case letters, an observation no older than 75 minutes, and a temperature actually in it.
+The weather row itself carries no mark of its source. A METAR is only ever asked for under an
+aerodrome's pictogram, so an airliner leading the weather as well would be a second aircraft saying
+what the first already has.
 
 **Every miss falls back to Open-Meteo, silently, and that is the normal case rather than the corner
 one.** Whole regions publish nothing — a field in a war zone stops transmitting first — so the
@@ -666,8 +814,8 @@ worker.
 A `WallpaperService` cannot raise a runtime-permission dialog, so `WatchConfigActivity` collects
 `ACCESS_FINE_LOCATION`. Without it the face degrades to time and astronomy and never fails: the
 weather row simply goes empty, and the site row is not drawn at all. Neither prints a placeholder — a row of dashes is noise, not information. A
-position typed in by hand restores sunrise and weather, but never the site row: a tenth of a degree
-is 11 km, and the site lock is 5.
+position typed in by hand restores sunrise, weather and the site row, and it sets the dial's clock
+to that place — see [Whose clock the dial keeps](#whose-clock-the-dial-keeps).
 
 Which source is used is the user's own switch — **automatic** or **manual** — not a reading of the
 OS permission. It has to be: from API 30 an app cannot hand its own location permission back, so
@@ -689,7 +837,7 @@ that starts on a button never nudges the value.
 
 ### The sensor slots
 
-Two optional readouts sit either side of the hub, each a small label over a value. Both are off by
+Two optional readouts sit either side of the hub, each a pictogram or a label and a value on one line. Both are off by
 default.
 
 | Slot | Shows | Costs |
@@ -849,7 +997,7 @@ length you always work reset by an unrelated update is a poor price for a live p
 Both live in device-protected storage alongside the telemetry cache.
 
 Settings that fit side by side are drawn as one segmented row rather than as a stack of full-width
-chips: a binary choice does not deserve two screens of scrolling, and grouping the nine appearance
+chips: a binary choice does not deserve two screens of scrolling, and grouping the ten appearance
 settings under a single **display** heading is what makes the list short enough to find things in.
 The open/closed marker on a section is drawn rather than set in type — the triangles that would do
 the job are not reliably in the system font on Wear, and an icon pack is a dependency to carry for
@@ -872,8 +1020,10 @@ one glyph.
 | | **EXPORT LOG · QR + ♪** | | Puts the log on the two channels a watch has — a QR for a camera, and Bell 202 tones for a radio or a phone microphone. Read-only: there is no import path. |
 | | **CLEAR LOG** | | Empties it now. It empties itself when the next watch begins, so this is for emptying it *before* that. |
 | **Sensors** | Left of hub / right of hub | `OFF` `HR` `STP` `QFE` | Two readouts flanking the hub: heart rate, steps since local midnight, station pressure. The two that need a runtime permission ask for it the moment the slot is set, and the reading the other slot has already taken is greyed out. |
-| **Position** | automatic / manual | | Ahead of the display section because two of its settings depend on having a position. Shows the choice and, separately, what is **in force** — the two differ while a fix is still being acquired. |
+| **Position** | automatic / manual | | Ahead of the display section because two of its settings depend on having a position. Shows the choice and, separately, what is **in force** — the two differ while a fix is still being acquired. A typed position always sets the dial to that place's time. |
+| | `LOCAL TIME` | `PHONE` / `POSITION` | Automatic and located only. `POSITION` puts the dial on the time zone the watch is in, with a three-kilometre border band; `PHONE` keeps the phone's zone and takes the sun and moon off wherever the two disagree. Off — `PHONE` — by default. Kept outside the style schema, so adding it reset nobody's settings. |
 | | Coordinates | `LAT` / `LON` steppers | Manual only, in hundredths of a degree — about 1.1 km, inside the 5 km site radius, so a typed position earns the site lock too. |
+| | `COORDINATES` | off / on | What the site row says when there is no site: `NO SITE`, or the position as `50°27N 30°31E`. Off by default — a screenshot would otherwise carry where the wearer is. Outside the style schema. |
 | | Background location | | A request row, and only while it is missing: automatic position holds fine location but not the background grant the half-hourly refresh needs, which is the one failure that looks exactly like no signal. |
 | **Display** | Lume palette | AMBER `#FFB000`, GREEN `#00FF00`, RED `#FF0000` | Each chip wears its own hue. Three hues, none containing blue — always-on wears the same one, dimmed. The accent used for the seconds cursor, the duty arc and military sites is always the other hue, so the two never merge. |
 | | Dial top | NOON / MIDNIGHT | Flips the whole 24-hour axis. The minute ring does not move — its zero is a minute, not an hour. |
@@ -881,6 +1031,7 @@ one glyph.
 | | Nadir | off / on | Greyed out until there is a position. |
 | | Solar mark | off / on | The sun at its hour angle — the solar compass. Needs Nadir and a position; leaves the dial while the sun is down. |
 | | Lunar mark | off / on | The moon, grey with its honest phase, same compass by night. Same gating. |
+| | `ACTIVE SN` | off / on | The meridian's cardinal ticks as a compass while the screen is on: red north, white south, pointed while a sky mark orients the dial to within 15°. Needs a position. Outside the style schema. |
 | | Weather | on / off | Off means nothing is fetched, not merely that the row is blank; the radio stays asleep. |
 | | Always-on | SOLID / HALVED / AUTO | Halved thins the face to every other pixel, on an alternating checkerboard. Auto thins only after sunset, and never during an active watch. |
 | | `HINTS` | on / off | The small print under each row. On for a first read, off once you know the list: the explanations are what make a dense menu navigable the first time and what you scroll past the ninth. Only the explanations go — every *reading* stays, because switching off the commentary must never switch off the record. |
@@ -901,8 +1052,11 @@ The face never prints placeholder dashes; a row simply is not there. So:
 | You see | It means |
 |---|---|
 | An empty weather row | No weather. Either location is not granted, weather is switched off, or the first fetch has not landed. |
-| `NO SITE` | There *is* a position, and nothing in the database within 5 km. Most of the world is like this. |
-| No site row at all | No position at all. |
+| `NO SITE` | There *is* a position, and nothing in the database within 5 km. Most of the world is like this. With `COORDINATES` on, the position itself stands here instead. |
+| A dimmed satellite | The measured position may have drifted more than 5 km since its fix, on the move. Still the last one known, and still in use. |
+| A struck-out satellite | Half an hour on the move without a fix. The last position stays on the dial; treat it as history. |
+| No location row at all | No position at all. |
+| A map pin at the end of the location row | The position was typed in; the dial keeps that place's clock. |
 | `OFF-DUTY` | No shift set, one cancelled, or one already served. |
 | Settings back at their defaults after an update | Adding or removing a setting invalidates the stored style on-device. Expected on any release that changes the settings list. |
 
@@ -910,7 +1064,7 @@ The face never prints placeholder dashes; a row simply is not there. So:
 
 ## Tests
 
-`gradlew :app:testEarthDebugUnitTest` — **193 JVM tests** in 33 classes. Everything with arithmetic
+`gradlew :app:testEarthDebugUnitTest` — **248 JVM tests** in 40 classes. Everything with arithmetic
 in it sits behind a pure, Android-free function so it can be pinned here rather than eyeballed on a
 wrist, and several of these tests exist to stop a specific bug coming back rather than to describe a
 feature:
@@ -930,12 +1084,15 @@ feature:
   over hundreds of random queries; haversine and the search-box margin; the site-lock rank order;
   the site pictogram over every type and flag combination; the METAR parse and its refusals against
   a real payload; when a cached observation stops being worth reusing; the search-distance gate,
-  including both of its historical failure modes.
+  including both of its historical failure modes; the time-zone grid's lookup, the border band that
+  keeps a fix on the line from rocking the hands, the place's zone, and a position's age measured
+  as distance.
 - **The exits** — the QR encoder, the AFSK burst demodulated back to text by an independent
   Goertzel detector, the log packet's own format, and the callsign against a golden value computed
   outside this codebase.
 - **The face's own budgets** — the readout width arithmetic from the shipped constants, the
-  half-density rule, the wake sweep, and `TextBuf` formatting.
+  half-density rule, the wake sweep, the compass ticks, the dial's zone, and `TextBuf` and
+  coordinate formatting.
 
 ---
 
@@ -978,6 +1135,10 @@ feature:
   licensed under the [ODbL](https://opendatacommons.org/licenses/odbl/). Extracted via the Overpass
   API; see `tools/poi/fetch_osm.py` for the exact queries.
 - Spaceports — curated by hand; no usable public dataset exists.
+- Time-zone boundaries — [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder)
+  release 2026f, built from [OpenStreetMap](https://www.openstreetmap.org/copyright) and therefore
+  [ODbL](https://opendatacommons.org/licenses/odbl/); the grid in `app/src/main/assets/tz_v1.tzg` is
+  cut from it by `tools/tz/build_tz.py` and carries that licence.
 - Weather — [aviationweather.gov](https://aviationweather.gov/) METAR (US NOAA, public domain) at an
   aerodrome, [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) everywhere else.
 

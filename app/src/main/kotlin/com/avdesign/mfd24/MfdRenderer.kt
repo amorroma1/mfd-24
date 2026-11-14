@@ -21,6 +21,7 @@ import com.avdesign.mfd24.astro.MoonState
 import com.avdesign.mfd24.astro.PlanetMode
 import com.avdesign.mfd24.astro.SolarTime
 import com.avdesign.mfd24.data.Alerts
+import com.avdesign.mfd24.data.PositionAge
 import com.avdesign.mfd24.data.SensorSlots
 import com.avdesign.mfd24.data.TelemetryState
 import com.avdesign.mfd24.data.VigilanceState
@@ -28,7 +29,10 @@ import com.avdesign.mfd24.data.VigilanceStore
 import com.avdesign.mfd24.data.WatchShiftState
 import com.avdesign.mfd24.render.AmbientAuto
 import com.avdesign.mfd24.render.AmbientLayer
+import com.avdesign.mfd24.render.CompassLayer
+import com.avdesign.mfd24.render.CompassTicks
 import com.avdesign.mfd24.render.DaylightLayer
+import com.avdesign.mfd24.render.DialZone
 import com.avdesign.mfd24.render.DialLayer
 import com.avdesign.mfd24.render.DialTransition
 import com.avdesign.mfd24.render.DutyArcLayer
@@ -124,6 +128,17 @@ class MfdRenderer(
     private val secondsMarker = SecondsMarker()
     private val dutyArcLayer = DutyArcLayer()
     private val telemetryLayer = TelemetryLayer()
+    private val compassLayer = CompassLayer()
+
+    /**
+     * Worked out in [render] once a frame and read by [drawFullFace]: how much the measured
+     * position is still worth ([PositionAge]), and the `ACTIVE SN` needle ([CompassTicks]).
+     */
+    private var positionAge = PositionAge.FRESH
+    private var compassVisible = false
+    private var compassNorthAtMidnight = true
+    private var compassPointed = false
+    private var compassMidnightAngle = 0f
     private val ambientLayer = AmbientLayer()
 
     private val lowBitAmbient = watchState.hasLowBitAmbient
@@ -161,10 +176,13 @@ class MfdRenderer(
     private val moonState = MoonState()
 
     /**
-     * Whether the readout leads its weather row with a reference-frame symbol. It does not: with
-     * one world on offer the glyph said nothing, so the row starts at its own text.
+     * Whether the readout uses a reference-frame symbol. It does not on Earth: with one world on
+     * offer the glyph said nothing. The position's source closes the location row instead.
      */
     private val frameSymbol = false
+
+    /** The hour scale's UTC offset this frame, for the readout's note after Zulu. */
+    private var dialOffsetMillis = 0L
 
     /** One of [AmbientAuto]'s modes; AUTO resolves per frame against daylight and the duty. */
     @Volatile
@@ -319,7 +337,12 @@ class MfdRenderer(
 
         // Epoch milliseconds without building an Instant.
         val epochMillis = zonedDateTime.toEpochSecond() * 1000L + zonedDateTime.nano / 1_000_000L
-        val realOffsetMillis = zonedDateTime.offset.totalSeconds * 1000L
+        // The device's zone, unless a typed position brings the dial a clock of its own: see
+        // [DialZone]. Everything on the hour scale reads this one offset, so the band, the arc and
+        // the hands move together when it changes, through the transition below.
+        val deviceOffsetMillis = zonedDateTime.offset.totalSeconds * 1000L
+        val realOffsetMillis = DialZone.dialOffsetMillis(deviceOffsetMillis, telemetry, epochMillis)
+        dialOffsetMillis = realOffsetMillis
 
         val mode = planetMode
 
@@ -532,16 +555,30 @@ class MfdRenderer(
         // the compass actually claims — and it is zone-free, so neither mark moves during a
         // glide while the band re-sets beneath them. Each mark exists only while its body is
         // above the horizon: a compass with nothing in the sky to point at is not a degraded
-        // reading, it is no reading.
+        // reading, it is no reading. And only while the dial's clock is the place's own: against
+        // another place's clock the band and the marks disagree by the gap between the zones.
+        //
+        // Where a body culminates north of the wearer its mark runs the other way, against the
+        // hands, because that is how the body crosses that sky — see [CompassTicks]. Mirrored at
+        // the meridian, so noon is noon either way.
         var sunTrueAngle = Float.NaN
         var sunUp = false
+        var sunHourAngle = 0.0
+        val latitude = telemetry.positionLatDeg
+        val sunDeclination = MoonSky.sunDeclinationDeg(wallMillis)
         val marksWanted = nadirEnabled && mode == PlanetMode.EARTH &&
-            telemetry.daylightValid && telemetry.daylightKind == SolarTime.NORMAL
+            telemetry.daylightValid && telemetry.daylightKind == SolarTime.NORMAL &&
+            DialZone.skyAgrees(realOffsetMillis, telemetry, epochMillis)
         if (marksWanted && telemetry.sunsetMillis > telemetry.sunriseMillis) {
+            val solarHours = AstroTime.apparentSolarDialHours(
+                wallMillis, telemetry.sunriseMillis, telemetry.sunsetMillis,
+            )
+            sunHourAngle = (solarHours - 12.0) * 15.0
+            if (sunHourAngle > 180.0) sunHourAngle -= 360.0
+            if (sunHourAngle < -180.0) sunHourAngle += 360.0
+            val mirror = !latitude.isNaN() && CompassTicks.mirrored(latitude, sunDeclination)
             sunTrueAngle = AstroTime.hourHandAngle(
-                AstroTime.apparentSolarDialHours(
-                    wallMillis, telemetry.sunriseMillis, telemetry.sunsetMillis,
-                ),
+                if (mirror) 24.0 - solarHours else solarHours,
                 flipped,
             )
             sunUp = wallMillis in telemetry.sunriseMillis..telemetry.sunsetMillis
@@ -559,9 +596,42 @@ class MfdRenderer(
                 wallMillis, telemetry.positionLatDeg, telemetry.positionLonDeg, moonState,
             )
             if (moonState.altitudeDeg > 0.0) {
-                moonAngle = AstroTime.hourHandAngle(12.0 + moonState.hourAngleDeg / 15.0, flipped)
+                val moonHours = 12.0 + moonState.hourAngleDeg / 15.0
+                val mirror = CompassTicks.mirrored(latitude, moonState.declinationDeg)
+                moonAngle = AstroTime.hourHandAngle(
+                    if (mirror) 24.0 - moonHours else moonHours,
+                    flipped,
+                )
                 moonFraction = moonState.illuminatedFraction.toFloat()
             }
+        }
+
+        positionAge = PositionAge.of(
+            wallMillis, telemetry.positionFixMillis, telemetry.positionSpeedMps,
+        )
+        // ACTIVE SN. The side comes from whichever body would orient the dial — the sun when its
+        // mark is up, the moon when only the moon's is — and from the sun otherwise, which is
+        // what decides the hemisphere a plain tick is coloured for.
+        compassVisible = telemetry.compassTicks && mode == PlanetMode.EARTH &&
+            !telemetry.positionLatDeg.isNaN()
+        if (compassVisible) {
+            when {
+                !sunAngle.isNaN() -> {
+                    compassNorthAtMidnight = CompassTicks.northAtMidnight(latitude, sunDeclination)
+                    compassPointed = CompassTicks.pointed(latitude, sunDeclination, sunHourAngle)
+                }
+                !moonAngle.isNaN() -> {
+                    val declination = moonState.declinationDeg
+                    compassNorthAtMidnight = CompassTicks.northAtMidnight(latitude, declination)
+                    compassPointed =
+                        CompassTicks.pointed(latitude, declination, moonState.hourAngleDeg)
+                }
+                else -> {
+                    compassNorthAtMidnight = CompassTicks.northAtMidnight(latitude, sunDeclination)
+                    compassPointed = false
+                }
+            }
+            compassMidnightAngle = AstroTime.hourHandAngle(0.0, flipped)
         }
 
         publishDescriptions(dutyState, vigilanceStatus)
@@ -731,6 +801,11 @@ class MfdRenderer(
                 )
             }
             canvas.drawBitmap(dialLayer.scale(), 0f, 0f, null)
+            if (compassVisible) {
+                compassLayer.draw(
+                    canvas, geometry, compassMidnightAngle, compassNorthAtMidnight, compassPointed,
+                )
+            }
         }
 
         if (showDutyArc) {
@@ -756,7 +831,7 @@ class MfdRenderer(
             canvas, geometry, p, telemetry, mode, epochMillis,
             fahrenheit, mmHg, dutyState, dutyMillis, vigilance.status, showClearHint,
             incidentMillis, incidentElapsedMillis, sensorLeft, sensorRight, layoutGeneration,
-            frameSymbol,
+            frameSymbol, dialOffsetMillis, positionAge,
         )
 
         handsLayer.drawHourMinute(canvas, geometry, p, hourAngle, minuteAngle, layoutGeneration)

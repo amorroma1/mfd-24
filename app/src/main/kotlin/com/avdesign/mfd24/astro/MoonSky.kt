@@ -19,6 +19,10 @@ class MoonState {
     @JvmField
     var altitudeDeg: Double = 0.0
 
+    /** Declination, degrees: which side of the observer the moon culminates on. */
+    @JvmField
+    var declinationDeg: Double = 0.0
+
     /** Illuminated fraction of the disc, 0 (new) to 1 (full). */
     @JvmField
     var illuminatedFraction: Double = 0.0
@@ -76,6 +80,7 @@ object MoonSky {
         val sinLon = sin(lonR)
         val ra = atan2(sinLon * cos(eps) - Math.tan(latR) * sin(eps), cos(lonR))
         val dec = asin(sin(latR) * cos(eps) + cos(latR) * sin(eps) * sinLon)
+        out.declinationDeg = Math.toDegrees(dec)
 
         // Hour angle from Greenwich sidereal time; east longitude adds.
         val days = AstroTime.julianDayUtc(epochMillis) - 2451545.0
@@ -93,6 +98,16 @@ object MoonSky {
         val sunLon = sunEclipticLongitudeDeg(t)
         val cosPsi = cos(latR) * cos((lon - sunLon) * DEG)
         out.illuminatedFraction = ((1.0 - cosPsi) / 2.0).coerceIn(0.0, 1.0)
+    }
+
+    /**
+     * The sun's declination, degrees, to a few hundredths — enough to say which side of an
+     * observer it culminates on, which is all [com.avdesign.mfd24.render.CompassTicks] asks.
+     */
+    fun sunDeclinationDeg(epochMillis: Long): Double {
+        val t = (AstroTime.julianDayUtc(epochMillis) - 2451545.0) / 36525.0
+        val eps = (23.4392911 - 0.0130042 * t) * DEG
+        return Math.toDegrees(asin(sin(sunEclipticLongitudeDeg(t) * DEG) * sin(eps)))
     }
 
     /** The sun's ecliptic longitude, degrees — the same low-precision series SolarTime uses. */

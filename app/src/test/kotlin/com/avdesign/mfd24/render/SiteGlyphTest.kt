@@ -25,6 +25,16 @@ class SiteGlyphTest {
     }
 
     @Test
+    fun `a civil field sharing its radius with a military one stays an airliner, split in colour`() {
+        val shared = PoiFormat.FLAG_SHARED_MILITARY
+        assertEquals(SiteGlyph.AIRLINER, SiteGlyph.forSite(PoiFormat.TYPE_AIRPORT, shared))
+        assertTrue(SiteGlyph.isShared(shared))
+        assertFalse("the named field is the civil one", SiteGlyph.isMilitary(shared))
+        assertFalse(SiteGlyph.isShared(0))
+        assertFalse(SiteGlyph.isShared(military))
+    }
+
+    @Test
     fun `a port is an anchor whoever runs it`() {
         assertEquals(SiteGlyph.ANCHOR, SiteGlyph.forSite(PoiFormat.TYPE_PORT, 0))
         assertEquals(SiteGlyph.ANCHOR, SiteGlyph.forSite(PoiFormat.TYPE_PORT, military))

@@ -207,4 +207,16 @@
     <string name="a11y_off_duty">Hors quart</string>
     <string name="a11y_man_down">Homme mort déclenché — double touche pour effacer</string>
     <string name="a11y_off_wrist">Hors du poignet — homme mort suspendu</string>
+    <string name="editor_label_local_time">HEURE LOCALE</string>
+    <string name="editor_local_time_phone">MOBILE</string>
+    <string name="editor_local_time_position">POSITION</string>
+    <string name="editor_local_time_note">POSITION suit le fuseau où vous êtes. MOBILE garde celui du téléphone et masque le soleil et la lune tant que les deux diffèrent</string>
+    <string name="editor_label_coordinates">COORDONNÉES</string>
+    <string name="coordinates_off_sr">Coordonnées hors service : NO SITE</string>
+    <string name="coordinates_on_sr">Coordonnées en service : la position quand aucun site n\'est proche</string>
+    <string name="editor_coordinates_note">Affichées à la place de NO SITE. Hors service par défaut : une photo du cadran ne dit alors rien de l\'endroit où vous êtes</string>
+    <string name="editor_label_compass">ACTIVE SN</string>
+    <string name="compass_off_sr">Index de compas hors service</string>
+    <string name="compass_on_sr">Index de compas en service : nord rouge, sud blanc</string>
+    <string name="editor_compass_note">Nord rouge, sud blanc, écran actif seulement. Pointus tant qu\'une marque du soleil ou de la lune peut orienter le cadran</string>
 </resources>

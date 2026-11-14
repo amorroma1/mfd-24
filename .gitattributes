@@ -19,6 +19,8 @@ gradlew.bat     text eol=crlf
 *.keystore      binary
 # The packed POI index is never committed, but say so in case someone tries.
 *.bin           binary
+# The time-zone grid is committed: cut from 185 MB of boundaries by tools/tz/build_tz.py.
+*.tzg           binary
 
 # --- Generated sources, collapsed in GitHub diffs ----------------------------------------------
 # Produced by tools/poi/build_poi.py from an Overpass snapshot. Reviewing a 2000-line diff of

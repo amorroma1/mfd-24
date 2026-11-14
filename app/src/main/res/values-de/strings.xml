@@ -207,4 +207,16 @@
     <string name="a11y_off_duty">Wachfrei</string>
     <string name="a11y_man_down">Totmann ausgelöst — zum Löschen doppelt tippen</string>
     <string name="a11y_off_wrist">Nicht am Handgelenk — Totmann ausgesetzt</string>
+    <string name="editor_label_local_time">ORTSZEIT</string>
+    <string name="editor_local_time_phone">TELEFON</string>
+    <string name="editor_local_time_position">STANDORT</string>
+    <string name="editor_local_time_note">STANDORT folgt der Zeitzone, in der du bist. TELEFON behält die des Telefons und blendet Sonne und Mond aus, solange beide abweichen</string>
+    <string name="editor_label_coordinates">KOORDINATEN</string>
+    <string name="coordinates_off_sr">Koordinaten aus: NO SITE</string>
+    <string name="coordinates_on_sr">Koordinaten ein: die Position, wo kein Ort in der Nähe ist</string>
+    <string name="editor_coordinates_note">Steht dort, wo sonst NO SITE stünde. Standardmäßig aus, damit ein Foto des Zifferblatts nicht verrät, wo du bist</string>
+    <string name="editor_label_compass">ACTIVE SN</string>
+    <string name="compass_off_sr">Kompassstriche aus</string>
+    <string name="compass_on_sr">Kompassstriche ein: Nord rot, Süd weiß</string>
+    <string name="editor_compass_note">Nord rot, Süd weiß, nur bei aktivem Bildschirm. Spitz, solange eine Sonnen- oder Mondmarke das Zifferblatt ausrichten kann</string>
 </resources>

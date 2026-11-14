@@ -19,7 +19,7 @@ import kotlin.math.sqrt
  * a wrist. This test re-derives every row's worst corner from the shipped constants, so changing
  * either side of the bargain fails the build instead.
  *
- * Since the one-size readout the worst corners are five to seven pixels inside the numerals, so
+ * Since the one-size readout the worst corners are three and a half to five pixels inside the numerals, so
  * there is no slack here to spend: a longer row or a larger size has to come with a shorter one.
  */
 class GeometryBudgetTest {
@@ -42,23 +42,40 @@ class GeometryBudgetTest {
     fun `every readout row clears the hour numerals at its worst width`() {
         // `DUTY: 03:42 REM` — 15 characters; the incident form `21:14Z +01:09` is shorter.
         assertInside("duty row", corner(15, Geometry.LINE_BASELINES[0]))
-        // `Z 18AUG 18:42` — 13 characters, no seconds.
-        assertInside("zulu row", corner(13, Geometry.LINE_BASELINES[1]))
-        // `-40°C TSGR Q1013` — 16 characters, bare: the Earth face draws no reference-frame
-        // symbol. The multi-world faces lead the row with one, and their longest such row is
-        // `♂ SOL 54321`.
-        assertInside("weather row", corner(16, Geometry.LINE_BASELINES[2]))
+        // `Z 18AUG 18:42 +12:45` — 20 characters at worst: thirteen of Zulu and the dial's
+        // offset after it, which is longest at the Chatham Islands' quarter-hour summer time.
+        assertInside("zulu row", corner(20, Geometry.LINE_BASELINES[1]))
+        // `-40°C TSGR Q1013` — 16 characters, bare on Earth's lower data row since the location
+        // took the upper one. The multi-world faces lead their upper row with a reference-frame
+        // symbol, and their longest such row is `♂ SOL 54321`.
+        assertInside("weather row", corner(16, Geometry.LINE_BASELINES[3]))
         assertInside(
             "symbol-led row",
             corner(11, Geometry.LINE_BASELINES[2], Geometry.SYMBOL_SIZE + Geometry.GLYPH_GAP),
         )
-        // Site row: a text-size pictogram, the gap, then `ABANDO 5.0KM` — six characters is the
-        // longest code in the bundled data (the naval bases), and the lock radius keeps the
-        // distance to one figure before the point.
+        // Location row: the site's text-size pictogram, `ABANDO 5.0KM`, then the position symbol
+        // — six characters is the longest code in the bundled data (the naval bases), and the
+        // lock radius keeps the distance to one figure before the point.
         assertTrue(PoiResolver.DEFAULT_RADIUS_METERS < 10_000.0)
         assertInside(
-            "site row",
-            corner(12, Geometry.LINE_BASELINES[3], Geometry.TEXT_SIZE + Geometry.GLYPH_GAP),
+            "location row with a site",
+            corner(
+                12, Geometry.LINE_BASELINES[2],
+                Geometry.TEXT_SIZE + Geometry.SITE_TEXT_GAP + Geometry.SITE_TEXT_GAP +
+                    Geometry.SYMBOL_SIZE,
+            ),
+        )
+    }
+
+    @Test
+    fun `the location row holds the coordinates it prints where there is no site`() {
+        // `S89°59W179°59` — COORDINATES, closed by the position symbol.
+        assertInside(
+            "coordinates row",
+            corner(
+                com.avdesign.mfd24.text.Coordinates.MAX_LENGTH, Geometry.LINE_BASELINES[2],
+                Geometry.SITE_TEXT_GAP + Geometry.SYMBOL_SIZE,
+            ),
         )
     }
 

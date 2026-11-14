@@ -38,10 +38,10 @@ quadranti di questo tipo** — vedi [Compatibilità](#compatibilità).
 | **Timer di guardia** | Si monta subito o su prenotazione. Un arco copre le ore di guardia e si attenua mentre vengono servite; `DUTY: 04:40 REM` conta alla rovescia. Entrambi i confini suonano e vibrano a schermo spento. Una guardia smontata si cancella da sé un'ora dopo. |
 | **Uomo morto** | Spento per impostazione predefinita. Ogni 5/10/15 min fa una richiesta da tacitare; trenta secondi dopo suona l'SOS a raffiche e lascia `MAN DOWN` — uomo a terra — con l'istante Zulu sul quadrante. In opzione annota il polso alla richiesta non tacitata, accanto all'ultima lettura in movimento. |
 | **Esportazione del giornale** | Il giornale di bordo lascia l'orologio come **codice QR** per la fotocamera di un telefono o come **suono** — Bell 202 AFSK, decodificato da `minimodem`. Il suono porta tutto; il QR porta ciò che entra, e lo dice. [Canali e limiti ↓](#export) |
-| **Zulu + gruppo data-orario** | `Z 11NOV 13:05`, l'ora in cui si scrive una voce di giornale. |
+| **Zulu + gruppo data-orario** | `Z 11NOV 13:05 -5`, l'ora in cui si scrive una voce di giornale, seguita dallo scarto del quadrante. |
 | **Meteo** | Temperatura, condizione in stile METAR e QNH. In un aeroporto è il **METAR proprio** di quel campo; ovunque altrove Open-Meteo. Aggiornato ogni 30 minuti. |
 | **Aggancio sito a 5 km** | Nomina l'aeroporto, il porto, l'eliporto o la base di lancio più vicini fra 9 649 siti in un indice di bordo da 194 KB. I siti militari sono disegnati nel colore d'accento. |
-| **Nadir, sole e luna** | L'arco diurno — le ore di luce ombreggiate sull'anello delle ore — calcolato offline. Il segno solare e il segno lunare stanno al vero angolo orario dell'astro — puntate un segno verso l'astro stesso e il quadrante è una **bussola**. La luna porta la sua fase reale. |
+| **Nadir, sole e luna** | L'arco diurno — le ore di luce ombreggiate sull'anello delle ore — calcolato offline. Il segno solare e il segno lunare stanno al vero angolo orario dell'astro — puntate un segno verso l'astro stesso e il quadrante è una **bussola** — anche a sud dell'equatore, dove i segni girano contro le lancette come il cielo. `ACTIVE SN` colora il meridiano di rosso a nord e di bianco a sud, a punta finché l'orologio sa il quadrante giusto entro 15°. La luna porta la sua fase reale. |
 | **Slot sensori** | Due letture opzionali accanto al mozzo: frequenza cardiaca, i passi del giorno, o pressione di stazione. Spenti per impostazione predefinita; girano a schermo acceso, e in always-on il polso viene riletto una volta al minuto finché l'orologio è indossato. [Come quella finestra si regola ↓](#pulse-window) |
 | **Always-on** | Lo stesso quadrante, attenuato. `AUTO` lo riduce a un pixel su due dopo il tramonto — mai durante una guardia di notte. |
 | **Direct boot** | Si disegna già popolato prima che l'orologio venga sbloccato. |
@@ -51,26 +51,31 @@ quadranti di questo tipo** — vedi [Compatibilità](#compatibilità).
 | Una richiesta mancata, tacitata tardi | Da JFK a Heathrow, tutto il volo | Il risveglio |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| L'SOS è rimasto senza risposta: `MAN DOWN`, l'istante Zulu, un segno sull'arco. Un tocco risponde con `TAP AGAIN`; un secondo, entro un secondo, lo cancella — una manica non può. | BA 178 dell'11 novembre 2026, l'orario reale, in 36 secondi: una guardia di otto ore montata al gate, il sito e il suo METAR spariti cinque minuti dopo la rotazione, la cabina a 790 hPa, il tramonto sull'Atlantico, `EGLL` di ritorno in finale corto, e le lancette passate a Londra a terra. | Arriva solo la luce. L'always-on porta le stesse tinte, quindi non c'è nulla da dissolvere. |
+| L'SOS è rimasto senza risposta: `MAN DOWN`, l'istante Zulu, un segno sull'arco. Un tocco risponde con `TAP AGAIN`; un secondo, entro un secondo, lo cancella — una manica non può. | BA 178 dell'11 novembre 2026, l'orario reale, in 43 secondi, con `ORA LOCALE` su `LUOGO`: una guardia di otto ore montata al gate, il sito e il suo METAR spariti cinque minuti dopo la rotazione, la cabina a 790 hPa, le lancette che scivolano di fuso in fuso sotto l'aereo — −4 al largo della Nuova Scozia, −3:30 per un quarto d'ora sopra Terranova, 0 sopra l'Irlanda —, il tramonto sull'Atlantico, e `EGLL` di ritorno in finale corto. | Arriva solo la luce. L'always-on porta le stesse tinte, quindi non c'è nulla da dissolvere. |
 
-*Il volo dura 36 secondi di proposito — una giornata intera per chi vuole vederne una; il suolo
-va lento e l'oceano veloce. Il solo atterraggio, a piena velocità:
-[landing.gif](../media/landing.gif).*
+*Il volo dura 43 secondi di proposito — una giornata intera per chi vuole vederne una; il suolo
+va lento e l'oceano veloce.*
 
 <details>
 <summary><b>Due cose che la gente chiede sul volo</b></summary>
 
 <br>
 
-**Perché le lancette cambiano fuso solo dopo l'atterraggio?** Un orologio prende il fuso dal
-telefono, e il telefono trova una rete a terra. Fino ad allora il quadrante tiene il fuso di
-partenza — ed è anche per questo che, sull'oceano, il segno solare sta a destra dell'arco diurno:
-il segno è il vero angolo orario del sole, l'arco è il giorno nel fuso dell'orologio, e lo scarto
-fra i due è esattamente il ritardo del fuso. La scivolata a terra lo chiude.
+**Perché le lancette cambiano fuso sopra l'oceano?** Perché al quadrante è stato chiesto di
+tenere l'ora del suolo sottostante: `ORA LOCALE` → `LUOGO`. Ogni cambio è l'orologio del luogo
+sotto la rotta, non un'ipotesi sul viaggiatore — la mezz'ora di Terranova dura un quarto d'ora
+perché tanto la rotta ci passa sopra, e lo scarto dopo lo Zulu dice quale orologio vale. Il fuso
+segue la posizione: al polso cambia quando l'orologio scopre di nuovo dove si trova, e un confine
+conta come attraversato solo tre chilometri dopo, così un punto che vaga lungo la linea non fa
+oscillare le lancette. All'arrivo il quadrante è già sull'ora locale mentre il telefono cerca
+ancora una rete. Lasciato su `TELEFONO`, il valore predefinito, il quadrante tiene il fuso del
+telefono, che in volo cambia solo dopo l'atterraggio; sole e luna lasciano allora il quadrante per
+la traversata invece di stare per ore fuori dall'arco diurno.
 
 **Cosa c'è di vero?** L'orario è quello del BA 178 di quel giorno e le posizioni seguono la sua
-rotta abituale sul Nord Atlantico, date al quadrante come punti GPS; il meteo e l'astronomia sono
-lavoro del quadrante stesso a partire da quelli. Polso, pressione di cabina e batteria sono messi
+rotta abituale sul Nord Atlantico, date al quadrante come punti GPS; l'astronomia è lavoro del
+quadrante stesso a partire da quelli. Il meteo al gate è il METAR di KJFK di quella mattina, messo
+nella cache del quadrante, perché nessun servizio fornisce un'osservazione passata. Polso, pressione di cabina e batteria sono messi
 in scena sull'emulatore, perché un emulatore non ha un polso.
 
 </details>
@@ -175,9 +180,14 @@ nomenclatura da strumento, non prosa.
 - **Uomo morto** — on/off, intervallo di richiesta, `VIBRAZIONE`, `SEGNALE SOS` (OFF/MIN/MED/MAX),
   `POLSO NEL GIORNALE`, e il giornale di bordo con la sua esportazione.
 - **Sensori** — cosa legge ciascuno slot del mozzo.
-- **Punto** — GPS, o coordinate inserite a mano.
+- **Punto** — GPS, o coordinate inserite a mano. Un punto inserito mette il quadrante all'ora di
+  quel luogo; un punto GPS può farlo anch'esso, con `ORA LOCALE` → `LUOGO`. Lo Zulu è seguito dallo
+  scarto del quadrante (`Z 13NOV 13:58 -5`): quale orologio vale non è mai da indovinare. La riga
+  della posizione, sopra il meteo, termina con uno spillo da mappa per un punto inserito, o con un satellite per un punto GPS: attenuato appena, in movimento, può essersi
+  spostato di oltre 5 km, barrato dopo mezz'ora in movimento senza fix — l'ultima posizione resta
+  comunque sul quadrante. `COORDINATE` la scrive dove comparirebbe `NO SITE`: `50°27N 30°31E`.
 - **Display** — colore luminoso, alto del quadrante, segno di mezzanotte, Nadir, segno solare e lunare,
-  meteo, always-on, e `SUGGERIMENTI` per le note in piccolo sotto ogni riga.
+  `ACTIVE SN`, meteo, always-on, e `SUGGERIMENTI` per le note in piccolo sotto ogni riga.
 - **Unità** — °C/°F, hPa/mmHg.
 - **Info** — versione, il repository come QR, il controllo delle release.
 
@@ -294,7 +304,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ e l'SDK Android. 193 test JVM: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ e l'SDK Android. 248 test JVM: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Come è stato costruito
 
@@ -307,6 +317,8 @@ polso.
 
 GPL-3.0-or-later — vedere [LICENSE](../../LICENSE). Basi navali ed eliporti provengono da
 OpenStreetMap (© contributori OpenStreetMap, **ODbL**), quindi qualsiasi indice costruito da essi
-porta anche quella licenza; aeroporti, porti e basi di lancio sono curati in questo repository.
+porta anche quella licenza; i confini dei fusi orari vengono da [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder), anch'essi
+derivati da OpenStreetMap e **ODbL**; aeroporti, porti e basi di lancio sono curati in questo
+repository.
 Meteo da [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) e
 [aviationweather.gov](https://aviationweather.gov/) (US NOAA, pubblico dominio).

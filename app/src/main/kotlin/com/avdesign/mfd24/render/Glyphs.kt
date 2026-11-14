@@ -56,6 +56,8 @@ object Glyphs {
     private val heart: Path by lazy(LazyThreadSafetyMode.NONE) { heart() }
     private val pedestrian: Path by lazy(LazyThreadSafetyMode.NONE) { pedestrian() }
     private val earthSymbol: Path by lazy(LazyThreadSafetyMode.NONE) { earthSymbol() }
+    private val positionPin: Path by lazy(LazyThreadSafetyMode.NONE) { positionPin() }
+    private val satelliteSymbol: Path by lazy(LazyThreadSafetyMode.NONE) { satelliteSymbol() }
     private val marsSymbol: Path by lazy(LazyThreadSafetyMode.NONE) { marsSymbol() }
     private val moonSymbol: Path by lazy(LazyThreadSafetyMode.NONE) { moonSymbol() }
 
@@ -75,6 +77,10 @@ object Glyphs {
     fun buildPedestrian(box: RectF, out: Path) = build(pedestrian, box, out)
 
     fun buildEarthSymbol(box: RectF, out: Path) = build(earthSymbol, box, out)
+
+    fun buildPositionPin(box: RectF, out: Path) = build(positionPin, box, out)
+
+    fun buildSatellite(box: RectF, out: Path) = build(satelliteSymbol, box, out)
 
     fun buildMarsSymbol(box: RectF, out: Path) = build(marsSymbol, box, out)
 
@@ -388,6 +394,73 @@ object Glyphs {
         addCircle(50f, 50f, 31f, Path.Direction.CCW)
         addRect(45f, 6f, 55f, 94f, Path.Direction.CW)
         addRect(6f, 45f, 94f, 55f, Path.Direction.CW)
+    }
+
+    /**
+     * A satellite — the first one, a disc trailing four antennas: the position was measured. It
+     * replaced the Earth cross on the Earth face because a measured position has three states and
+     * the last of them is struck out — a diagonal through a circled cross is a cross in a cross at
+     * 24 px, while a line across a satellite's axis reads at once. A modern satellite, a body
+     * between two panels, read as a dumbbell at that size, and antennas fanned from the centre as
+     * a jellyfish; four leaving the rim and opening only slightly is the silhouette everybody
+     * already holds. Never mind that most fixes on a watch come from the phone over the network:
+     * the symbol says "measured", not "by GNSS". The multi-world faces keep the cross as Earth's
+     * reference-frame symbol.
+     *
+     * Each antenna starts just inside the rim so the union joins without a boolean op.
+     */
+    private fun satelliteSymbol(): Path = Path().apply {
+        addCircle(70.3f, 29.7f, 27.7f, Path.Direction.CW)
+        moveTo(47.4f, 33.8f)
+        lineTo(6.3f, 53.9f)
+        lineTo(2.0f, 49.6f)
+        lineTo(43.0f, 29.5f)
+        close()
+        moveTo(51.3f, 44.3f)
+        lineTo(20.1f, 67.8f)
+        lineTo(15.7f, 63.4f)
+        lineTo(47.0f, 40.0f)
+        close()
+        moveTo(60.0f, 53.0f)
+        lineTo(36.6f, 84.3f)
+        lineTo(32.2f, 79.9f)
+        lineTo(55.7f, 48.7f)
+        close()
+        moveTo(70.5f, 57.0f)
+        lineTo(50.4f, 98.0f)
+        lineTo(46.1f, 93.7f)
+        lineTo(66.2f, 52.6f)
+        close()
+    }
+
+    /**
+     * The Earth cross in a map pin: the position was typed in by hand, and the dial — clock
+     * included — is set to that place. Beside the satellite, which means a position the watch
+     * measured, it answers "where does this dial think it is" before the wearer has to ask.
+     *
+     * A globe held in a cupped hand was the first idea and read as a smiley at 24 px; a cross in
+     * square brackets doubled the width of a row with a budget. The pin is the one shape every map
+     * has already taught. The ring is a clockwise disc with a counter-clockwise hole, the point a
+     * triangle starting exactly where the hole ends — so non-zero winding and the preview tool's
+     * fill-then-clear agree — and the cross bars are drawn back over the hole.
+     */
+    private fun positionPin(): Path = Path().apply {
+        addOval(16f, 4f, 84f, 72f, Path.Direction.CW)
+        moveTo(25.9f, 62f)
+        lineTo(74.1f, 62f)
+        lineTo(50f, 98f)
+        close()
+        addOval(26f, 14f, 74f, 62f, Path.Direction.CCW)
+        moveTo(46f, 14f)
+        lineTo(54f, 14f)
+        lineTo(54f, 62f)
+        lineTo(46f, 62f)
+        close()
+        moveTo(26f, 34f)
+        lineTo(74f, 34f)
+        lineTo(74f, 42f)
+        lineTo(26f, 42f)
+        close()
     }
 
     /** Mars ♂ — a ringed circle with an arrow off the upper right. */

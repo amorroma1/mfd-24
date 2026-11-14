@@ -136,6 +136,9 @@ def main():
         # They are drawn a shade smaller than the site set, at about 17 px rather than 22.
         ("heart", "SLOT\npulse"),
         ("pedestrian", "SLOT\nsteps"),
+        # What closes the location row: where the dial's position, and with it its clock, came from.
+        ("positionPin", "POSITION\ntyped in"),
+        ("satelliteSymbol", "POSITION\nmeasured"),
     ]
     if args.only:
         wanted = {n.strip() for n in args.only.split(",")}

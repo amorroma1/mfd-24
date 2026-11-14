@@ -59,6 +59,28 @@ internal val POSITION_OPTIONS = listOf(
     Segment(POSITION_MANUAL, R.string.editor_position_manual),
 )
 
+// Whose clock the dial keeps while the position is measured: the phone's zone, or the zone the
+// watch is standing in. Offered only then — a typed position always brings its own clock.
+internal const val LOCAL_TIME_PHONE = "phone"
+internal const val LOCAL_TIME_POSITION = "position"
+internal val LOCAL_TIME_OPTIONS = listOf(
+    Segment(LOCAL_TIME_PHONE, R.string.editor_local_time_phone),
+    Segment(LOCAL_TIME_POSITION, R.string.editor_local_time_position),
+)
+
+// Two switches kept outside the style schema, beside LOCAL TIME: what the site row says when there
+// is no site, and the meridian ticks as a compass. Plain OFF / ON, the labels the sky marks use.
+internal const val SWITCH_OFF = "off"
+internal const val SWITCH_ON = "on"
+internal val COORDINATES_OPTIONS = listOf(
+    Segment(SWITCH_OFF, R.string.solar_off, R.string.coordinates_off_sr),
+    Segment(SWITCH_ON, R.string.solar_on, R.string.coordinates_on_sr),
+)
+internal val COMPASS_OPTIONS = listOf(
+    Segment(SWITCH_OFF, R.string.solar_off, R.string.compass_off_sr),
+    Segment(SWITCH_ON, R.string.solar_on, R.string.compass_on_sr),
+)
+
 // "MIDNIGHT UP" is a character too wide for half a row and lost its "UP"; under a label that
 // already says DIAL TOP, the direction was the redundant half anyway.
 internal val DIAL_TOP_OPTIONS = listOf(

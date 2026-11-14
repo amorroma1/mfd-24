@@ -38,10 +38,10 @@ cadrans de ce type** — voir [Compatibilité](#compatibilité).
 | **Minuteur de quart** | Prise immédiate ou planifiée. Un arc couvre les heures de quart et s'atténue à mesure qu'elles sont tenues ; `DUTY: 04:40 REM` fait le compte à rebours. La prise et la relève sonnent et vibrent, même écran éteint. Un quart relevé s'efface de lui-même une heure plus tard. |
 | **Homme mort** | Désactivé par défaut. Toutes les 5/10/15 min il lance un appel à acquitter ; trente secondes plus tard il sonne le SOS en salves et laisse `MAN DOWN` — homme à terre — avec l'instant Zulu sur le cadran. En option, il note votre pouls à l'appel non acquitté, à côté de votre dernière lecture en mouvement. |
 | **Export du journal** | Le journal de bord quitte la montre en **code QR** pour l'appareil photo d'un téléphone ou en **son** — Bell 202 AFSK, décodé par `minimodem`. Le son emporte tout ; le QR emporte ce qui tient, et le dit. [Canaux et limites ↓](#export) |
-| **Zulu + groupe date-heure** | `Z 11NOV 13:05`, l'heure dans laquelle s'écrit une entrée de journal. |
+| **Zulu + groupe date-heure** | `Z 11NOV 13:05 -5`, l'heure dans laquelle s'écrit une entrée de journal, suivie du décalage du cadran. |
 | **Météo** | Température, conditions en abrégés METAR et QNH. Sur un aérodrome, c'est le **METAR du terrain lui-même** ; partout ailleurs, Open-Meteo. Rafraîchie toutes les 30 minutes. |
 | **Accrochage de site à 5 km** | Nomme l'aérodrome, le port, l'héliport ou la base de lancement le plus proche parmi 9 649 sites d'un index embarqué de 194 Ko. Les sites militaires sont dessinés en couleur d'accent. |
-| **Nadir, soleil et lune** | L'arc diurne ombré sur l'anneau des heures, calculé hors ligne. La marque solaire et la marque lunaire sont à leur véritable angle horaire — pointez une marque vers l'astre lui-même et le cadran devient un **compas**. La lune porte sa phase réelle. |
+| **Nadir, soleil et lune** | L'arc diurne ombré sur l'anneau des heures, calculé hors ligne. La marque solaire et la marque lunaire sont à leur véritable angle horaire — pointez une marque vers l'astre lui-même et le cadran devient un **compas** — au sud de l'équateur aussi, où les marques tournent contre les aiguilles comme le ciel. `ACTIVE SN` peint le méridien en rouge au nord et en blanc au sud, pointu tant que la montre sait le cadran juste à 15°. La lune porte sa phase réelle. |
 | **Lectures capteurs** | Deux lectures optionnelles de part et d'autre du moyeu : fréquence cardiaque, les pas du jour, ou pression de station. Désactivées par défaut ; elles tournent écran allumé, et en always-on le pouls est relu une fois par minute tant que la montre est portée. [Comment cette fenêtre se règle ↓](#pulse-window) |
 | **Always-on** | Le même cadran, atténué. `AUTO` le réduit à un pixel sur deux après le coucher du soleil — jamais pendant un quart de nuit. |
 | **Démarrage direct** | S'affiche déjà rempli avant que la montre soit déverrouillée. |
@@ -51,27 +51,32 @@ cadrans de ce type** — voir [Compatibilité](#compatibilité).
 | Un appel manqué, acquitté tard | De JFK à Heathrow, le vol entier | Réveil |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| Le SOS est resté sans acquittement : `MAN DOWN`, l'instant Zulu, une marque sur l'arc. Un toucher répond par `TAP AGAIN` ; un second, dans la seconde, l'efface — une manche de veste ne le peut pas. | BA 178 le 11 novembre 2026, l'horaire réel, en 36 secondes : un quart de huit heures pris à la porte d'embarquement, le site et son METAR disparus cinq minutes après la rotation, la cabine à 790 hPa, le coucher du soleil sur l'Atlantique, `EGLL` de retour en courte finale, et les aiguilles passées à Londres au sol. | Seule la lumière arrive. L'always-on porte les mêmes teintes, il n'y a donc rien à fondre. |
+| Le SOS est resté sans acquittement : `MAN DOWN`, l'instant Zulu, une marque sur l'arc. Un toucher répond par `TAP AGAIN` ; un second, dans la seconde, l'efface — une manche de veste ne le peut pas. | BA 178 le 11 novembre 2026, l'horaire réel, en 43 secondes, avec `HEURE LOCALE` sur `POSITION` : un quart de huit heures pris à la porte d'embarquement, le site et son METAR disparus cinq minutes après la rotation, la cabine à 790 hPa, les aiguilles glissant d'un fuseau à l'autre sous l'avion — −4 au large de la Nouvelle-Écosse, −3:30 un quart d'heure au-dessus de Terre-Neuve, 0 au-dessus de l'Irlande —, le coucher du soleil sur l'Atlantique, et `EGLL` de retour en courte finale. | Seule la lumière arrive. L'always-on porte les mêmes teintes, il n'y a donc rien à fondre. |
 
-*Le vol dure 36 secondes à dessein — une journée entière pour qui veut en regarder une ; le sol
-passe lentement et l'océan vite. L'atterrissage seul, à pleine vitesse :
-[landing.gif](../media/landing.gif).*
+*Le vol dure 43 secondes à dessein — une journée entière pour qui veut en regarder une ; le sol
+passe lentement et l'océan vite.*
 
 <details>
 <summary><b>Deux choses que l'on nous demande sur le vol</b></summary>
 
 <br>
 
-**Pourquoi les aiguilles ne changent-elles de fuseau qu'après l'atterrissage ?** Une montre prend
-son fuseau du téléphone, et le téléphone trouve un réseau au sol. Jusque-là le cadran garde le
-fuseau du départ — ce qui explique aussi pourquoi, au-dessus de l'océan, la marque solaire se tient
-à droite de l'arc diurne : la marque est le véritable angle horaire du soleil, l'arc est le jour
-dans le fuseau de la montre, et l'écart entre les deux est exactement le retard du fuseau. La
-glissade au sol le referme.
+**Pourquoi les aiguilles changent-elles de fuseau au-dessus de l'océan ?** Parce qu'on a demandé
+au cadran de garder l'heure du sol en dessous : `HEURE LOCALE` → `POSITION`. Chaque changement est
+l'horloge du lieu sous la route, pas une supposition sur le voyageur — la demi-heure de Terre-Neuve
+dure un quart d'heure parce que la route la survole ce temps-là, et le décalage après le Zulu dit
+quelle horloge est en vigueur. Le fuseau suit la position : au poignet, il change quand la montre
+apprend à nouveau où elle est, et une frontière ne compte comme franchie que trois kilomètres plus
+loin, pour qu'un point qui erre le long de la ligne ne fasse pas osciller les aiguilles. À
+l'arrivée, le cadran est à l'heure locale pendant que le téléphone cherche encore un réseau. Laissé
+sur `MOBILE`, le réglage par défaut, le cadran garde le fuseau du téléphone, qui en vol ne change
+qu'après l'atterrissage ; le soleil et la lune quittent alors le cadran pendant la traversée plutôt
+que de se tenir des heures hors de l'arc diurne.
 
 **Qu'y a-t-il de réel ?** L'horaire est celui du BA 178 de ce jour-là et les positions suivent sa
-route habituelle de l'Atlantique Nord, données au cadran comme des points GPS ; la météo et
-l'astronomie sont le travail du cadran lui-même à partir de ces points. Le pouls, la pression
+route habituelle de l'Atlantique Nord, données au cadran comme des points GPS ; l'astronomie
+est le travail du cadran lui-même à partir de ces points. La météo à la porte est le METAR de KJFK
+de ce matin-là, placé dans le cache du cadran, car aucun service ne livre une observation passée. Le pouls, la pression
 cabine et la batterie sont mis en scène sur l'émulateur, parce qu'un émulateur n'a pas de poignet.
 
 </details>
@@ -178,9 +183,14 @@ chinois — dans le vocabulaire du service, pas celui du magasin d'applications 
 - **Homme mort** — marche/arrêt, intervalle d'appel, `VIBRATION`, `SIGNAL SOS`
   (MUET/MIN/MED/MAX), `POULS AU JOURNAL`, et le journal de bord avec son export.
 - **Capteurs** — ce que montre chaque lecture, de part et d'autre du moyeu.
-- **Position** — point GPS, ou point manuel aux coordonnées saisies à la main.
+- **Position** — point GPS, ou point manuel aux coordonnées saisies à la main. Un point saisi met le
+  cadran à l'heure de ce lieu ; un point GPS le peut aussi, avec `HEURE LOCALE` → `POSITION`. Le
+  Zulu est suivi du décalage du cadran (`Z 13NOV 13:58 -5`) : l'horloge en vigueur n'est jamais à
+  deviner. La ligne de position, au-dessus de la météo, se termine par une épingle de carte pour un point saisi, ou par un satellite pour un point GPS : atténué dès qu'en route il a
+  pu dériver de plus de 5 km, barré après une demi-heure en route sans point — la dernière position
+  reste affichée dans tous les cas. `COORDONNÉES` l'écrit à la place de `NO SITE` : `50°27N 30°31E`.
 - **Affichage** — couleur lumineuse, haut du cadran, marque de minuit, Nadir, marques solaire et lunaire,
-  météo, always-on, et `AIDE` pour les petits caractères sous chaque ligne.
+  `ACTIVE SN`, météo, always-on, et `AIDE` pour les petits caractères sous chaque ligne.
 - **Unités** — °C/°F, hPa/mmHg.
 - **À propos** — version, le dépôt en QR code, le contrôle des versions.
 
@@ -298,7 +308,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ et le SDK Android. 193 tests JVM : `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ et le SDK Android. 248 tests JVM : `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Comment il a été construit
 
@@ -310,6 +320,7 @@ chaque invariant est fixé par un test, et rien n'est publié qui n'ait tourné 
 
 GPL-3.0-or-later — voir [LICENSE](../../LICENSE). Les bases navales et les héliports
 proviennent d'OpenStreetMap (© contributeurs OpenStreetMap, **ODbL**), donc tout index construit
-à partir d'eux porte aussi cette licence ; aérodromes, ports et bases de lancement sont tenus à
-jour dans ce dépôt. Météo de [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) et
+à partir d'eux porte aussi cette licence ; les limites des fuseaux horaires viennent de
+[timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder), elles aussi issues d'OpenStreetMap et sous **ODbL** ;
+aérodromes, ports et bases de lancement sont tenus à jour dans ce dépôt. Météo de [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) et
 [aviationweather.gov](https://aviationweather.gov/) (NOAA américaine, domaine public).

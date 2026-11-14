@@ -119,9 +119,9 @@ class TextBuf(capacity: Int) {
         val LIT_KM: CharArray = "KM".toCharArray()
 
         /**
-         * A fix but nothing inside the radius. There is no `NO FIX` counterpart: without a device
-         * fix [TelemetryLayer][com.avdesign.mfd24.render.TelemetryLayer] draws no site row at
-         * all, and the reference-frame symbol stands alone on an empty weather row.
+         * A fix but nothing inside the radius. There is no `NO FIX` counterpart: without a
+         * position, measured or typed, [TelemetryLayer][com.avdesign.mfd24.render.TelemetryLayer]
+         * draws no location row at all, and the weather row below stands on its own.
          */
         val LIT_NO_SITE: CharArray = "NO SITE".toCharArray()
 

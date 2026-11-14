@@ -263,4 +263,16 @@
     <string name="a11y_off_duty">Off duty</string>
     <string name="a11y_man_down">Man down — double-tap to clear</string>
     <string name="a11y_off_wrist">Off the wrist — vigilance suspended</string>
+    <string name="editor_label_local_time">LOCAL TIME</string>
+    <string name="editor_local_time_phone">PHONE</string>
+    <string name="editor_local_time_position">POSITION</string>
+    <string name="editor_local_time_note">POSITION follows the time zone you are in. PHONE keeps the phone\'s, and hides the sun and moon wherever the two disagree</string>
+    <string name="editor_label_coordinates">COORDINATES</string>
+    <string name="coordinates_off_sr">Coordinates off: NO SITE</string>
+    <string name="coordinates_on_sr">Coordinates on: the position where no site is near</string>
+    <string name="editor_coordinates_note">Printed where NO SITE would be. Off by default, so a photo of the dial says nothing about where you are</string>
+    <string name="editor_label_compass">ACTIVE SN</string>
+    <string name="compass_off_sr">Compass ticks off</string>
+    <string name="compass_on_sr">Compass ticks on: red north, white south</string>
+    <string name="editor_compass_note">Red north, white south, screen on only. Pointed while a sun or moon mark can orient the dial</string>
 </resources>

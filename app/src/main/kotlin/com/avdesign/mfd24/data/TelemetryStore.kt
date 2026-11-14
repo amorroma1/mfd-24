@@ -40,12 +40,80 @@ class TelemetryStore(context: Context) {
     val hasDevicePosition: Boolean
         get() = !deviceLatitude.isNaN() && !deviceLongitude.isNaN()
 
-    fun saveDevicePosition(lat: Double, lon: Double) {
+    /**
+     * The fix's reported accuracy in metres, NaN when the platform gave none. Kept beside the fix
+     * because the time-zone border band widens to it: a fix that says it is good to 5 km is a
+     * cloud 5 km wide, wherever its centre happens to fall.
+     */
+    val deviceAccuracyMeters: Float
+        get() = prefs.getFloat(KEY_ACCURACY, Float.NaN)
+
+    /**
+     * When the fix was taken, by the platform's own clock on it — not when it was read, because
+     * `lastKnown` hands back fixes hours old as readily as fresh ones. 0 when unknown, which is
+     * every fix stored before 2.11.0: such a fix is treated as standing still, see [PositionAge].
+     */
+    val deviceFixMillis: Long
+        get() = prefs.getLong(KEY_FIX_TIME, 0L)
+
+    /** Ground speed at the fix in metres a second, 0 when standing or unknown. See [PositionAge]. */
+    val deviceSpeedMps: Float
+        get() = prefs.getFloat(KEY_SPEED, 0f)
+
+    fun saveDevicePosition(
+        lat: Double,
+        lon: Double,
+        accuracyMeters: Float,
+        fixMillis: Long,
+        speedMps: Float,
+    ) {
         prefs.edit()
             .putLong(KEY_LAT, lat.toRawBits())
             .putLong(KEY_LON, lon.toRawBits())
+            .putFloat(KEY_ACCURACY, accuracyMeters)
+            .putLong(KEY_FIX_TIME, fixMillis)
+            .putFloat(KEY_SPEED, speedMps)
             .apply()
     }
+
+    /**
+     * Whether the site row prints the position when there is no site to name, rather than
+     * `NO SITE`. Off by default: a screenshot of the dial would otherwise carry where the wearer
+     * lives to a kilometre. Outside the style schema like [zoneFromPosition], for the same reason.
+     */
+    var showCoordinates: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_COORDINATES, false)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_COORDINATES, value).apply()
+
+    /**
+     * Whether the meridian's two cardinal ticks are drawn as a compass — red north, white south —
+     * while the screen is on. Off by default, like every mark this dial adds to its own scale.
+     */
+    var compassTicks: Boolean
+        get() = prefs.getBoolean(KEY_COMPASS_TICKS, false)
+        set(value) = prefs.edit().putBoolean(KEY_COMPASS_TICKS, value).apply()
+
+    /**
+     * Whether a measured position sets the dial's clock, rather than the phone's zone doing so.
+     * Off by default: the phone's zone is the one every other screen on the watch shows, and a
+     * dial that disagrees with them should be something the wearer asked for. Here and not in the
+     * style schema, like the position choice beside it, so that adding it did not reset every
+     * wearer's settings on update.
+     */
+    var zoneFromPosition: Boolean
+        get() = prefs.getBoolean(KEY_ZONE_FROM_POSITION, false)
+        set(value) = prefs.edit().putBoolean(KEY_ZONE_FROM_POSITION, value).apply()
+
+    /**
+     * The zone a measured position was last placed in, by the grid's newest name. The border band
+     * compares a new fix against it, so it has to outlive the process: a face restarted on a border
+     * — an update, a reboot — would otherwise meet its first fix with no zone to hold on to, and
+     * hand the dial to whichever side the fix fell. A name rather than the grid's index, so a new
+     * grid in a later release cannot turn it into a different zone.
+     */
+    var measuredZoneName: String?
+        get() = prefs.getString(KEY_MEASURED_ZONE, null)
+        set(value) = prefs.edit().putString(KEY_MEASURED_ZONE, value).apply()
 
     // --- Manual position -------------------------------------------------------------------
 
@@ -162,6 +230,13 @@ class TelemetryStore(context: Context) {
 
         const val KEY_LAT = "lat"
         const val KEY_LON = "lon"
+        const val KEY_ACCURACY = "accuracy"
+        const val KEY_FIX_TIME = "fix_time"
+        const val KEY_SPEED = "speed"
+        const val KEY_SHOW_COORDINATES = "show_coordinates"
+        const val KEY_COMPASS_TICKS = "compass_ticks"
+        const val KEY_ZONE_FROM_POSITION = "zone_from_position"
+        const val KEY_MEASURED_ZONE = "measured_zone"
         const val KEY_MANUAL_SELECTED = "manual_selected"
         const val KEY_MANUAL_LAT = "manual_lat"
         const val KEY_MANUAL_LON = "manual_lon"

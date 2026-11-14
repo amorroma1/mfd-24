@@ -198,6 +198,14 @@ class Palette {
         /** Moonlight grey, a step brighter than [SPENT_GREY] so the phase reads at ten pixels. */
         const val MOON_GREY: Int = 0xFFC5CAD1.toInt()
 
+        /**
+         * `ACTIVE SN`: the meridian's north end in a compass's own red, its south end white.
+         * Drawn only while the screen is on, which is why white may carry blue here: the
+         * blue-free rule is about pixels held overnight, and these never are.
+         */
+        const val COMPASS_NORTH: Int = NVG_RED
+        const val COMPASS_SOUTH: Int = 0xFFF2F2F2.toInt()
+
         /** The exhaust under the rocket pictogram. Orange, zero blue. */
         const val FLAME_ORANGE: Int = 0xFFFF6E00.toInt()
 

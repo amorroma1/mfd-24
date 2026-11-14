@@ -159,8 +159,8 @@ class Geometry {
         private set
 
     /**
-     * Reference-frame symbol box, sitting on the first data line the way the site pictogram sits on
-     * the second. Anchored with its left edge at [cx]; the renderer translates it into place.
+     * Position or reference-frame symbol box, on the upper data line beside the site pictogram.
+     * Anchored with its left edge at [cx]; the renderer translates it into place.
      */
     val symbolBox: RectF = RectF()
 
@@ -168,6 +168,9 @@ class Geometry {
     val glyphBox: RectF = RectF()
 
     var glyphGap: Float = 0f
+
+    /** The wider gap between the site pictogram and the site's name; see [SITE_TEXT_GAP]. */
+    var siteTextGap: Float = 0f
         private set
 
     /** Boxes the spoken accessibility labels point at: the readout block, and the status line. */
@@ -405,10 +408,11 @@ class Geometry {
 
         val glyphSize = r * TEXT_SIZE
         glyphBox.set(
-            cx, telemetryLineY[3] - glyphSize,
-            cx + glyphSize, telemetryLineY[3],
+            cx, telemetryLineY[2] - glyphSize,
+            cx + glyphSize, telemetryLineY[2],
         )
         glyphGap = r * GLYPH_GAP
+        siteTextGap = r * SITE_TEXT_GAP
 
         // Loose boxes for the two spoken labels, not drawing geometry: TalkBack highlights them
         // and reads the text, so "roughly where the words are" is the whole requirement.
@@ -451,9 +455,9 @@ class Geometry {
          * they get their own tracks rather than fighting for the same one; the hour ticks stop
          * short of the minute ring so the gap between them reads as deliberate.
          */
-        private const val TICK_HOUR_INNER = 0.785f
+        internal const val TICK_HOUR_INNER = 0.785f
         private const val TICK_HOUR_OUTER = 0.870f
-        private const val TICK_CARDINAL_OUTER = 0.905f
+        internal const val TICK_CARDINAL_OUTER = 0.905f
 
         private const val LABEL_RADIUS = 0.680f
 
@@ -462,13 +466,13 @@ class Geometry {
 
         /**
          * The readout is bare type on the dial — no window, no frame — split either side of the
-         * hub: duty and ZULU above, weather and site below, the two sensor slots on the hub's own
+         * hub: duty and ZULU above, location and weather below, the two sensor slots on the hub's own
          * line, the battery a step under the block and the vigilance status a step over it.
          * Offsets are signed, measured from the centre.
          *
          * ### One size, and it is the numerals'
          * Every piece of type on the dial is set at one em: the hour numerals at
-         * [HOUR_LABEL_SIZE], and every readout row — duty, ZULU, the sensor slots, weather, site,
+         * [HOUR_LABEL_SIZE], and every readout row — duty, ZULU, the sensor slots, location, weather,
          * battery, the vigilance status — at [TEXT_SIZE], which *is* that figure. Until
          * 2026-11-06 the readout carried four sizes (0.096, 0.086 for the slots and the battery,
          * 0.078 for the status word), each sized to its own row's width budget, and together a
@@ -485,11 +489,13 @@ class Geometry {
          * horizontal line at vertical offset y with half-width w reaches radius sqrt(w² + y²) at
          * its corners, and that has to stay inside the hour numerals, whose inner edge sits at
          * [NUMERAL_INNER_EDGE]. The longest rows: the Earth weather row `-40°C TSGR Q1013` at 16,
-         * `DUTY: 03:42 REM` at 15, `Z 18AUG 18:42` at 13, the site row at a pictogram plus
-         * `ABANDO 5.0KM` — six characters is the longest code in the bundled data, and the lock
-         * radius keeps the distance under ten — `ACKNOWLEDGE` at 11, and `BAT 100%` and
-         * `QFE 1013` at 8. The four readout rows clear the numerals by thirteen pixels and more
-         * on a 454 px dial; the battery, a pitch further out, by five, and a pressure slot by six.
+         * bare text on the lower data row, `DUTY: 03:42 REM` at 15, `Z 18AUG 18:42 +12:45` at 20,
+         * the location row on the upper data row at two pictograms — the site's and the position
+         * symbol closing it — plus `ABANDO 5.0KM`: six characters is the longest code in the bundled data,
+         * and the lock radius keeps the distance under ten — `ACKNOWLEDGE` at 11, and `BAT 100%` and
+         * `QFE 1013` at 8. On a 454 px dial the location and duty rows clear the numerals by fifteen
+         * pixels and more; ZULU at its longest and the weather row by under four, the battery, a
+         * pitch further out, by five, and a pressure slot by six.
          * `GeometryBudgetTest` re-derives every corner from these constants.
          *
          * 0.095 was the numerals' size as the dial shipped; 0.100 is one hundredth up at the
@@ -510,6 +516,13 @@ class Geometry {
         internal const val GLYPH_GAP = 0.028f
 
         /**
+         * Between the site pictogram and the site's name: a whole character's advance. The
+         * airliner's wingtip reaches the edge of its box, and at [GLYPH_GAP] it stood against the
+         * first letter of `KJFK` as if it were part of the code. The location row has the width.
+         */
+        internal const val SITE_TEXT_GAP = MONO_ADVANCE * TEXT_SIZE
+
+        /**
          * Inner edge of the hour numerals, the boundary every readout corner must stay inside.
          * Named so `GeometryBudgetTest` can check the shipped rows against it instead of trusting
          * the prose above.
@@ -519,7 +532,7 @@ class Geometry {
         /**
          * One pitch between every baseline on the dial, counted from the hub's own line.
          *
-         * Seven baselines — status, duty, ZULU, the sensor slots, weather, site, battery — at one
+         * Seven baselines — status, duty, ZULU, the sensor slots, location, weather, battery — at one
          * spacing, so the block reads as ruled rather than placed. The type's cap height is about
          * 0.72 em, 0.072 r, which leaves 0.103 r of air between lines, a cap and a half: the
          * spacing the Mars face's upper pair had, and what makes the block read as set rather
@@ -527,14 +540,14 @@ class Geometry {
          * a cap above the baseline; the rows either side of it are then symmetric about the dial's
          * centre, as the two pairs used to be by hand.
          *
-         * The pitch is the largest the battery row allows: a pitch further out than the site row,
+         * The pitch is the largest the battery row allows: a pitch further out than the weather row,
          * at 0.175 its corner sits five pixels inside the numerals, and 0.180 puts it within two.
          * Pulling the block in instead would spend the height the dial has on nothing.
          */
         internal const val LINE_PITCH = 0.175f
         internal const val HUB_BASELINE = 0.036f
 
-        /** Duty, ZULU, weather, site — two pitches above the hub line to two below. */
+        /** Duty, ZULU, location, weather — two pitches above the hub line to two below. */
         internal val LINE_BASELINES = floatArrayOf(
             HUB_BASELINE - 2f * LINE_PITCH,
             HUB_BASELINE - LINE_PITCH,
@@ -543,13 +556,16 @@ class Geometry {
         )
 
         /**
-         * The battery row, a pitch under the site row. Eight characters at most — `BAT 100%` —
+         * The battery row, a pitch under the weather row. Eight characters at most — `BAT 100%` —
          * which is what lets it sit this far out: its corner reaches 0.608 r, and a sixteen-character
          * row here would be into the numerals. Lengthen it and that stops being true.
          */
         internal const val BATTERY_BASELINE = HUB_BASELINE + 3f * LINE_PITCH
 
-        /** The reference-frame symbol leads the first data row, a little taller than the type. */
+        /**
+         * The position symbol closes the location row on Earth; off Earth the reference-frame
+         * symbol leads that row. A little taller than the type.
+         */
         internal const val SYMBOL_SIZE = 0.104f
 
         /**
@@ -589,7 +605,7 @@ class Geometry {
          *
          * It was 0.030, which is 6.8 dp and too small to read a fraction inside. Enlarging it is
          * what makes the vigilance core legible; going further, to the 30-odd dp a separate
-         * indicator would want, would put the hub into the weather row 38 px below the centre.
+         * indicator would want, would put the hub into the location row 38 px below the centre.
          */
         private const val HUB_RADIUS = 0.040f
 

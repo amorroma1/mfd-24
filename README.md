@@ -37,10 +37,10 @@ see [Compatibility](#compatibility).
 | **Watch timer** | Start now or book ahead. An arc spans the hours on duty and dims as they are served; `DUTY: 04:40 REM` counts down. Both boundaries beep and buzz with the screen off. A finished watch clears itself an hour later. |
 | **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optionally it notes your pulse during the missed check, beside your last reading on the move. |
 | **Log export** | The incident log leaves the watch as a **QR code** for a phone camera or as **sound** — Bell 202 AFSK, decoded by `minimodem`. The sound carries everything; the QR carries what fits and says so. [Channels and limits ↓](#export) |
-| **Zulu + date-time group** | `Z 11NOV 13:05`, the clock a log entry is written in. |
+| **Zulu + date-time group** | `Z 11NOV 13:05 -5` — the clock a log entry is written in, followed by the dial's own offset from it. |
 | **Weather** | Temperature, METAR-style condition and QNH. At an aerodrome it is that field's **own METAR**; everywhere else Open-Meteo. Refreshed every 30 minutes. |
 | **5 km site lock** | Names the nearest airfield, port, heliport or spaceport from 9,649 sites in a 194 KB on-device index. Military sites are drawn in the accent colour. |
-| **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass**. The moon carries its honest phase. |
+| **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass** — south of the equator too, where the marks run against the hands as the sky does. `ACTIVE SN` paints the meridian red to the north and white to the south, pointed while the watch reckons the dial true to 15°. The moon carries its honest phase. |
 | **Sensor slots** | Two optional readouts beside the hub: heart rate, the day's steps, or station pressure. Off by default; they run while the screen is on, and in always-on the pulse is re-read once a minute while the watch is worn. [How that window paces itself ↓](#pulse-window) |
 | **Always-on** | The same dial, dimmed. `AUTO` thins it to every other pixel after sunset — never during a night watch. |
 | **Direct boot** | Draws populated before the watch is unlocked. |
@@ -50,27 +50,32 @@ see [Compatibility](#compatibility).
 | A missed check, answered late | JFK to Heathrow, the whole flight | Waking |
 |---|---|---|
 | ![](docs/media/mandown.gif) | ![](docs/media/flight.gif) | ![](docs/media/wake.gif) |
-| The SOS went unanswered: `MAN DOWN`, the Zulu moment, a mark on the arc. One tap answers with `TAP AGAIN`; a second, inside a second, clears it — a sleeve cannot. | BA 178 on 11 November 2026, the real timetable, in 36 seconds: an eight-hour watch started at the gate, the site and its METAR gone five minutes after rotation, the cabin at 790 hPa, sunset over the Atlantic, `EGLL` back on short final, and the hands moved to London on the ground. | Only the light arrives. Always-on wears the same hues, so there is nothing to cross-fade. |
+| The SOS went unanswered: `MAN DOWN`, the Zulu moment, a mark on the arc. One tap answers with `TAP AGAIN`; a second, inside a second, clears it — a sleeve cannot. | BA 178 on 11 November 2026, the real timetable, in 43 seconds, with `LOCAL TIME` at `POSITION`: an eight-hour watch started at the gate, the site and its METAR gone five minutes after rotation, the cabin at 790 hPa, the hands gliding through the zones below — −4 off Nova Scotia, −3:30 for a quarter of an hour over Newfoundland, 0 over Ireland — sunset over the Atlantic, and `EGLL` back on short final. | Only the light arrives. Always-on wears the same hues, so there is nothing to cross-fade. |
 
-*The flight runs 36 seconds on purpose — a whole day for whoever wants to watch one; the ground
-goes slowly and the ocean fast. The landing alone, at full speed:
-[landing.gif](docs/media/landing.gif).*
+*The flight runs 43 seconds on purpose — a whole day for whoever wants to watch one; the ground
+goes slowly and the ocean fast.*
 
 <details>
 <summary><b>Two things people ask about the flight</b></summary>
 
 <br>
 
-**Why do the hands change zone only after landing?** A watch takes its time zone from the phone,
-and the phone finds a network on the ground. Until then the dial keeps the departure zone — which
-is also why, over the ocean, the sun mark stands to the right of the daylight band: the mark is the
-sun's true hour angle, the band is the day in the watch's zone, and the gap between them is exactly
-the zone's lag. The glide on the ground closes it.
+**Why do the hands change zone over the ocean?** Because the dial was told to keep the time of
+the ground beneath it: `LOCAL TIME` → `POSITION`. Every change is the clock of the place under the
+track, not a guess about the traveller — the Newfoundland half hour lasts fifteen minutes because
+that is how long the track spends over it, and the offset after Zulu says which clock is in force.
+The zone follows the position, so on a wrist it moves when the watch next learns where it is, and a
+border counts as crossed only three kilometres in, so a fix wandering along the line cannot rock
+the hands. On arrival the dial is on local time while the phone is still looking for a network.
+Left at `PHONE`, the default, the dial keeps the phone's zone, which on a flight changes only after
+landing; the sun and moon then leave the dial for the crossing rather than stand hours outside the
+daylight band.
 
 **What is real in it?** The timetable is BA 178's of that day and the positions follow its usual
-North Atlantic routing, fed to the face as GPS fixes; the weather and the astronomy are the face's
-own work from them. Pulse, cabin pressure and battery are staged on the emulator, because an
-emulator has no wrist.
+North Atlantic routing, fed to the face as GPS fixes; the astronomy is the face's own work from
+them. The weather at the gate is KJFK's own METAR of that morning, placed in the face's cache
+because no feed hands out an observation from the past. Pulse, cabin pressure and battery are
+staged on the emulator, because an emulator has no wrist.
 
 </details>
 
@@ -171,9 +176,14 @@ nomenclature, not prose.
 - **Vigilance** — on/off, check interval, `VIBE STRENGTH`, `SOS SOUND` (OFF/LOW/MED/HIGH),
   `LOG PULSE`, and the incident log with its export.
 - **Sensors** — what each hub slot reads.
-- **Position** — automatic, or coordinates typed by hand.
-- **Display** — palette, dial top, midnight mark, Nadir, sun and moon marks, weather, always-on,
-  and `HINTS` for the small print under each row.
+- **Position** — automatic, or coordinates typed by hand. A typed position sets the dial to that
+  place's time; an automatic one can too, with `LOCAL TIME` → `POSITION`. Zulu is followed by the
+  dial's offset (`Z 13NOV 13:58 -5`), so which clock is in force is never a guess. The location row
+  sits above the weather and ends with where the position came from: a map pin for a typed one, a
+  satellite for a measured one — dimmed once, on the move, it may have drifted past 5 km, struck
+  out after half an hour on the move without a fix; the last position stays on the dial either way. `COORDINATES` prints it where `NO SITE` would stand: `50°27N 30°31E`.
+- **Display** — palette, dial top, midnight mark, Nadir, sun and moon marks, `ACTIVE SN`, weather,
+  always-on, and `HINTS` for the small print under each row.
 - **Units** — °C/°F, hPa/mmHg.
 - **About** — version, the repository as a QR, the release check.
 
@@ -283,7 +293,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ and the Android SDK. 193 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ and the Android SDK. 248 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## How it was built
 
@@ -295,6 +305,8 @@ invariant is pinned by a test, and nothing ships that has not run on the wrist.
 
 GPL-3.0-or-later — see [LICENSE](LICENSE). Naval bases and heliports are derived from OpenStreetMap
 (© OpenStreetMap contributors, **ODbL**), so any index built from them carries that licence too;
-airports, ports and spaceports are curated in this repository. Weather from
+time-zone boundaries come from [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder),
+also OpenStreetMap-derived and **ODbL**; airports, ports and spaceports are curated in this
+repository. Weather from
 [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) and
 [aviationweather.gov](https://aviationweather.gov/) (US NOAA, public domain).

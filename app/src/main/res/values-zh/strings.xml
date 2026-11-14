@@ -207,4 +207,16 @@
     <string name="a11y_off_duty">未值更</string>
     <string name="a11y_man_down">人员倒下 —— 双击清除</string>
     <string name="a11y_off_wrist">已离腕 —— 监视暂停</string>
+    <string name="editor_label_local_time">当地时间</string>
+    <string name="editor_local_time_phone">手机</string>
+    <string name="editor_local_time_position">位置</string>
+    <string name="editor_local_time_note">位置：跟随你所在地的时区。手机：保持手机的时区，两者不一致时隐藏太阳和月亮</string>
+    <string name="editor_label_coordinates">坐标</string>
+    <string name="coordinates_off_sr">坐标关：NO SITE</string>
+    <string name="coordinates_on_sr">坐标开：附近没有站点时显示位置</string>
+    <string name="editor_coordinates_note">显示在原本 NO SITE 的位置。默认关闭，这样表盘的照片不会透露你在哪里</string>
+    <string name="editor_label_compass">ACTIVE SN</string>
+    <string name="compass_off_sr">罗盘刻度关</string>
+    <string name="compass_on_sr">罗盘刻度开：北红、南白</string>
+    <string name="editor_compass_note">北红、南白，仅在屏幕活动时。只要太阳或月亮标记能为表盘定向，刻度就是尖的</string>
 </resources>

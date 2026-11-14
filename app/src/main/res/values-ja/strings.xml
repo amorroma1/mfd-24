@@ -207,4 +207,16 @@
     <string name="a11y_off_duty">非番</string>
     <string name="a11y_man_down">要救助 —— ダブルタップで解除</string>
     <string name="a11y_off_wrist">手首から外れています —— 監視停止中</string>
+    <string name="editor_label_local_time">現地時刻</string>
+    <string name="editor_local_time_phone">スマホ</string>
+    <string name="editor_local_time_position">位置</string>
+    <string name="editor_local_time_note">位置：いる場所のタイムゾーンに合わせます。スマホ：スマホの時刻のまま、両者が違う間は太陽と月を隠します</string>
+    <string name="editor_label_coordinates">座標</string>
+    <string name="coordinates_off_sr">座標オフ：NO SITE</string>
+    <string name="coordinates_on_sr">座標オン：近くにサイトがないとき位置を表示</string>
+    <string name="editor_coordinates_note">NO SITE の代わりに表示します。初期設定はオフ：文字盤の写真から居場所が分からないように</string>
+    <string name="editor_label_compass">ACTIVE SN</string>
+    <string name="compass_off_sr">コンパス目盛オフ</string>
+    <string name="compass_on_sr">コンパス目盛オン：北は赤、南は白</string>
+    <string name="editor_compass_note">北は赤、南は白、画面がアクティブなときだけ。太陽か月のマークで文字盤を合わせられる間は尖ります</string>
 </resources>

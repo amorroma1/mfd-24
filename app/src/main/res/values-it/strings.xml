@@ -207,4 +207,16 @@
     <string name="a11y_off_duty">Fuori guardia</string>
     <string name="a11y_man_down">Uomo a terra — doppio tocco per cancellare</string>
     <string name="a11y_off_wrist">Fuori dal polso — uomo morto sospeso</string>
+    <string name="editor_label_local_time">ORA LOCALE</string>
+    <string name="editor_local_time_phone">TELEFONO</string>
+    <string name="editor_local_time_position">LUOGO</string>
+    <string name="editor_local_time_note">LUOGO segue il fuso in cui ti trovi. TELEFONO tiene quello del telefono e nasconde sole e luna finché i due non coincidono</string>
+    <string name="editor_label_coordinates">COORDINATE</string>
+    <string name="coordinates_off_sr">Coordinate spente: NO SITE</string>
+    <string name="coordinates_on_sr">Coordinate accese: la posizione quando nessun sito è vicino</string>
+    <string name="editor_coordinates_note">Scritte dove comparirebbe NO SITE. Spente di serie, così una foto del quadrante non dice dove sei</string>
+    <string name="editor_label_compass">ACTIVE SN</string>
+    <string name="compass_off_sr">Indici bussola spenti</string>
+    <string name="compass_on_sr">Indici bussola accesi: nord rosso, sud bianco</string>
+    <string name="editor_compass_note">Nord rosso, sud bianco, solo a schermo attivo. A punta finché un segno del sole o della luna può orientare il quadrante</string>
 </resources>

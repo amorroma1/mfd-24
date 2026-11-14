@@ -85,6 +85,13 @@ class PoiDatabase private constructor(
      * Ties are broken by rank first (spaceport > airfield > port > helipad) and by distance
      * second, so standing at Baikonur reports the cosmodrome rather than its airstrip.
      *
+     * One exception inside the airfield rank: a civil field anywhere in the radius is reported
+     * ahead of a nearer military one, and the result carries [PoiFormat.FLAG_SHARED_MILITARY].
+     * The weather row reads the reported field's METAR, and military fields mostly publish none —
+     * in the Honolulu terminal the nearer reference point is Hickam, and the wearer got a model
+     * forecast instead of the airport's own observation. Ownership never decided rank before and
+     * still does not: this only chooses which of two airfields to name.
+     *
      * @return true if a site was found.
      */
     fun queryNearest(lat: Double, lon: Double, radiusMeters: Double, out: PoiHit): Boolean {
@@ -99,6 +106,9 @@ class PoiDatabase private constructor(
         var bestIndex = -1
         var bestDistance = Double.MAX_VALUE
         var bestPriority = -1
+        var civilIndex = -1
+        var civilDistance = Double.MAX_VALUE
+        var militaryAirfield = false
 
         // A box straddling the antimeridian becomes two spans in cell space.
         val lonLo = lon - dLon
@@ -142,7 +152,17 @@ class PoiDatabase private constructor(
                                     lat, lon, latAt(i).toDouble(), lonAt(i).toDouble()
                                 )
                                 if (d <= radiusMeters) {
-                                    val priority = PoiFormat.priorityOf(typeAt(i), flagsAt(i))
+                                    val type = typeAt(i)
+                                    val flags = flagsAt(i)
+                                    val priority = PoiFormat.priorityOf(type, flags)
+                                    if (priority == AIRFIELD_PRIORITY) {
+                                        if (flags and PoiFormat.FLAG_MILITARY != 0) {
+                                            militaryAirfield = true
+                                        } else if (d < civilDistance) {
+                                            civilDistance = d
+                                            civilIndex = i
+                                        }
+                                    }
                                     if (priority > bestPriority ||
                                         (priority == bestPriority && d < bestDistance)
                                     ) {
@@ -162,9 +182,15 @@ class PoiDatabase private constructor(
         }
 
         if (bestIndex < 0) return false
+        var shared = 0
+        if (bestPriority == AIRFIELD_PRIORITY && civilIndex >= 0) {
+            bestIndex = civilIndex
+            bestDistance = civilDistance
+            if (militaryAirfield) shared = PoiFormat.FLAG_SHARED_MILITARY
+        }
         out.codeLength = readCode(bestIndex, out.code)
         out.type = typeAt(bestIndex)
-        out.flags = flagsAt(bestIndex)
+        out.flags = flagsAt(bestIndex) or shared
         out.distanceMeters = bestDistance
         return true
     }
@@ -184,6 +210,9 @@ class PoiDatabase private constructor(
 
     companion object {
         private const val TAG = "PoiDatabase"
+
+        /** [PoiFormat.priorityOf] for a fixed-wing airfield, the rank the civil preference works inside. */
+        private val AIRFIELD_PRIORITY = PoiFormat.priorityOf(PoiFormat.TYPE_AIRPORT, 0)
 
         /** Loads the packed asset, or returns null if it is missing or malformed. */
         fun open(context: Context): PoiDatabase? {

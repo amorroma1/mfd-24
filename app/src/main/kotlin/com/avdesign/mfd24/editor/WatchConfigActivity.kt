@@ -195,6 +195,9 @@ private fun ConfigScreen(
     // less of longitude away from the equator, which fits inside the 5 km site lock. It used to be
     // tenths, and 11 km of quantisation is what forced a manual position to forgo that row.
     var manualActive by remember { mutableStateOf(repository.manualPositionSelected) }
+    var zoneFromPosition by remember { mutableStateOf(repository.zoneFromPosition) }
+    var showCoordinates by remember { mutableStateOf(repository.showCoordinates) }
+    var compassTicks by remember { mutableStateOf(repository.compassTicks) }
     // Seeded from whatever position is in force when there is no manual one on file yet: even
     // with the hold-to-repeat, starting from 0.00 is the Gulf of Guinea and seconds of travel.
     var manualLat by remember {
@@ -401,7 +404,7 @@ private fun ConfigScreen(
             // schedule() converts into an immediate, chiming start — a mis-tap in disguise.
             item {
                 StepperRow(
-                    value = formatBookedDate(bookedStart),
+                    value = formatBookedDate(bookedStart, repository.dialZone()),
                     onDown = { n ->
                         bookedStart = (bookedStart - n * DAY_MILLIS)
                             .coerceAtLeast(earliestBookableNow())
@@ -414,7 +417,9 @@ private fun ConfigScreen(
             item {
                 StepperRow(
                     value = stringResource(
-                        R.string.editor_start_time, hourOf(bookedStart), minuteOf(bookedStart)
+                        R.string.editor_start_time,
+                        hourOf(bookedStart, repository.dialZone()),
+                        minuteOf(bookedStart, repository.dialZone()),
                     ),
                     onDown = { n ->
                         bookedStart = (bookedStart - n * WatchShiftController.STEP_MILLIS)
@@ -746,6 +751,40 @@ private fun ConfigScreen(
             }
             item { Hint(stringResource(R.string.editor_location_rationale), hints) }
 
+            // Whose clock the dial keeps, for a measured position only: a typed one is the wearer
+            // saying the dial is *there*, and always brings its clock. Without the permission the
+            // position cannot follow the wearer anywhere, so there is nothing to offer.
+            if (locationGranted && !manualActive) {
+                item {
+                    SegmentedSetting(
+                        label = stringResource(R.string.editor_label_local_time),
+                        options = LOCAL_TIME_OPTIONS,
+                        selectedId = if (zoneFromPosition) LOCAL_TIME_POSITION else LOCAL_TIME_PHONE,
+                        onSelect = { id ->
+                            val fromPosition = id == LOCAL_TIME_POSITION
+                            repository.zoneFromPosition = fromPosition
+                            zoneFromPosition = fromPosition
+                        },
+                    )
+                }
+                item { Hint(stringResource(R.string.editor_local_time_note), hints) }
+            }
+
+            // Typed or measured alike: what the site row says when there is no site to name.
+            item {
+                SegmentedSetting(
+                    label = stringResource(R.string.editor_label_coordinates),
+                    options = COORDINATES_OPTIONS,
+                    selectedId = if (showCoordinates) SWITCH_ON else SWITCH_OFF,
+                    onSelect = { id ->
+                        val on = id == SWITCH_ON
+                        repository.showCoordinates = on
+                        showCoordinates = on
+                    },
+                )
+            }
+            item { Hint(stringResource(R.string.editor_coordinates_note), hints) }
+
             // "While in use" covers only this screen: the half-hourly worker and the face itself
             // are background callers, and without "all the time" the platform hands them null.
             // The system grants it on a settings screen, so the answer comes back through
@@ -923,6 +962,24 @@ private fun ConfigScreen(
             }
             if (lunarMark == StyleSchema.LUNAR_ON) {
                 item { Hint(stringResource(R.string.editor_lunar_note), hints) }
+            }
+            // Below the two marks because they are what sharpens it. A position is enough for the
+            // colours: the hemisphere says which end is north.
+            item {
+                SegmentedSetting(
+                    label = stringResource(R.string.editor_label_compass),
+                    options = COMPASS_OPTIONS,
+                    selectedId = if (compassTicks) SWITCH_ON else SWITCH_OFF,
+                    onSelect = { id ->
+                        val on = id == SWITCH_ON
+                        repository.compassTicks = on
+                        compassTicks = on
+                    },
+                    isEnabled = { id -> id == SWITCH_OFF || hasPosition },
+                )
+            }
+            if (compassTicks) {
+                item { Hint(stringResource(R.string.editor_compass_note), hints) }
             }
             item {
                 SegmentedSetting(

@@ -39,7 +39,12 @@ class TelemetryState {
     var weatherObservedAt: Long = 0L
         private set
 
-    fun setWeather(temperatureDeciC: Int, pressureDeciHpa: Int, conditionIndex: Int, observedAt: Long) {
+    fun setWeather(
+        temperatureDeciC: Int,
+        pressureDeciHpa: Int,
+        conditionIndex: Int,
+        observedAt: Long,
+    ) {
         this.temperatureDeciC = temperatureDeciC
         this.pressureDeciHpa = pressureDeciHpa
         this.conditionIndex = conditionIndex
@@ -138,6 +143,69 @@ class TelemetryState {
 
     val hasPosition: Boolean
         get() = positionSource != POSITION_NONE
+
+    /**
+     * When a measured position was taken and how fast the watch was moving then, so the dial can
+     * say how far the position may have drifted since ([PositionAge]). 0 and 0 for a typed one,
+     * which is a decision and does not age.
+     */
+    @Volatile
+    var positionFixMillis: Long = 0L
+
+    @Volatile
+    var positionSpeedMps: Float = 0f
+
+    /** `COORDINATES`: the site row prints the position where it would say `NO SITE`. */
+    @Volatile
+    var showCoordinates: Boolean = false
+
+    /** `ACTIVE SN`: the meridian ticks drawn as a compass while the screen is on. */
+    @Volatile
+    var compassTicks: Boolean = false
+
+    // --- The place's own clock --------------------------------------------------------------
+
+    /**
+     * Whether the zone of the position in force is known. Published by the repository from the
+     * time-zone grid as a [PlaceZone.Window] — the offset now, the next transition and the offset
+     * after it — so the renderer can tell the place's UTC offset at any instant up to the
+     * transition after next with two comparisons and no `java.time` at all.
+     */
+    @Volatile
+    var placeZoneValid: Boolean = false
+        private set
+
+    /**
+     * Whether the hour scale runs on the place's clock rather than the device's: always for a
+     * typed position, and for a measured one when the wearer has switched `LOCAL TIME` to the
+     * position. Published by the repository; read by [com.avdesign.mfd24.render.DialZone].
+     */
+    @Volatile
+    var dialFollowsPlace: Boolean = false
+
+    @Volatile
+    private var placeOffsetMillis: Long = 0L
+
+    @Volatile
+    private var placeTransitionMillis: Long = PlaceZone.NO_TRANSITION
+
+    @Volatile
+    private var placeOffsetAfterMillis: Long = 0L
+
+    fun setPlaceZone(window: PlaceZone.Window) {
+        placeOffsetMillis = window.offsetMillis
+        placeTransitionMillis = window.transitionMillis
+        placeOffsetAfterMillis = window.offsetAfterMillis
+        placeZoneValid = true
+    }
+
+    fun clearPlaceZone() {
+        placeZoneValid = false
+    }
+
+    /** The place's UTC offset at [epochMillis]; only meaningful while [placeZoneValid]. */
+    fun placeOffsetAt(epochMillis: Long): Long =
+        if (epochMillis < placeTransitionMillis) placeOffsetMillis else placeOffsetAfterMillis
 
     @Volatile
     var siteValid: Boolean = false

@@ -80,11 +80,16 @@ SITES = [
 FLAME = (255, 110, 0)         # Palette.FLAME_ORANGE, under the rocket whatever the lume
 
 
-def site(source, name, colour, path):
+def site(source, name, colour, path, right=None):
+    """`right` paints the glyph's right half in a second colour, as a shared airfield is drawn."""
     mask = preview_glyphs.render(preview_glyphs.parse(source, name), SITE_PX)
     img = Image.new("RGB", (SITE_PX + 2 * PAD, SITE_PX + 2 * PAD), (0, 0, 0))
     tint = Image.new("RGB", mask.size, colour)
     img.paste(tint, (PAD, PAD), mask)
+    if right is not None:
+        half = mask.copy()
+        half.paste(0, (0, 0, SITE_PX // 2, SITE_PX))
+        img.paste(Image.new("RGB", mask.size, right), (PAD, PAD), half)
     if name == "rocket":
         flame = preview_glyphs.render(preview_glyphs.parse(source, "rocketFlame"), SITE_PX)
         img.paste(Image.new("RGB", flame.size, FLAME), (PAD, PAD), flame)
@@ -103,6 +108,9 @@ def main():
     for kind, civil, military in SITES:
         site(source, civil, GREEN, os.path.join(OUT, "site-%s-civil.png" % kind))
         site(source, military, AMBER, os.path.join(OUT, "site-%s-military.png" % kind))
+    # A civil field with a military one inside the same radius: the civil one is named, for its
+    # METAR, and the accent on the right half says the other is there.
+    site(source, "aircraft", GREEN, os.path.join(OUT, "site-airfield-shared.png"), right=AMBER)
 
 
 if __name__ == "__main__":

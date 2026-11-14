@@ -38,10 +38,10 @@ Art ab** — siehe [Kompatibilität](#kompatibilität).
 | **Wach-Timer** | Sofort antreten oder ansetzen. Ein Wachbogen spannt die Wachstunden auf und verblasst, während sie abgeleistet werden; `DUTY: 04:40 REM` zählt herunter. Antritt und Ablösung piepen und vibrieren, auch bei dunklem Display. Eine übergebene Wache räumt sich eine Stunde später selbst ab. |
 | **Totmannschalter** | Standardmäßig aus. Alle 5/10/15 Minuten fragt er ein Lebenszeichen ab; bleibt die Quittung dreißig Sekunden aus, sendet er SOS in Salven und hinterlässt `MAN DOWN` — Totmann ausgelöst — mit dem Zulu-Moment auf dem Blatt. Optional vermerkt er Ihren Puls während der unquittierten Abfrage, neben Ihrem letzten Wert in Bewegung. |
 | **Logbuch senden** | Das Logbuch verlässt die Uhr als **QR-Code** für die Handykamera oder als **Ton** — Bell 202 AFSK, dekodiert von `minimodem`. Der Ton trägt alles; der QR-Code trägt, was hineinpasst, und sagt es. [Kanäle und Grenzen ↓](#export) |
-| **Zulu + Datum-Zeit-Gruppe** | `Z 11NOV 13:05`, die Uhr, in der ein Logbucheintrag geschrieben wird. |
+| **Zulu + Datum-Zeit-Gruppe** | `Z 11NOV 13:05 -5`, die Uhr, in der ein Logbucheintrag geschrieben wird, gefolgt von der Abweichung des Blatts. |
 | **Wetter** | Temperatur, Zustand in METAR-Kürzeln und QNH. An einem Flugplatz ist es der **eigene METAR** dieses Platzes; überall sonst Open-Meteo. Alle 30 Minuten aufgefrischt. |
 | **5-km-Standortkennung** | Nennt den nächstgelegenen Flugplatz, Hafen, Heliport oder die nächste Startanlage aus 9 649 Anlagen in einem 194-KB-Index an Bord. Militärische Anlagen werden in der Akzentfarbe gezeichnet. |
-| **Nadir, Sonne und Mond** | Der Tagbogen als Schattierung über dem Stundenband, offline berechnet. Sonnenstand und Mondstand sitzen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass**. Der Mond trägt seine echte Phase. |
+| **Nadir, Sonne und Mond** | Der Tagbogen als Schattierung über dem Stundenband, offline berechnet. Sonnenstand und Mondstand sitzen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass** — auch südlich des Äquators, wo die Marken wie der Himmel gegen die Zeiger laufen. `ACTIVE SN` färbt den Meridian nach Norden rot und nach Süden weiß, spitz, solange die Uhr das Blatt auf 15° genau weiß. Der Mond trägt seine echte Phase. |
 | **Sensor-Slots** | Zwei optionale Anzeigen neben der Nabe: Puls, die Schritte des Tages oder Stationsdruck. Standardmäßig aus; sie laufen bei eingeschaltetem Display, und im Always-on wird der Puls einmal pro Minute neu gelesen, solange die Uhr getragen wird. [Wie dieses Fenster seinen Takt findet ↓](#pulse-window) |
 | **Always-on** | Dasselbe Blatt, gedimmt. `AUTO` dünnt es nach Sonnenuntergang auf jedes zweite Pixel aus — nie während einer Nachtwache. |
 | **Direct Boot** | Zeichnet mit Inhalt, bevor die Uhr entsperrt ist. |
@@ -51,26 +51,32 @@ Art ab** — siehe [Kompatibilität](#kompatibilität).
 | Eine versäumte Abfrage, spät quittiert | JFK nach Heathrow, der ganze Flug | Aufwachen |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| Das SOS blieb unquittiert: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Wachbogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 36 Sekunden: eine Acht-Stunden-Wache, am Gate angetreten, der Standort und sein METAR fünf Minuten nach dem Abheben weg, die Kabine bei 790 hPa, Sonnenuntergang über dem Atlantik, `EGLL` zurück im Endanflug, und die Zeiger am Boden nach London gewandert. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
+| Das SOS blieb unquittiert: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Wachbogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 43 Sekunden, mit `ORTSZEIT` auf `STANDORT`: eine Acht-Stunden-Wache, am Gate angetreten, der Standort und sein METAR fünf Minuten nach dem Abheben weg, die Kabine bei 790 hPa, die Zeiger gleitend durch die Zonen darunter — −4 vor Neuschottland, −3:30 eine Viertelstunde lang über Neufundland, 0 über Irland —, Sonnenuntergang über dem Atlantik und `EGLL` zurück im Endanflug. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
 
-*Der Flug dauert mit Absicht 36 Sekunden — ein ganzer Tag für alle, die einem zusehen wollen; am
-Boden geht es langsam, über dem Ozean schnell. Die Landung allein, in voller Geschwindigkeit:
-[landing.gif](../media/landing.gif).*
+*Der Flug dauert mit Absicht 43 Sekunden — ein ganzer Tag für alle, die einem zusehen wollen; am
+Boden geht es langsam, über dem Ozean schnell.*
 
 <details>
 <summary><b>Zwei Dinge, nach denen beim Flug gefragt wird</b></summary>
 
 <br>
 
-**Warum wechseln die Zeiger die Zeitzone erst nach der Landung?** Eine Uhr bezieht ihre Zeitzone
-vom Telefon, und das Telefon findet erst am Boden ein Netz. Bis dahin behält das Zifferblatt die
-Abflugzone — und darum steht über dem Ozean auch der Sonnenstand rechts vom Tagbogen: Die Marke ist
-der wahre Stundenwinkel der Sonne, der Tagbogen ist der Tag in der Zone der Uhr, und der Abstand
-zwischen beiden ist genau der Rückstand der Zone. Das Gleiten am Boden schließt ihn.
+**Warum wechseln die Zeiger die Zeitzone über dem Ozean?** Weil das Zifferblatt die Zeit des
+Bodens darunter halten soll: `ORTSZEIT` → `STANDORT`. Jeder Wechsel ist die Uhr des Ortes unter der
+Route, keine Vermutung über den Reisenden — die Neufundland-Halbstunde dauert eine Viertelstunde,
+weil die Route so lange darüber liegt, und die Abweichung hinter Zulu sagt, welche Uhr gilt. Die
+Zone folgt der Position, am Handgelenk also dann, wenn die Uhr das nächste Mal erfährt, wo sie ist;
+und eine Grenze gilt erst drei Kilometer dahinter als überquert, damit ein Fix, der an der Linie
+entlangwandert, die Zeiger nicht hin und her schaukelt. Bei der Ankunft zeigt das Zifferblatt
+Ortszeit, während das Telefon noch ein Netz sucht. Auf `TELEFON`, der Voreinstellung, behält das
+Zifferblatt die Zone des Telefons, die sich auf einem Flug erst nach der Landung ändert; Sonne und
+Mond verlassen dann für die Überquerung das Zifferblatt, statt Stunden außerhalb des Tagbogens zu
+stehen.
 
 **Was daran ist echt?** Der Flugplan ist der von BA 178 an jenem Tag, und die Positionen folgen
-seiner üblichen Nordatlantikroute, dem Zifferblatt als GPS-Fixes zugespielt; Wetter und Astronomie
-sind daraus die eigene Arbeit des Zifferblatts. Puls, Kabinendruck und Akku sind auf dem Emulator
+seiner üblichen Nordatlantikroute, dem Zifferblatt als GPS-Fixes zugespielt; die Astronomie ist
+daraus die eigene Arbeit des Zifferblatts. Das Wetter am Gate ist der METAR von KJFK jenes Morgens,
+in den Speicher des Zifferblatts gelegt, denn kein Dienst liefert eine vergangene Beobachtung. Puls, Kabinendruck und Akku sind auf dem Emulator
 inszeniert, denn ein Emulator hat kein Handgelenk.
 
 </details>
@@ -177,9 +183,15 @@ sind Instrumentenbeschriftung, keine Prosa.
 - **Totmann** — ein/aus, Abfrageintervall, `VIBRATION`, `SOS-SIGNAL` (AUS/MIN/MED/MAX),
   `PULS INS LOGBUCH` und das Logbuch samt Senden.
 - **Sensoren** — was jeder Slot an der Nabe liest.
-- **Position** — Ortung oder von Hand eingegebene Koordinaten.
+- **Position** — Ortung oder von Hand eingegebene Koordinaten. Eine eingegebene Position stellt das
+  Blatt auf die Zeit dieses Ortes; eine geortete kann es auch, mit `ORTSZEIT` → `STANDORT`. Hinter
+  Zulu steht die Abweichung des Blatts (`Z 13NOV 13:58 -5`), welche Uhr gilt, ist also nie geraten.
+  Die Standortzeile, über dem Wetter, endet bei einer eingegebenen Position mit einer Kartennadel, bei einer georteten mit einem Satelliten: gedimmt, sobald sie
+  unterwegs mehr als 5 km abgedriftet sein kann, durchgestrichen nach einer halben Stunde unterwegs
+  ohne Fix — die letzte Position bleibt so oder so stehen. `KOORDINATEN` schreibt sie dorthin, wo
+  sonst `NO SITE` stünde: `50°27N 30°31E`.
 - **Anzeige** — Leuchtfarbe, Zifferblatt oben, Mitternachtsmarke, Nadir, Sonnenstand und Mondstand,
-  Wetter, Always-on und `HINWEISE` für das Kleingedruckte unter jeder Zeile.
+  `ACTIVE SN`, Wetter, Always-on und `HINWEISE` für das Kleingedruckte unter jeder Zeile.
 - **Einheiten** — °C/°F, hPa/mmHg.
 - **Info** — Version, das Repository als QR-Code, der Release-Check.
 
@@ -294,7 +306,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ und das Android-SDK. 193 JVM-Tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ und das Android-SDK. 248 JVM-Tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Wie es entstanden ist
 
@@ -307,6 +319,8 @@ Handgelenk gelaufen ist.
 
 GPL-3.0-or-later — siehe [LICENSE](../../LICENSE). Marinestützpunkte und Heliports stammen aus
 OpenStreetMap (© OpenStreetMap-Mitwirkende, **ODbL**), also trägt jeder daraus gebaute Index diese
-Lizenz ebenfalls; Flugplätze, Häfen und Startanlagen werden in diesem Repository kuratiert. Wetter
+Lizenz ebenfalls; die Zeitzonengrenzen stammen von [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder), ebenfalls aus
+OpenStreetMap und **ODbL**; Flugplätze, Häfen und Startanlagen werden in diesem Repository
+kuratiert. Wetter
 von [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) und
 [aviationweather.gov](https://aviationweather.gov/) (US NOAA, gemeinfrei).

@@ -10,11 +10,13 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import com.avdesign.mfd24.astro.AstroTime
 import com.avdesign.mfd24.astro.PlanetMode
+import com.avdesign.mfd24.data.PositionAge
 import com.avdesign.mfd24.data.TelemetryState
 import com.avdesign.mfd24.data.VigilanceState
 import com.avdesign.mfd24.data.WatchShiftState
 import com.avdesign.mfd24.data.WeatherCondition
 import com.avdesign.mfd24.style.Palette
+import com.avdesign.mfd24.text.Coordinates
 import com.avdesign.mfd24.text.TextBuf
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -33,11 +35,13 @@ import kotlin.math.roundToInt
  * ```
  *                  EARTH                  MARS               MOON
  *   above  row 1   DUTY: 03:42 REM        DUTY: 03:42 REM    OFF-DUTY
- *          row 2   Z 18AUG 18:42          Z 18AUG 18:42      Z 18AUG 18:42
- *   below  row 3   ♁ -4°C OVC Q1013       ♂ SOL 54321        ☾ LUNAR DAY 20834
- *          row 4   ✈ SVO 4.2KM            MTC 18:42          LTC 18:42
+ *          row 2   Z 18AUG 18:42 +3       Z 18AUG 18:42      Z 18AUG 18:42
+ *   below  row 3   ✈ UUEE 4.2KM ⊛         ♂ SOL 54321        ☾ LUNAR DAY 20834
+ *          row 4   -4°C OVC Q1013         MTC 18:42          LTC 18:42
  * ```
- * The site pictogram on row 4 is chosen by the site type *and* its flags — see [SiteGlyph].
+ * On Earth the location comes first: the site pictogram leads row 3 and the position symbol
+ * (⊛, a satellite or a pin) closes it; the weather follows on row 4. The site pictogram is chosen
+ * by the site type *and* its flags — see [SiteGlyph].
  * The reference frame is an astronomical symbol rather than a word: it carries the same meaning in
  * a fraction of the width, and it is drawn as a path because font coverage for ♁ ♂ ☾ on Wear OS is
  * no more reliable than it is for emoji. Earth-referenced ZULU is present in every mode, as the
@@ -58,12 +62,16 @@ class TelemetryLayer {
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
     }
-    /** Both pictograms — the reference-frame symbol and the site glyph — go through this pair. */
+    /** Every pictogram — site, position or frame symbol — goes through this pair. */
     private val symbolHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
     }
     private val glyphPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val strikePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
 
     /** Refreshed once per frame; used to sit the pictograms on the type's optical middle. */
     private val metrics = Paint.FontMetrics()
@@ -78,6 +86,9 @@ class TelemetryLayer {
     private val monoBold: Typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
 
     private val zulu = TextBuf(24)
+
+    /** The dial's offset from Zulu, ` +2` or ` -3:30`, drawn after the Zulu group; see [buildZone]. */
+    private val zone = TextBuf(8)
     private val battery = TextBuf(12)
     private val sensor = TextBuf(12)
 
@@ -97,6 +108,7 @@ class TelemetryLayer {
     private var symbolLayout = -1
 
     private val glyphPath = Path()
+
 
     /** The rocket's exhaust, built beside [glyphPath] for a spaceport and empty otherwise. */
     private val flamePath = Path()
@@ -129,8 +141,11 @@ class TelemetryLayer {
         sensorRight: Int,
         layoutGeneration: Int,
         frameSymbol: Boolean,
+        dialOffsetMillis: Long,
+        positionAge: Int,
     ) {
         buildLines(state, planetMode, epochMillis, fahrenheit, mmHg)
+        buildZone(planetMode, dialOffsetMillis)
         if (vigilanceStatus == VigilanceState.INCIDENT) {
             buildIncident(incidentMillis, incidentElapsedMillis)
         } else {
@@ -171,104 +186,234 @@ class TelemetryLayer {
         }
 
         textPaint.color = palette.lume
-        drawHaloed(canvas, zulu, g.cx, g.telemetryLineY[1])
+        if (zone.length == 0) {
+            drawHaloed(canvas, zulu, g.cx, g.telemetryLineY[1])
+        } else {
+            // Zulu and the dial's offset centred as one group, the offset a step dimmer: it is a
+            // note on the hour scale, as the date is a note on the time, not a second reading.
+            val zuluWidth = textPaint.measureText(zulu.chars, 0, zulu.length)
+            val left = g.cx - (zuluWidth + textPaint.measureText(zone.chars, 0, zone.length)) / 2f
+            textPaint.textAlign = Paint.Align.LEFT
+            haloPaint.textAlign = Paint.Align.LEFT
+            drawHaloed(canvas, zulu, left, g.telemetryLineY[1])
+            textPaint.color = palette.lumeDim
+            drawHaloed(canvas, zone, left + zuluWidth, g.telemetryLineY[1])
+            textPaint.textAlign = Paint.Align.CENTER
+            haloPaint.textAlign = Paint.Align.CENTER
+        }
 
-        // First data row. On the multi-world faces the reference-frame symbol leads it, so the
-        // mode costs no line of its own; the Earth face drops the glyph — one world says
-        // nothing — and the row is plain text, absent entirely when there is nothing to report.
         textPaint.color = palette.lumeSoft
+        if (planetMode == PlanetMode.EARTH) {
+            drawEarthRows(canvas, g, palette, state, layoutGeneration, positionAge)
+            return
+        }
+
+        // Off Earth the reference-frame symbol leads the first data row, so the mode costs no
+        // line of its own, and the second carries the body's own clock. Neither has a site.
         if (frameSymbol) {
             if (symbolMode != planetMode || symbolLayout != layoutGeneration) {
                 buildSymbol(g, planetMode)
                 symbolMode = planetMode
                 symbolLayout = layoutGeneration
             }
-            drawGlyphedLine(
-                canvas, g, palette.lume, symbolPath,
-                g.symbolBox.width(), g.symbolBox.height(), line1, g.telemetryLineY[2],
-            )
+            drawGlyphedLine(canvas, g, palette.lume, symbolPath, line1, g.telemetryLineY[2])
         } else if (line1.length > 0) {
             drawHaloed(canvas, line1, g.cx, g.telemetryLineY[2])
         }
+        drawHaloed(canvas, line2, g.cx, g.telemetryLineY[3])
+    }
 
-        // Second data row: the site pictogram leads it when there is a site to name. With no
-        // position at all there is no row — not even a placeholder, which would be noise.
-        if (planetMode == PlanetMode.EARTH && !state.hasPosition) {
-            return
+    /**
+     * The Earth face's two rows under the hub: where the dial is, then the weather there.
+     *
+     * Location leads because it is what the position symbol describes, and the symbol belongs
+     * beside the place it measured rather than beside a temperature: a satellite for a position
+     * the watch measured, the cross in a map pin for one typed in by hand — which is also the
+     * dial's clock, see [DialZone]. It closes the row, after the site pictogram when a site is
+     * locked and the site, the coordinates or `NO SITE`. The upper row is the wider one, which is what
+     * pays for two pictograms; the weather row below it lost its symbol and fits the lower row
+     * as bare text. No position, no location row — and the weather row stays where it is, so the
+     * block does not jump when a fix arrives.
+     */
+    private fun drawEarthRows(
+        canvas: Canvas,
+        g: Geometry,
+        palette: Palette,
+        state: TelemetryState,
+        layoutGeneration: Int,
+        positionAge: Int,
+    ) {
+        drawWeatherRow(canvas, g)
+        if (!state.hasPosition) return
+
+        val symbol = when (state.positionSource) {
+            TelemetryState.POSITION_MANUAL -> SYMBOL_TYPED
+            TelemetryState.POSITION_DEVICE -> SYMBOL_MEASURED
+            else -> NO_SYMBOL
         }
+        if (symbol != NO_SYMBOL && (symbolMode != symbol || symbolLayout != layoutGeneration)) {
+            buildSymbol(g, symbol)
+            symbolMode = symbol
+            symbolLayout = layoutGeneration
+        }
+        val site = state.siteValid
+        if (site) prepareSiteGlyph(g, state, layoutGeneration)
 
-        if (planetMode == PlanetMode.EARTH && state.siteValid) {
-            val key = state.siteType shl 8 or (state.siteFlags and 0xFF)
-            if (glyphKey != key || glyphLayout != layoutGeneration) {
-                buildGlyph(g, state.siteType, state.siteFlags)
-                glyphKey = key
-                glyphLayout = layoutGeneration
-            }
-            // The accent colour marks a military site. It is the same accent the seconds cursor
-            // and the hub ring use, and it is never the lume hue, so it separates at any size --
-            // which is more than the silhouette alone can promise in a 22 px box.
-            val glyphColor = if (SiteGlyph.isMilitary(state.siteFlags)) {
-                palette.second
-            } else {
-                palette.lume
-            }
-            drawGlyphedLine(
-                canvas, g, glyphColor, glyphPath,
-                g.glyphBox.width(), g.glyphBox.height(), line2, g.telemetryLineY[3],
-                // Only the rocket has one; for every other site the path is empty and draws nothing.
-                flamePath, palette.flame,
+        // The position symbol closes the row, a character's space after the text: in front it
+        // stacked against the site pictogram, two signs before anything was said.
+        val siteWidth = if (site) g.glyphBox.width() + g.siteTextGap else 0f
+        val textWidth = textPaint.measureText(line2.chars, 0, line2.length)
+        val symbolWidth = if (symbol == NO_SYMBOL) 0f else g.siteTextGap + g.symbolBox.width()
+        var x = g.cx - (siteWidth + textWidth + symbolWidth) / 2f
+
+        if (site) {
+            drawPictogram(
+                canvas, g, glyphPath, x, g.glyphBox.height(), siteColor(palette, state),
+                rightColor = siteRightColor(palette, state),
+                glyphWidth = g.glyphBox.width(),
+                overlay = flamePath, overlayColor = palette.flame,
             )
-        } else {
-            drawHaloed(canvas, line2, g.cx, g.telemetryLineY[3])
+            x += siteWidth
+        }
+        textPaint.textAlign = Paint.Align.LEFT
+        haloPaint.textAlign = Paint.Align.LEFT
+        drawHaloed(canvas, line2, x, g.telemetryLineY[2])
+        textPaint.textAlign = Paint.Align.CENTER
+        haloPaint.textAlign = Paint.Align.CENTER
+        x += textWidth + g.siteTextGap
+
+        if (symbol != NO_SYMBOL) {
+            // A measured position says how much it is still worth (PositionAge): full while it
+            // can be trusted, dimmed once it may have drifted past the site lock, struck out after
+            // half an hour on the move without a fix. The position stays on the dial throughout.
+            val measured = symbol == SYMBOL_MEASURED
+            val aged = measured && positionAge != PositionAge.FRESH
+            drawPictogram(
+                canvas, g, symbolPath, x, g.symbolBox.height(),
+                if (aged) palette.lumeDim else palette.lume,
+                strike = measured && positionAge == PositionAge.LOST,
+                strikeColor = palette.lume,
+            )
         }
     }
 
     /**
-     * Draws a pictogram and its text as one group, centred on the dial. The path is built with its
-     * left edge at the centre and its foot on the baseline, so positioning is a translate rather
-     * than a rebuild.
-     *
-     * The vertical shift matters: a pictogram sitting on the baseline hangs low against digits,
-     * which have no descender. Both are centred on the type's optical middle instead, which the
-     * font metrics give as `baseline + (ascent + descent) / 2`.
+     * The weather, bare. The site pictogram on the row above already says whether this is an
+     * aerodrome's own METAR: a METAR is fetched only for a locked aerodrome, so a second aircraft
+     * here said nothing the first had not.
      */
+    private fun drawWeatherRow(canvas: Canvas, g: Geometry) {
+        if (line1.length == 0) return
+        drawHaloed(canvas, line1, g.cx, g.telemetryLineY[3])
+    }
+
+    private fun prepareSiteGlyph(g: Geometry, state: TelemetryState, layoutGeneration: Int) {
+        val key = state.siteType shl 8 or (state.siteFlags and 0xFF)
+        if (glyphKey != key || glyphLayout != layoutGeneration) {
+            buildGlyph(g, state.siteType, state.siteFlags)
+            glyphKey = key
+            glyphLayout = layoutGeneration
+        }
+    }
+
+    /**
+     * The accent colour marks a military site. It is the same accent the seconds cursor and the
+     * hub ring use, and it is never the lume hue, so it separates at any size -- which is more
+     * than the silhouette alone can promise in a 22 px box.
+     */
+    private fun siteColor(palette: Palette, state: TelemetryState): Int =
+        if (SiteGlyph.isMilitary(state.siteFlags)) palette.second else palette.lume
+
+    /** A civil field with a military one in the same radius keeps its airliner and takes the
+     * accent on its right half. */
+    private fun siteRightColor(palette: Palette, state: TelemetryState): Int =
+        if (SiteGlyph.isShared(state.siteFlags)) palette.second else siteColor(palette, state)
+
+    /** The frame symbol and its text as one group, centred on the dial. */
     private fun drawGlyphedLine(
         canvas: Canvas,
         g: Geometry,
         glyphColor: Int,
         path: Path,
-        glyphWidth: Float,
-        glyphHeight: Float,
         buf: TextBuf,
         baselineY: Float,
-        overlay: Path? = null,
-        overlayColor: Int = 0,
     ) {
+        val glyphWidth = g.symbolBox.width()
         val textWidth = textPaint.measureText(buf.chars, 0, buf.length)
         // An empty buffer means the pictogram is the whole row, so it centres on its own rather
         // than being nudged aside by a gap that leads to nothing.
         val groupWidth =
             if (buf.length == 0) glyphWidth else glyphWidth + g.glyphGap + textWidth
         val left = g.cx - groupWidth / 2f
-        val dy = (metrics.ascent + metrics.descent) / 2f + glyphHeight / 2f
-
-        canvas.save()
-        canvas.translate(left - g.cx, dy)
-        canvas.drawPath(path, symbolHaloPaint)
-        glyphPaint.color = glyphColor
-        canvas.drawPath(path, glyphPaint)
-        if (overlay != null) {
-            glyphPaint.color = overlayColor
-            canvas.drawPath(overlay, glyphPaint)
-        }
-        canvas.restore()
-
+        drawPictogram(canvas, g, path, left, g.symbolBox.height(), glyphColor)
         if (buf.length == 0) return
         textPaint.textAlign = Paint.Align.LEFT
         haloPaint.textAlign = Paint.Align.LEFT
         drawHaloed(canvas, buf, left + glyphWidth + g.glyphGap, baselineY)
         textPaint.textAlign = Paint.Align.CENTER
         haloPaint.textAlign = Paint.Align.CENTER
+    }
+
+    /**
+     * One pictogram with its left edge at [left]. Paths are built with their left edge at the
+     * dial centre and their foot on the row's baseline, so positioning is a translate rather
+     * than a rebuild.
+     *
+     * The vertical shift matters: a pictogram sitting on the baseline hangs low against digits,
+     * which have no descender. Both are centred on the type's optical middle instead, which the
+     * font metrics give as `baseline + (ascent + descent) / 2`.
+     */
+    private fun drawPictogram(
+        canvas: Canvas,
+        g: Geometry,
+        path: Path,
+        left: Float,
+        glyphHeight: Float,
+        glyphColor: Int,
+        rightColor: Int = glyphColor,
+        glyphWidth: Float = 0f,
+        overlay: Path? = null,
+        overlayColor: Int = 0,
+        strike: Boolean = false,
+        strikeColor: Int = 0,
+    ) {
+        val dy = (metrics.ascent + metrics.descent) / 2f + glyphHeight / 2f
+        canvas.save()
+        canvas.translate(left - g.cx, dy)
+        canvas.drawPath(path, symbolHaloPaint)
+        glyphPaint.color = glyphColor
+        if (rightColor == glyphColor) {
+            canvas.drawPath(path, glyphPaint)
+        } else {
+            // Split down the middle of the glyph box: the path is built with its left edge on the
+            // dial centre, so the seam is half a glyph to the right of it. Two clips, no allocation.
+            val seam = g.cx + glyphWidth / 2f
+            canvas.save()
+            canvas.clipRect(g.cx - g.r, g.cy - g.r, seam, g.cy + g.r)
+            canvas.drawPath(path, glyphPaint)
+            canvas.restore()
+            canvas.save()
+            canvas.clipRect(seam, g.cy - g.r, g.cx + g.r, g.cy + g.r)
+            glyphPaint.color = rightColor
+            canvas.drawPath(path, glyphPaint)
+            canvas.restore()
+        }
+        if (overlay != null) {
+            glyphPaint.color = overlayColor
+            canvas.drawPath(overlay, glyphPaint)
+        }
+        if (strike) {
+            // Corner to corner across the satellite's axis, haloed so it reads as a line laid on
+            // the glyph rather than one more part of it.
+            val box = g.symbolBox
+            strikePaint.strokeWidth = g.r * STRIKE_HALO_WIDTH
+            strikePaint.color = symbolHaloPaint.color
+            canvas.drawLine(box.left, box.top, box.right, box.bottom, strikePaint)
+            strikePaint.strokeWidth = g.r * STRIKE_WIDTH
+            strikePaint.color = strikeColor
+            canvas.drawLine(box.left, box.top, box.right, box.bottom, strikePaint)
+        }
+        canvas.restore()
     }
 
     /**
@@ -483,6 +628,29 @@ class TelemetryLayer {
     }
 
     /**
+     * The offset of the hour scale from Zulu, after the Zulu group: ` +2`, ` -5`, ` +5:30`,
+     * ` +12:45`, and ` +0` rather than nothing in London in winter, because an empty slot would
+     * read as "not known".
+     *
+     * It is what makes the dial's clock a stated fact rather than an inference. Since the scale
+     * can run on the place's zone or the phone's, and the two part company in the air, at a border
+     * and on a typed position, the reader needs to see which one is in force without opening the
+     * settings. An offset and not an abbreviation: plenty of zones have none (the platform prints
+     * `+0545`), and `CST` is Chicago, Shanghai and Havana at once. Twenty characters at worst,
+     * `Z 13NOV 13:58 +12:45`, which `GeometryBudgetTest` holds inside the numerals.
+     *
+     * Earth only: on the other worlds the scale is not a time zone.
+     */
+    private fun buildZone(planetMode: Int, offsetMillis: Long) {
+        zone.clear()
+        if (planetMode != PlanetMode.EARTH) return
+        val minutes = (offsetMillis / 60_000L).toInt()
+        val magnitude = if (minutes < 0) -minutes else minutes
+        zone.space().ch(if (minutes < 0) '-' else '+').uint(magnitude / 60)
+        if (magnitude % 60 != 0) zone.ch(':').pad2(magnitude % 60)
+    }
+
+    /**
      * `21:14Z +02:13` — when the operator stopped answering, and how long ago that was.
      *
      * Zulu because it is the one clock that means the same thing to whoever reads it next, and it
@@ -580,7 +748,7 @@ class TelemetryLayer {
         buf.pad2(h).ch(':').pad2(m)
     }
 
-    /** Leaves the row empty when there is nothing to report; the symbol then stands on its own. */
+    /** Leaves the row empty when there is nothing to report; the weather row is then not drawn. */
     private fun appendWeather(state: TelemetryState, fahrenheit: Boolean, mmHg: Boolean) {
         if (!state.weatherValid) return
 
@@ -606,7 +774,15 @@ class TelemetryLayer {
         if (!state.siteValid) {
             // A fix but nothing within the radius is worth saying; no fix at all is not, because
             // the row is not drawn in that case.
-            line2.lit(TextBuf.LIT_NO_SITE)
+            // COORDINATES: where there is no site to name, the position itself is the most useful
+            // thing the row can say — at sea and in the air, which is most of the time out there.
+            if (state.showCoordinates && !state.positionLatDeg.isNaN() &&
+                !state.positionLonDeg.isNaN()
+            ) {
+                Coordinates.append(line2, state.positionLatDeg, state.positionLonDeg)
+            } else {
+                line2.lit(TextBuf.LIT_NO_SITE)
+            }
             return
         }
         val version = state.siteVersion
@@ -622,10 +798,12 @@ class TelemetryLayer {
     private fun roundDeci(deci: Int): Int =
         if (deci >= 0) (deci + 5) / 10 else -((-deci + 5) / 10)
 
-    private fun buildSymbol(g: Geometry, planetMode: Int) {
-        when (planetMode) {
+    private fun buildSymbol(g: Geometry, symbol: Int) {
+        when (symbol) {
             PlanetMode.MARS -> Glyphs.buildMarsSymbol(g.symbolBox, symbolPath)
             PlanetMode.MOON -> Glyphs.buildMoonSymbol(g.symbolBox, symbolPath)
+            SYMBOL_TYPED -> Glyphs.buildPositionPin(g.symbolBox, symbolPath)
+            SYMBOL_MEASURED -> Glyphs.buildSatellite(g.symbolBox, symbolPath)
             else -> Glyphs.buildEarthSymbol(g.symbolBox, symbolPath)
         }
     }
@@ -648,6 +826,19 @@ class TelemetryLayer {
     private companion object {
         /** Halo stroke, as a fraction of the dial radius. */
         const val HALO_WIDTH = 0.014f
+
+        /** The location row carries no position symbol: there is no position to describe. */
+        const val NO_SYMBOL = -1
+
+        /** The map-pin cross: the position, and so the dial's clock, was typed in by hand. */
+        const val SYMBOL_TYPED = 100
+
+        /** A satellite: the position was measured — and how long ago is in its brightness. */
+        const val SYMBOL_MEASURED = 101
+
+        /** The strike across a lost position's satellite, and its halo. */
+        const val STRIKE_WIDTH = 0.010f
+        const val STRIKE_HALO_WIDTH = 0.026f
 
         /** 99:59 — a shift is at most a day, so anything longer is a bug, not a reading. */
         const val MAX_DISPLAY_MINUTES = 99 * 60 + 59

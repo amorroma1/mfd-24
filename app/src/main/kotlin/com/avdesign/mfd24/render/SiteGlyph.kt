@@ -34,6 +34,15 @@ object SiteGlyph {
     fun isMilitary(flags: Int): Boolean = flags and PoiFormat.FLAG_MILITARY != 0
 
     /**
+     * Whether a civil airfield shares its radius with a military one, and so is drawn split down
+     * the middle: the left half in the primary colour, the right half in the accent. The shape
+     * stays the airliner, because the field named and the METAR read are the civil one; the
+     * colour says the other is there. Judged against a nose/tail split, which cut through the
+     * wings, and half an airliner beside half a fighter, which read as one broken shape at 22 px.
+     */
+    fun isShared(flags: Int): Boolean = flags and PoiFormat.FLAG_SHARED_MILITARY != 0
+
+    /**
      * @param type one of `PoiFormat.TYPE_*`
      * @param flags bitfield of `PoiFormat.FLAG_*`
      */

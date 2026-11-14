@@ -126,6 +126,54 @@ class PoiDatabaseTest {
     }
 
     @Test
+    fun `a civil field is named ahead of a nearer military one, and says it is shared`() {
+        // Honolulu and Hickam share runways; the reference points are 3 km apart. Standing at
+        // Hickam's, the old rule named PHIK, which publishes no METAR of its own.
+        val points = listOf(
+            Point("PHNL", 21.3184, -157.9257, PoiFormat.TYPE_AIRPORT),
+            Point("PHIK", 21.3353, -157.9483, PoiFormat.TYPE_AIRPORT, PoiFormat.FLAG_MILITARY),
+        )
+        val db = PoiDatabase.fromBytes(pack(points))!!
+        val hit = PoiHit()
+
+        assertTrue(db.queryNearest(21.3353, -157.9483, 5_000.0, hit))
+        assertEquals("PHNL", String(hit.code, 0, hit.codeLength))
+        assertTrue(hit.flags and PoiFormat.FLAG_SHARED_MILITARY != 0)
+        assertEquals(0, hit.flags and PoiFormat.FLAG_MILITARY)
+        assertEquals(distanceTo(points[0], 21.3353, -157.9483), hit.distanceMeters, 1e-6)
+
+        // With only the military field in range it is named as it always was, and not "shared".
+        assertTrue(db.queryNearest(21.357, -157.978, 5_000.0, hit))
+        assertEquals("PHIK", String(hit.code, 0, hit.codeLength))
+        assertEquals(PoiFormat.FLAG_MILITARY, hit.flags)
+
+        // With only the civil field in range there is nothing to share.
+        assertTrue(db.queryNearest(21.296, -157.896, 5_000.0, hit))
+        assertEquals("PHNL", String(hit.code, 0, hit.codeLength))
+        assertEquals(0, hit.flags)
+    }
+
+    @Test
+    fun `the civil preference never outranks a spaceport, nor borrows a helipad's military flag`() {
+        val points = listOf(
+            Point("CIV", 45.970, 63.210, PoiFormat.TYPE_AIRPORT),
+            Point("PAD", 45.965, 63.305, PoiFormat.TYPE_SPACEPORT),
+            Point(
+                "HELI", 45.969, 63.215, PoiFormat.TYPE_AIRPORT,
+                PoiFormat.FLAG_HELIPAD or PoiFormat.FLAG_MILITARY,
+            ),
+        )
+        val db = PoiDatabase.fromBytes(pack(points))!!
+        val hit = PoiHit()
+        assertTrue(db.queryNearest(45.968, 63.220, 10_000.0, hit))
+        assertEquals("PAD", String(hit.code, 0, hit.codeLength))
+
+        assertTrue(db.queryNearest(45.970, 63.210, 2_000.0, hit))
+        assertEquals("CIV", String(hit.code, 0, hit.codeLength))
+        assertEquals("a military helipad is not a military airfield", 0, hit.flags)
+    }
+
+    @Test
     fun `range query agrees with brute force`() {
         val random = Random(1234)
         val points = ArrayList<Point>(6_000)
@@ -153,6 +201,8 @@ class PoiDatabaseTest {
                         (lat + random.nextDouble(-0.09, 0.09)).coerceIn(-89.0, 89.0),
                         wrapLon(lon + random.nextDouble(-0.09, 0.09)),
                         random.nextInt(3),
+                        // Some military airfields, so the civil preference is exercised too.
+                        if (random.nextInt(3) == 0) PoiFormat.FLAG_MILITARY else 0,
                     )
                 )
             }
@@ -173,7 +223,7 @@ class PoiDatabaseTest {
             }
             val radius = 5_000.0
 
-            val expected = bruteForce(points, lat, lon, radius)
+            val (expected, expectedFlags) = bruteForce(points, lat, lon, radius)
             val actual = if (db.queryNearest(lat, lon, radius, hit)) {
                 String(hit.code, 0, hit.codeLength)
             } else {
@@ -191,6 +241,7 @@ class PoiDatabaseTest {
                     expected.type,
                     hit.type,
                 )
+                assertEquals("query $q flags", expectedFlags, hit.flags)
                 assertEquals(
                     distanceTo(expected, lat, lon),
                     hit.distanceMeters,
@@ -213,14 +264,32 @@ class PoiDatabaseTest {
     private fun distanceTo(point: Point, lat: Double, lon: Double): Double =
         Geo.haversineMeters(lat, lon, point.lat.toFloat().toDouble(), point.lon.toFloat().toDouble())
 
-    private fun bruteForce(points: List<Point>, lat: Double, lon: Double, radius: Double): Point? {
+    /** The expected site and the flags the query should report for it. */
+    private fun bruteForce(
+        points: List<Point>,
+        lat: Double,
+        lon: Double,
+        radius: Double,
+    ): Pair<Point?, Int> {
         var best: Point? = null
         var bestDistance = Double.MAX_VALUE
         var bestPriority = -1
+        val airfield = PoiFormat.priorityOf(PoiFormat.TYPE_AIRPORT, 0)
+        var civil: Point? = null
+        var civilDistance = Double.MAX_VALUE
+        var military = false
         for (p in points) {
             val d = distanceTo(p, lat, lon)
             if (d > radius) continue
             val priority = PoiFormat.priorityOf(p.type, p.flags)
+            if (priority == airfield) {
+                if (p.flags and PoiFormat.FLAG_MILITARY != 0) {
+                    military = true
+                } else if (d < civilDistance) {
+                    civilDistance = d
+                    civil = p
+                }
+            }
             // A tie on both priority and distance would make "the" answer ambiguous, and the two
             // implementations visit the points in different orders. Random fixtures never tie, so
             // fail loudly rather than compare something meaningless.
@@ -233,7 +302,10 @@ class PoiDatabaseTest {
                 best = p
             }
         }
-        return best
+        if (bestPriority == airfield && civil != null) {
+            return civil to (civil.flags or if (military) PoiFormat.FLAG_SHARED_MILITARY else 0)
+        }
+        return best to (best?.flags ?: 0)
     }
 
     /** Writes the same layout as `:tools:poi`, independently, so a format slip shows up here. */
