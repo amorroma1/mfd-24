@@ -140,7 +140,7 @@
     <string name="editor_vigilance_doze">In deep sleep a check can stretch to 9 minutes</string>
     <string name="editor_vigilance_notifications">Allow notifications to keep the monitor visible</string>
     <string name="editor_label_incidents">INCIDENTS</string>
-    <string name="editor_section_sensors">SENSORS</string>
+    <string name="editor_section_readouts">READOUTS</string>
     <string name="editor_label_sensor_left">LEFT OF HUB</string>
     <string name="editor_label_sensor_right">RIGHT OF HUB</string>
     <string name="editor_sensor_needs_permission">Tap again to allow the sensor</string>
@@ -164,6 +164,13 @@
     <string name="editor_label_dial_top">DIAL TOP</string>
     <string name="editor_label_nadir">NADIR</string>
     <string name="editor_label_weather">WEATHER</string>
+    <string name="editor_label_weather_interval">WEATHER EVERY</string>
+    <string name="weather_every_15">15 MIN</string>
+    <string name="weather_every_15_sr">Weather every fifteen minutes</string>
+    <string name="weather_every_30">30 MIN</string>
+    <string name="weather_every_30_sr">Weather every thirty minutes</string>
+    <string name="weather_every_60">60 MIN</string>
+    <string name="weather_every_60_sr">Weather every hour</string>
     <string name="editor_section_position">POSITION</string>
     <string name="editor_location_device">LOCATION ON</string>
     <string name="editor_location_manual">MANUAL POSITION</string>
@@ -224,7 +231,7 @@
     <string name="editor_step_down" translatable="false">–</string>
     <string name="editor_step_up" translatable="false">+</string>
     <string name="editor_label_palette">LUME PALETTE</string>
-    <string name="editor_section_units">UNITS</string>
+    <string name="editor_section_sky">SKY</string>
     <string name="editor_location_rationale">Weather and the site lock need your position</string>
     <string name="editor_background_location">ALLOW ALL THE TIME</string>
     <string name="editor_background_rationale">The half-hourly refresh needs location “all the time”</string>
@@ -271,8 +278,11 @@
     <string name="coordinates_off_sr">Coordinates off: NO SITE</string>
     <string name="coordinates_on_sr">Coordinates on: the position where no site is near</string>
     <string name="editor_coordinates_note">Printed where NO SITE would be. Off by default, so a photo of the dial says nothing about where you are</string>
-    <string name="editor_label_compass">ACTIVE SN</string>
-    <string name="compass_off_sr">Compass ticks off</string>
-    <string name="compass_on_sr">Compass ticks on: red north, white south</string>
+    <string name="editor_label_compass">ASTRO COMPASS</string>
+    <string name="editor_label_rolling">ROLLING DIGITS</string>
+    <string name="rolling_off_sr">Rolling digits off</string>
+    <string name="rolling_on_sr">Rolling digits on</string>
+    <string name="compass_off_sr">Astro compass off</string>
+    <string name="compass_on_sr">Astro compass on: red north, white south</string>
     <string name="editor_compass_note">Red north, white south, screen on only. Pointed while a sun or moon mark can orient the dial</string>
 </resources>

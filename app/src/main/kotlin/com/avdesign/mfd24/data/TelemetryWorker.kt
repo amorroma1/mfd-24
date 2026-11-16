@@ -41,7 +41,10 @@ class TelemetryWorker(
             RefreshOutcome.OK -> Result.success()
             // Nothing to retry until the user grants access, and WorkManager would just burn slots.
             RefreshOutcome.NO_PERMISSION -> Result.success()
-            RefreshOutcome.NO_FIX, RefreshOutcome.NETWORK_ERROR -> Result.retry()
+            // The repository owns the weather's retries (see WeatherSchedule); a second ladder
+            // here, WorkManager's own from thirty seconds, would ask the service twice as often.
+            RefreshOutcome.NETWORK_ERROR -> Result.success()
+            RefreshOutcome.NO_FIX -> Result.retry()
         }
     }
 

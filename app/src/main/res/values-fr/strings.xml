@@ -109,7 +109,7 @@
     <string name="editor_vigilance_doze">En sommeil profond, un appel peut s\'étirer jusqu\'à 9 minutes</string>
     <string name="editor_vigilance_notifications">Autorisez les notifications pour garder l\'homme mort visible</string>
     <string name="editor_label_incidents">INCIDENTS</string>
-    <string name="editor_section_sensors">CAPTEURS</string>
+    <string name="editor_section_readouts">RELEVÉS</string>
     <string name="editor_label_sensor_left">LECTURE GAUCHE</string>
     <string name="editor_label_sensor_right">LECTURE DROITE</string>
     <string name="editor_sensor_needs_permission">Touchez à nouveau pour autoriser le capteur</string>
@@ -132,6 +132,13 @@
     <string name="editor_label_dial_top">HAUT DU CADRAN</string>
     <string name="editor_label_nadir">NADIR</string>
     <string name="editor_label_weather">MÉTÉO</string>
+    <string name="editor_label_weather_interval">MÉTÉO TOUTES LES</string>
+    <string name="weather_every_15">15 MIN</string>
+    <string name="weather_every_15_sr">Météo toutes les quinze minutes</string>
+    <string name="weather_every_30">30 MIN</string>
+    <string name="weather_every_30_sr">Météo toutes les trente minutes</string>
+    <string name="weather_every_60">60 MIN</string>
+    <string name="weather_every_60_sr">Météo toutes les heures</string>
     <string name="editor_section_position">POSITION</string>
     <string name="editor_location_device">POINT GPS</string>
     <string name="editor_location_manual">POINT MANUEL</string>
@@ -177,7 +184,7 @@
     <string name="editor_duration_custom">LIBRE</string>
     <string name="editor_duration_custom_sr">Durée libre, réglée ci-dessous par pas de cinq minutes</string>
     <string name="editor_label_palette">COULEUR</string>
-    <string name="editor_section_units">UNITÉS</string>
+    <string name="editor_section_sky">CIEL</string>
     <string name="editor_location_rationale">La météo et le site exigent votre point</string>
     <string name="editor_background_location">TOUJOURS AUTORISER</string>
     <string name="editor_background_rationale">Le rafraîchissement semi-horaire exige la position « tout le temps »</string>
@@ -215,8 +222,11 @@
     <string name="coordinates_off_sr">Coordonnées hors service : NO SITE</string>
     <string name="coordinates_on_sr">Coordonnées en service : la position quand aucun site n\'est proche</string>
     <string name="editor_coordinates_note">Affichées à la place de NO SITE. Hors service par défaut : une photo du cadran ne dit alors rien de l\'endroit où vous êtes</string>
-    <string name="editor_label_compass">ACTIVE SN</string>
-    <string name="compass_off_sr">Index de compas hors service</string>
-    <string name="compass_on_sr">Index de compas en service : nord rouge, sud blanc</string>
+    <string name="editor_label_compass">ASTROCOMPAS</string>
+    <string name="editor_label_rolling">CHIFFRES ROULANTS</string>
+    <string name="rolling_off_sr">Chiffres roulants désactivés</string>
+    <string name="rolling_on_sr">Chiffres roulants activés</string>
+    <string name="compass_off_sr">Astrocompas hors service</string>
+    <string name="compass_on_sr">Astrocompas en service : nord rouge, sud blanc</string>
     <string name="editor_compass_note">Nord rouge, sud blanc, écran actif seulement. Pointus tant qu\'une marque du soleil ou de la lune peut orienter le cadran</string>
 </resources>

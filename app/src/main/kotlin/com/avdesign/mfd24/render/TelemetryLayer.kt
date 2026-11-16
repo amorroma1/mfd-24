@@ -102,6 +102,30 @@ class TelemetryLayer {
     private val line1 = TextBuf(40)
     private val line2 = TextBuf(40)
 
+    /** The weather and location rows' drums; see [DrumRow]. Earth only. */
+    private val weatherDrum = DrumRow(40)
+    private val siteDrum = DrumRow(40)
+
+    /** The Zulu group, a clock: its drums only ever turn forwards. */
+    private val zuluDrum = DrumRow(24, forwardOnly = true)
+
+    /** The dial's offset after it, which a change of zone turns. */
+    private val zoneDrum = DrumRow(12)
+
+    /** The duty row: the countdown, `OFF-DUTY`, and an incident taking the row over. */
+    private val dutyDrum = DrumRow(24)
+
+    private val batteryDrum = DrumRow(12)
+
+    /** Pressure or pulse in either slot; steps are set, not turned. */
+    private val slotDrum = arrayOf(DrumRow(12), DrumRow(12))
+
+    /** True while a drum is turning, so the renderer asks for fast frames. */
+    val rolling: Boolean
+        get() = weatherDrum.rolling || siteDrum.rolling || zuluDrum.rolling ||
+            zoneDrum.rolling || dutyDrum.rolling || batteryDrum.rolling ||
+            slotDrum[0].rolling || slotDrum[1].rolling
+
     /** Built with its left edge at the dial centre; drawing translates it into place. */
     private val symbolPath = Path()
     private var symbolMode = -1
@@ -143,6 +167,7 @@ class TelemetryLayer {
         frameSymbol: Boolean,
         dialOffsetMillis: Long,
         positionAge: Int,
+        ambient: Boolean,
     ) {
         buildLines(state, planetMode, epochMillis, fahrenheit, mmHg)
         buildZone(planetMode, dialOffsetMillis)
@@ -163,48 +188,57 @@ class TelemetryLayer {
         textPaint.textAlign = Paint.Align.CENTER
         haloPaint.textAlign = Paint.Align.CENTER
 
+        val still = ambient || !state.rollingDigits
         drawVigilanceStatus(canvas, g, palette, vigilanceStatus, showClearHint)
         // Before the readout rather than after, because the rows below have early returns and the
         // battery does not depend on any of them.
-        drawBattery(canvas, g, palette, state.batteryPercent)
-        drawSensorSlots(canvas, g, palette, state, sensorLeft, sensorRight, layoutGeneration)
+        drawBattery(canvas, g, palette, state.batteryPercent, epochMillis, still)
+        drawSensorSlots(
+            canvas, g, palette, state, sensorLeft, sensorRight, layoutGeneration,
+            epochMillis, still,
+        )
 
         // Duty leads: it is the row that changes meaning, and ZULU sits below it where the dial is
         // wider — which is what lets the date group share the line. An incident takes the row
         // outright: how long a shift still had to run stopped being the useful thing on this dial
         // the moment nobody answered.
-        if (vigilanceStatus == VigilanceState.INCIDENT) {
-            textPaint.color = palette.second
-            drawHaloed(canvas, duty, g.cx, g.telemetryLineY[0])
+        textPaint.color = if (vigilanceStatus == VigilanceState.INCIDENT) {
+            palette.second
         } else {
-            textPaint.color = when (dutyState) {
+            when (dutyState) {
                 WatchShiftState.DUTY_ACTIVE, WatchShiftState.DUTY_PENDING -> palette.dutyArc
                 WatchShiftState.DUTY_SERVED -> palette.dutyArcSpent
                 else -> palette.lumeDim
             }
-            drawHaloed(canvas, duty, g.cx, g.telemetryLineY[0])
         }
+        dutyDrum.update(duty.chars, duty.length, epochMillis, still)
+        drawCentred(canvas, dutyDrum, duty, g.cx, g.telemetryLineY[0], epochMillis)
 
         textPaint.color = palette.lume
-        if (zone.length == 0) {
+        zuluDrum.update(zulu.chars, zulu.length, epochMillis, still)
+        zoneDrum.update(zone.chars, zone.length, epochMillis, still)
+        if (zone.length == 0 && !zuluDrum.rolling) {
             drawHaloed(canvas, zulu, g.cx, g.telemetryLineY[1])
         } else {
             // Zulu and the dial's offset centred as one group, the offset a step dimmer: it is a
             // note on the hour scale, as the date is a note on the time, not a second reading.
             val zuluWidth = textPaint.measureText(zulu.chars, 0, zulu.length)
-            val left = g.cx - (zuluWidth + textPaint.measureText(zone.chars, 0, zone.length)) / 2f
+            val zoneWidth = if (zone.length == 0) 0f else textPaint.measureText(zone.chars, 0, zone.length)
+            val left = g.cx - (zuluWidth + zoneWidth) / 2f
             textPaint.textAlign = Paint.Align.LEFT
             haloPaint.textAlign = Paint.Align.LEFT
-            drawHaloed(canvas, zulu, left, g.telemetryLineY[1])
-            textPaint.color = palette.lumeDim
-            drawHaloed(canvas, zone, left + zuluWidth, g.telemetryLineY[1])
+            drawRolling(canvas, zuluDrum, zulu, left, g.telemetryLineY[1], epochMillis)
+            if (zone.length > 0) {
+                textPaint.color = palette.lumeDim
+                drawRolling(canvas, zoneDrum, zone, left + zuluWidth, g.telemetryLineY[1], epochMillis)
+            }
             textPaint.textAlign = Paint.Align.CENTER
             haloPaint.textAlign = Paint.Align.CENTER
         }
 
         textPaint.color = palette.lumeSoft
         if (planetMode == PlanetMode.EARTH) {
-            drawEarthRows(canvas, g, palette, state, layoutGeneration, positionAge)
+            drawEarthRows(canvas, g, palette, state, layoutGeneration, positionAge, epochMillis, ambient)
             return
         }
 
@@ -242,8 +276,16 @@ class TelemetryLayer {
         state: TelemetryState,
         layoutGeneration: Int,
         positionAge: Int,
+        nowMillis: Long,
+        ambient: Boolean,
     ) {
-        drawWeatherRow(canvas, g)
+        // Every frame, drawn or not, so a drum knows what the row said last and when; with the
+        // setting off they are told every frame is unwatched, which sets each change at once.
+        val still = ambient || !state.rollingDigits
+        weatherDrum.update(line1.chars, line1.length, nowMillis, still)
+        siteDrum.update(line2.chars, if (state.hasPosition) line2.length else 0, nowMillis, still)
+
+        drawWeatherRow(canvas, g, nowMillis)
         if (!state.hasPosition) return
 
         val symbol = when (state.positionSource) {
@@ -277,7 +319,7 @@ class TelemetryLayer {
         }
         textPaint.textAlign = Paint.Align.LEFT
         haloPaint.textAlign = Paint.Align.LEFT
-        drawHaloed(canvas, line2, x, g.telemetryLineY[2])
+        drawRolling(canvas, siteDrum, line2, x, g.telemetryLineY[2], nowMillis)
         textPaint.textAlign = Paint.Align.CENTER
         haloPaint.textAlign = Paint.Align.CENTER
         x += textWidth + g.siteTextGap
@@ -302,9 +344,77 @@ class TelemetryLayer {
      * aerodrome's own METAR: a METAR is fetched only for a locked aerodrome, so a second aircraft
      * here said nothing the first had not.
      */
-    private fun drawWeatherRow(canvas: Canvas, g: Geometry) {
+    private fun drawWeatherRow(canvas: Canvas, g: Geometry, nowMillis: Long) {
         if (line1.length == 0) return
-        drawHaloed(canvas, line1, g.cx, g.telemetryLineY[3])
+        if (!weatherDrum.rolling) {
+            drawHaloed(canvas, line1, g.cx, g.telemetryLineY[3])
+            return
+        }
+        val left = g.cx - textPaint.measureText(line1.chars, 0, line1.length) / 2f
+        textPaint.textAlign = Paint.Align.LEFT
+        haloPaint.textAlign = Paint.Align.LEFT
+        drawRolling(canvas, weatherDrum, line1, left, g.telemetryLineY[3], nowMillis)
+        textPaint.textAlign = Paint.Align.CENTER
+        haloPaint.textAlign = Paint.Align.CENTER
+    }
+
+    /**
+     * A row left-aligned at [left], each column on its own drum while [drum] is turning and in one
+     * call otherwise. The paints must already be left-aligned.
+     *
+     * A turning column is clipped to the type's own height — the window of the counter — and its
+     * two characters are one line pitch apart, the old leaving and the new arriving. All the halos
+     * go down before any fill, as [drawHaloed] does for a whole row: one column's outline laid
+     * after its neighbour's fill would nick it.
+     */
+    private fun drawRolling(
+        canvas: Canvas,
+        drum: DrumRow,
+        buf: TextBuf,
+        left: Float,
+        baseline: Float,
+        nowMillis: Long,
+    ) {
+        if (!drum.rolling || buf.length == 0) {
+            drawHaloed(canvas, buf, left, baseline)
+            return
+        }
+        drawColumns(canvas, drum, buf, left, baseline, nowMillis, haloPaint)
+        drawColumns(canvas, drum, buf, left, baseline, nowMillis, textPaint)
+    }
+
+    private fun drawColumns(
+        canvas: Canvas,
+        drum: DrumRow,
+        buf: TextBuf,
+        left: Float,
+        baseline: Float,
+        nowMillis: Long,
+        paint: Paint,
+    ) {
+        // Monospace, so one advance places every column; measured, not assumed, so the columns
+        // land exactly where the one-call row puts them.
+        val advance = textPaint.measureText(buf.chars, 0, buf.length) / buf.length
+        val top = baseline + metrics.ascent
+        val bottom = baseline + metrics.descent
+        val pitch = bottom - top
+        val pad = haloPaint.strokeWidth
+        for (i in 0 until buf.length) {
+            val x = left + i * advance
+            val t = drum.progress(i, nowMillis)
+            if (t >= 1f) {
+                canvas.drawText(buf.chars, i, 1, x, baseline, paint)
+                continue
+            }
+            // Upwards the old character leaves through the top and the new comes up from below;
+            // downwards the other way round.
+            val travel = if (drum.upward[i]) -pitch else pitch
+            canvas.save()
+            canvas.clipRect(x - pad, top - pad, x + advance + pad, bottom + pad)
+            canvas.drawText(drum.fromChars, i, 1, x, baseline + travel * t, paint)
+            canvas.drawText(buf.chars, i, 1, x, baseline + travel * (t - 1f), paint)
+            canvas.restore()
+        }
     }
 
     private fun prepareSiteGlyph(g: Geometry, state: TelemetryState, layoutGeneration: Int) {
@@ -434,16 +544,20 @@ class TelemetryLayer {
         leftKind: Int,
         rightKind: Int,
         layoutGeneration: Int,
+        nowMillis: Long,
+        still: Boolean,
     ) {
         if (leftKind == SLOT_OFF && rightKind == SLOT_OFF) return
         if (leftKind != SLOT_OFF) {
             drawSensorSlot(
-                canvas, g, palette, state, leftKind, g.cx - g.sensorOffsetX, 0, layoutGeneration
+                canvas, g, palette, state, leftKind, g.cx - g.sensorOffsetX, 0, layoutGeneration,
+                nowMillis, still,
             )
         }
         if (rightKind != SLOT_OFF) {
             drawSensorSlot(
-                canvas, g, palette, state, rightKind, g.cx + g.sensorOffsetX, 1, layoutGeneration
+                canvas, g, palette, state, rightKind, g.cx + g.sensorOffsetX, 1, layoutGeneration,
+                nowMillis, still,
             )
         }
     }
@@ -465,14 +579,30 @@ class TelemetryLayer {
         x: Float,
         slot: Int,
         layoutGeneration: Int,
+        nowMillis: Long,
+        still: Boolean,
     ) {
         buildSensorValue(state, kind)
         textPaint.color = palette.lumeSoft
 
+        // Pressure and pulse turn their changed digits like the weather; the step count is set,
+        // because it changes with every stride while walking and its drums would never rest.
+        val drum = slotDrum[slot]
+        drum.update(sensor.chars, sensor.length, nowMillis, still || kind == SLOT_STEPS)
+
         // Station pressure has no pictogram, so it leads with its own name and the line is centred
         // on the slot as it stands.
         if (kind == SLOT_PRESSURE) {
-            drawHaloed(canvas, sensor, x, g.sensorLineY)
+            if (!drum.rolling) {
+                drawHaloed(canvas, sensor, x, g.sensorLineY)
+                return
+            }
+            val left = x - textPaint.measureText(sensor.chars, 0, sensor.length) / 2f
+            textPaint.textAlign = Paint.Align.LEFT
+            haloPaint.textAlign = Paint.Align.LEFT
+            drawRolling(canvas, drum, sensor, left, g.sensorLineY, nowMillis)
+            textPaint.textAlign = Paint.Align.CENTER
+            haloPaint.textAlign = Paint.Align.CENTER
             return
         }
 
@@ -482,7 +612,16 @@ class TelemetryLayer {
             canvas, g, palette, kind, x - (textWidth + g.sensorGlyphGap) * 0.5f,
             slot, layoutGeneration,
         )
-        drawHaloed(canvas, sensor, x + shift, g.sensorLineY)
+        if (!drum.rolling) {
+            drawHaloed(canvas, sensor, x + shift, g.sensorLineY)
+            return
+        }
+        val left = x + shift - textPaint.measureText(sensor.chars, 0, sensor.length) / 2f
+        textPaint.textAlign = Paint.Align.LEFT
+        haloPaint.textAlign = Paint.Align.LEFT
+        drawRolling(canvas, drum, sensor, left, g.sensorLineY, nowMillis)
+        textPaint.textAlign = Paint.Align.CENTER
+        haloPaint.textAlign = Paint.Align.CENTER
     }
 
     /**
@@ -567,15 +706,23 @@ class TelemetryLayer {
      * the dial. Below [LOW_BATTERY_PERCENT] the weight goes up instead: it reads at a glance and it
      * borrows nothing.
      */
-    private fun drawBattery(canvas: Canvas, g: Geometry, palette: Palette, percent: Int) {
+    private fun drawBattery(
+        canvas: Canvas,
+        g: Geometry,
+        palette: Palette,
+        percent: Int,
+        nowMillis: Long,
+        still: Boolean,
+    ) {
         if (percent < 0) return
         battery.clear().lit(TextBuf.LIT_BATTERY).uint(percent).ch('%')
+        batteryDrum.update(battery.chars, battery.length, nowMillis, still)
 
         val low = percent < LOW_BATTERY_PERCENT
         textPaint.typeface = if (low) monoBold else Typeface.MONOSPACE
         haloPaint.typeface = textPaint.typeface
         textPaint.color = palette.lumeDim
-        drawHaloed(canvas, battery, g.cx, g.batteryLineY)
+        drawCentred(canvas, batteryDrum, battery, g.cx, g.batteryLineY, nowMillis)
 
         // Put the shared paints back: every other row assumes the regular face.
         textPaint.typeface = Typeface.MONOSPACE
@@ -622,6 +769,27 @@ class TelemetryLayer {
     }
 
     /** Outline first, then fill — [textPaint]'s colour must already be set. */
+    /** A row centred on [cx] whose changed characters turn on [drum]; the paints stay centred. */
+    private fun drawCentred(
+        canvas: Canvas,
+        drum: DrumRow,
+        buf: TextBuf,
+        cx: Float,
+        baseline: Float,
+        nowMillis: Long,
+    ) {
+        if (!drum.rolling) {
+            drawHaloed(canvas, buf, cx, baseline)
+            return
+        }
+        val left = cx - textPaint.measureText(buf.chars, 0, buf.length) / 2f
+        textPaint.textAlign = Paint.Align.LEFT
+        haloPaint.textAlign = Paint.Align.LEFT
+        drawRolling(canvas, drum, buf, left, baseline, nowMillis)
+        textPaint.textAlign = Paint.Align.CENTER
+        haloPaint.textAlign = Paint.Align.CENTER
+    }
+
     private fun drawHaloed(canvas: Canvas, buf: TextBuf, x: Float, y: Float) {
         canvas.drawText(buf.chars, 0, buf.length, x, y, haloPaint)
         canvas.drawText(buf.chars, 0, buf.length, x, y, textPaint)

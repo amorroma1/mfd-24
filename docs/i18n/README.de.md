@@ -39,10 +39,11 @@ Art ab** — siehe [Kompatibilität](#kompatibilität).
 | **Totmannschalter** | Standardmäßig aus. Alle 5/10/15 Minuten fragt er ein Lebenszeichen ab; bleibt die Quittung dreißig Sekunden aus, sendet er SOS in Salven und hinterlässt `MAN DOWN` — Totmann ausgelöst — mit dem Zulu-Moment auf dem Blatt. Optional vermerkt er Ihren Puls während der unquittierten Abfrage, neben Ihrem letzten Wert in Bewegung. |
 | **Logbuch senden** | Das Logbuch verlässt die Uhr als **QR-Code** für die Handykamera oder als **Ton** — Bell 202 AFSK, dekodiert von `minimodem`. Der Ton trägt alles; der QR-Code trägt, was hineinpasst, und sagt es. [Kanäle und Grenzen ↓](#export) |
 | **Zulu + Datum-Zeit-Gruppe** | `Z 11NOV 13:05 -5`, die Uhr, in der ein Logbucheintrag geschrieben wird, gefolgt von der Abweichung des Blatts. |
-| **Wetter** | Temperatur, Zustand in METAR-Kürzeln und QNH. An einem Flugplatz ist es der **eigene METAR** dieses Platzes; überall sonst Open-Meteo. Alle 30 Minuten aufgefrischt. |
+| **Wetter** | Temperatur, Zustand in METAR-Kürzeln und QNH. An einem Flugplatz ist es der **eigene METAR** dieses Platzes; überall sonst Open-Meteo. Abgefragt alle 15, 30 oder 60 Minuten, nach Wahl, ein METAR, sobald die nächste Ausgabe heraus ist. Jede Messung bleibt ihrem Ort zugeordnet: weg und zurück, und das Wetter von zu Hause steht sofort wieder da, offline. Nichts, was älter als eine Stunde ist, wird gezeigt. |
 | **5-km-Standortkennung** | Nennt den nächstgelegenen Flugplatz, Hafen, Heliport oder die nächste Startanlage aus 9 649 Anlagen in einem 194-KB-Index an Bord. Militärische Anlagen werden in der Akzentfarbe gezeichnet. |
-| **Nadir, Sonne und Mond** | Der Tagbogen als Schattierung über dem Stundenband, offline berechnet. Sonnenstand und Mondstand sitzen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass** — auch südlich des Äquators, wo die Marken wie der Himmel gegen die Zeiger laufen. `ACTIVE SN` färbt den Meridian nach Norden rot und nach Süden weiß, spitz, solange die Uhr das Blatt auf 15° genau weiß. Der Mond trägt seine echte Phase. |
+| **Nadir, Sonne und Mond** | Der Tagbogen als Schattierung über dem Stundenband, offline berechnet. Sonnenstand und Mondstand sitzen an ihren wahren Stundenwinkeln — die Marke auf den Himmelskörper selbst gerichtet, wird das Zifferblatt zum **Kompass** — auch südlich des Äquators, wo die Marken wie der Himmel gegen die Zeiger laufen. `ASTROKOMPASS` färbt den Meridian nach Norden rot und nach Süden weiß, spitz, solange die Uhr das Blatt auf 15° genau weiß. Der Mond trägt seine echte Phase. |
 | **Sensor-Slots** | Zwei optionale Anzeigen neben der Nabe: Puls, die Schritte des Tages oder Stationsdruck. Standardmäßig aus; sie laufen bei eingeschaltetem Display, und im Always-on wird der Puls einmal pro Minute neu gelesen, solange die Uhr getragen wird. [Wie dieses Fenster seinen Takt findet ↓](#pulse-window) |
+| **Bewegung** | Eine Zonengrenze oder ein weiter Ortswechsel, und Zeiger, Wachbogen und Tagbogen stellen sich in drei Sekunden um, nacheinander wie Zahnräder mit Spiel, wie etwas mit Masse: langsames Anlaufen, am schnellsten in der Mitte, Abbremsen auf die neue Stellung. Bei einem weiten Ortswechsel wandern Sonnenstand und Mondstand an den Himmel des neuen Ortes und steigen auf der Seite über den Horizont, in deren Richtung man gereist ist. `ROLLZIFFERN`, standardmäßig aus, dreht jedes geänderte Zeichen der Zeilen auf einer Walze um: Wetter, Standort, Zulu, Wache, Puls, Luftdruck, Akku. Nur bei eingeschaltetem Bildschirm. |
 | **Always-on** | Dasselbe Blatt, gedimmt. `AUTO` dünnt es nach Sonnenuntergang auf jedes zweite Pixel aus — nie während einer Nachtwache. |
 | **Direct Boot** | Zeichnet mit Inhalt, bevor die Uhr entsperrt ist. |
 
@@ -132,7 +133,7 @@ Die Ortung wird vom Einstellungsbildschirm aus erfragt, denn ein Zifferblatt ist
 | `WAKE_LOCK`, `FOREGROUND_SERVICE_HEALTH` | der Totmannschalter, der bei dunklem Display weiter messen muss | nur diese Funktion |
 | `VIBRATE` | Antritt und Ablösung der Wache und das SOS | stumme Grenzen |
 | `SCHEDULE_EXACT_ALARM` | Antritt und Ablösung auf die Minute genau | angefragt, aber **nicht** erforderlich; ohne sie kann eine Grenze um ein paar Minuten rutschen |
-| `INTERNET` | Open-Meteo und METAR alle 30 Minuten, dazu der tägliche Release-Check | kein Wetter, kein Release-Check |
+| `INTERNET` | Open-Meteo und METAR alle 15–60 Minuten, dazu der tägliche Release-Check | kein Wetter, kein Release-Check |
 | `BODY_SENSORS` | der Puls-Slot und der Puls zu einem Vorkommnis | Striche; die Zeile `PULS INS LOGBUCH` wird nicht angeboten |
 | `ACTIVITY_RECOGNITION` | der Schritte-Slot; auf Wear 5+ auch das, was den Totmann-Dienst starten lässt | Striche; auf neuerem Wear kein Totmann |
 | `POST_NOTIFICATIONS` | der laufende Hinweis des Totmanns und die Update-Meldung einmal pro Release | der Totmann läuft unangekündigt |
@@ -177,12 +178,11 @@ sind Instrumentenbeschriftung, keine Prosa.
 |---|---|---|---|---|
 | ![](../screenshots/settings-sections.png) | ![](../screenshots/settings-duty.png) | ![](../screenshots/settings-schedule.png) | ![](../screenshots/settings-display.png) | ![](../screenshots/settings-about.png) |
 
-- **Wache** — Wachdauer `4h` `8h` `12h` `FREI`, ein angesetzter Antritt und ein Chip, der
-  `WACHE ANTRETEN` oder ein terrakottafarbenes `WACHE ÜBERGEBEN` zeigt. Ein Antritt in der Vergangenheit lässt
-  sich nicht ansetzen.
+- **Wache** — Wachdauer `4h` `8h` `12h` `FREI`, darunter ein Chip, der `WACHE ANTRETEN` oder ein
+  terrakottafarbenes `WACHE ÜBERGEBEN` zeigt, dann ein angesetzter Antritt. Ein Antritt in der
+  Vergangenheit lässt sich nicht ansetzen.
 - **Totmann** — ein/aus, Abfrageintervall, `VIBRATION`, `SOS-SIGNAL` (AUS/MIN/MED/MAX),
   `PULS INS LOGBUCH` und das Logbuch samt Senden.
-- **Sensoren** — was jeder Slot an der Nabe liest.
 - **Position** — Ortung oder von Hand eingegebene Koordinaten. Eine eingegebene Position stellt das
   Blatt auf die Zeit dieses Ortes; eine geortete kann es auch, mit `ORTSZEIT` → `STANDORT`. Hinter
   Zulu steht die Abweichung des Blatts (`Z 13NOV 13:58 -5`), welche Uhr gilt, ist also nie geraten.
@@ -190,10 +190,11 @@ sind Instrumentenbeschriftung, keine Prosa.
   unterwegs mehr als 5 km abgedriftet sein kann, durchgestrichen nach einer halben Stunde unterwegs
   ohne Fix — die letzte Position bleibt so oder so stehen. `KOORDINATEN` schreibt sie dorthin, wo
   sonst `NO SITE` stünde: `50°27N 30°31E`.
-- **Anzeige** — Leuchtfarbe, Zifferblatt oben, Mitternachtsmarke, Nadir, Sonnenstand und Mondstand,
-  `ACTIVE SN`, Wetter, Always-on und `HINWEISE` für das Kleingedruckte unter jeder Zeile.
-- **Einheiten** — °C/°F, hPa/mmHg.
-- **Info** — Version, das Repository als QR-Code, der Release-Check.
+- **Messwerte** — Wetter und `WETTER ALLE`, was jeder Slot an der Nabe liest, °C/°F und hPa/mmHg.
+- **Himmel** — Nadir, Sonnenstand und Mondstand, `ASTROKOMPASS`.
+- **Anzeige** — Leuchtfarbe, Zifferblatt oben, Mitternachtsmarke, Always-on, `ROLLZIFFERN`.
+- **Info** — Version, der Release-Check, das Repository als QR-Code und `HINWEISE` für das
+  Kleingedruckte unter jeder Zeile.
 
 **[Jede Zeile, mit Begründung →](../DESIGN.md#settings)**
 
@@ -240,7 +241,7 @@ Stundenziffern erreichen würde.
 läuft — Wear OS 5 ist die Ausnahme, siehe [Kompatibilität](#kompatibilität); keine
 GPU-Funktionen jenseits eines gewöhnlichen Canvas. `render()` allokiert nichts, also gibt es keine
 Garbage-Collector-Pause, um die herum geplant werden müsste, und die Bildrate folgt dem Bedarf:
-**ein Bild pro Sekunde in Ruhe**, 16 ms nur, während ein Übergang animiert, und ein Bild pro Minute
+**ein Bild pro Sekunde in Ruhe**, 16 ms nur, während sich etwas bewegt — ein Gleiten, eine Himmelsmarke, eine Walze — und ein Bild pro Minute
 im Always-on. Die optionalen Sensoren sind die einzigen echten Kosten — der Puls ist eine LED, und
 der Totmannschalter lässt den Beschleunigungssensor im Sensor-Hub puffern, statt den Prozessor zu
 wecken. Alles andere läuft aus zwischengespeicherten Werten.
@@ -306,7 +307,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ und das Android-SDK. 248 JVM-Tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ und das Android-SDK. 285 JVM-Tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Wie es entstanden ist
 

@@ -38,10 +38,11 @@ see [Compatibility](#compatibility).
 | **Vigilance monitor** | Off by default. Every 5/10/15 min it wants a sign of life; thirty seconds later it sounds SOS in bursts and leaves `MAN DOWN` with the Zulu moment on the dial. Optionally it notes your pulse during the missed check, beside your last reading on the move. |
 | **Log export** | The incident log leaves the watch as a **QR code** for a phone camera or as **sound** — Bell 202 AFSK, decoded by `minimodem`. The sound carries everything; the QR carries what fits and says so. [Channels and limits ↓](#export) |
 | **Zulu + date-time group** | `Z 11NOV 13:05 -5` — the clock a log entry is written in, followed by the dial's own offset from it. |
-| **Weather** | Temperature, METAR-style condition and QNH. At an aerodrome it is that field's **own METAR**; everywhere else Open-Meteo. Refreshed every 30 minutes. |
+| **Weather** | Temperature, METAR-style condition and QNH. At an aerodrome it is that field's **own METAR**; everywhere else Open-Meteo. Asked for every 15, 30 or 60 minutes, your choice, and a METAR when the next issue is out. Each reading is kept against its place: jump away and back, and home's weather is there at once, offline. Nothing over an hour old is shown. |
 | **5 km site lock** | Names the nearest airfield, port, heliport or spaceport from 9,649 sites in a 194 KB on-device index. Military sites are drawn in the accent colour. |
-| **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass** — south of the equator too, where the marks run against the hands as the sky does. `ACTIVE SN` paints the meridian red to the north and white to the south, pointed while the watch reckons the dial true to 15°. The moon carries its honest phase. |
+| **Nadir, sun and moon** | Daylight shaded across the hour band, computed offline. The sun and the moon sit at their true hour angles — point a mark at the real thing and the dial is a **compass** — south of the equator too, where the marks run against the hands as the sky does. `ASTRO COMPASS` paints the meridian red to the north and white to the south, pointed while the watch reckons the dial true to 15°. The moon carries its honest phase. |
 | **Sensor slots** | Two optional readouts beside the hub: heart rate, the day's steps, or station pressure. Off by default; they run while the screen is on, and in always-on the pulse is re-read once a minute while the watch is worn. [How that window paces itself ↓](#pulse-window) |
+| **Motion** | Cross a zone or move far and the hands, the duty arc and the daylight band re-set over three seconds, one after another like gears taking up play, the way something with mass moves: a slow start, fastest through the middle, braking onto the new setting. Move far and the sun and the moon travel to the new place's sky, rising over the horizon on the side you travelled towards. `ROLLING DIGITS`, off by default, turns each changed character on the rows over on a drum: weather, location, Zulu, duty, pulse, pressure, battery. Screen on only. |
 | **Always-on** | The same dial, dimmed. `AUTO` thins it to every other pixel after sunset — never during a night watch. |
 | **Direct boot** | Draws populated before the watch is unlocked. |
 
@@ -128,7 +129,7 @@ cannot raise a dialog itself.
 | `WAKE_LOCK`, `FOREGROUND_SERVICE_HEALTH` | the vigilance monitor, which must keep sensing with the screen off | that feature only |
 | `VIBRATE` | shift boundaries and the SOS | silent boundaries |
 | `SCHEDULE_EXACT_ALARM` | boundaries landing on the minute | requested but **not** required; without it a boundary can slip a few minutes |
-| `INTERNET` | Open-Meteo and METAR every 30 min, plus the daily release check | no weather, no release check |
+| `INTERNET` | Open-Meteo and METAR every 15–60 min, plus the daily release check | no weather, no release check |
 | `BODY_SENSORS` | the heart-rate slot and the pulse in an incident | dashes; the `LOG PULSE` row is not offered |
 | `ACTIVITY_RECOGNITION` | the steps slot; on Wear 5+ also what lets the vigilance service start | dashes; on newer Wear, no vigilance |
 | `POST_NOTIFICATIONS` | the monitor's ongoing notice, and the once-per-release update notice | the monitor runs unannounced |
@@ -171,21 +172,21 @@ nomenclature, not prose.
 |---|---|---|---|---|
 | ![](docs/screenshots/settings-sections.png) | ![](docs/screenshots/settings-duty.png) | ![](docs/screenshots/settings-schedule.png) | ![](docs/screenshots/settings-display.png) | ![](docs/screenshots/settings-about.png) |
 
-- **Duty control** — duration `4h` `8h` `12h` `CST`, a booked start, and one chip reading
-  `START NOW` or a terracotta `END DUTY`. A start in the past cannot be booked.
+- **Duty control** — duration `4h` `8h` `12h` `CST`, then one chip reading `START NOW` or a
+  terracotta `END DUTY`, then a booked start. A start in the past cannot be booked.
 - **Vigilance** — on/off, check interval, `VIBE STRENGTH`, `SOS SOUND` (OFF/LOW/MED/HIGH),
   `LOG PULSE`, and the incident log with its export.
-- **Sensors** — what each hub slot reads.
 - **Position** — automatic, or coordinates typed by hand. A typed position sets the dial to that
   place's time; an automatic one can too, with `LOCAL TIME` → `POSITION`. Zulu is followed by the
   dial's offset (`Z 13NOV 13:58 -5`), so which clock is in force is never a guess. The location row
   sits above the weather and ends with where the position came from: a map pin for a typed one, a
   satellite for a measured one — dimmed once, on the move, it may have drifted past 5 km, struck
   out after half an hour on the move without a fix; the last position stays on the dial either way. `COORDINATES` prints it where `NO SITE` would stand: `50°27N 30°31E`.
-- **Display** — palette, dial top, midnight mark, Nadir, sun and moon marks, `ACTIVE SN`, weather,
-  always-on, and `HINTS` for the small print under each row.
-- **Units** — °C/°F, hPa/mmHg.
-- **About** — version, the repository as a QR, the release check.
+- **Readouts** — weather and `WEATHER EVERY`, what each hub slot reads, °C/°F and hPa/mmHg.
+- **Sky** — Nadir, the sun and moon marks, `ASTRO COMPASS`.
+- **Display** — palette, dial top, midnight mark, always-on, `ROLLING DIGITS`.
+- **About** — version, the release check, the repository as a QR, and `HINTS` for the small print
+  under each row.
 
 **[Every row, with the reasoning →](docs/DESIGN.md#settings)**
 
@@ -230,7 +231,7 @@ arithmetic and there is a test that fails if a row would reach the hour numerals
 Wear OS 5 is the exception, see [Compatibility](#compatibility); no GPU
 features beyond an ordinary canvas. `render()` allocates nothing, so there is no garbage collector
 pause to schedule around, and the frame rate is demand-driven: **one frame a second at rest**,
-16 ms only while a transition is animating, and one frame a minute in always-on. The optional
+16 ms only while something is moving — a glide, a sky mark, a drum — and one frame a minute in always-on. The optional
 sensors are the only real cost — heart rate is an LED, and the vigilance monitor keeps the
 accelerometer batching in the sensor hub rather than waking the processor. Everything else runs off
 cached values.
@@ -293,7 +294,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ and the Android SDK. 248 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ and the Android SDK. 285 JVM tests: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## How it was built
 

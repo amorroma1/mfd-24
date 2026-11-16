@@ -109,7 +109,7 @@
     <string name="editor_vigilance_doze">深度休眠时一次确认可拉长到 9 分钟</string>
     <string name="editor_vigilance_notifications">允许通知，以便监视保持可见</string>
     <string name="editor_label_incidents">事件</string>
-    <string name="editor_section_sensors">传感器</string>
+    <string name="editor_section_readouts">读数</string>
     <string name="editor_label_sensor_left">左侧读数</string>
     <string name="editor_label_sensor_right">右侧读数</string>
     <string name="editor_sensor_needs_permission">再点一次以允许传感器</string>
@@ -132,6 +132,13 @@
     <string name="editor_label_dial_top">表盘顶端</string>
     <string name="editor_label_nadir">天底</string>
     <string name="editor_label_weather">气象</string>
+    <string name="editor_label_weather_interval">气象更新间隔</string>
+    <string name="weather_every_15">15分</string>
+    <string name="weather_every_15_sr">每 15 分钟获取一次气象</string>
+    <string name="weather_every_30">30分</string>
+    <string name="weather_every_30_sr">每 30 分钟获取一次气象</string>
+    <string name="weather_every_60">60分</string>
+    <string name="weather_every_60_sr">每小时获取一次气象</string>
     <string name="editor_section_position">位置</string>
     <string name="editor_location_device">定位开</string>
     <string name="editor_location_manual">手动位置</string>
@@ -177,7 +184,7 @@
     <string name="editor_duration_custom">自定</string>
     <string name="editor_duration_custom_sr">自定义时长，在下方按五分钟步进设置</string>
     <string name="editor_label_palette">夜光色</string>
-    <string name="editor_section_units">单位</string>
+    <string name="editor_section_sky">天体</string>
     <string name="editor_location_rationale">气象与站点需要你的位置</string>
     <string name="editor_background_location">始终允许</string>
     <string name="editor_background_rationale">每半小时的刷新需要位置“始终允许”</string>
@@ -215,8 +222,11 @@
     <string name="coordinates_off_sr">坐标关：NO SITE</string>
     <string name="coordinates_on_sr">坐标开：附近没有站点时显示位置</string>
     <string name="editor_coordinates_note">显示在原本 NO SITE 的位置。默认关闭，这样表盘的照片不会透露你在哪里</string>
-    <string name="editor_label_compass">ACTIVE SN</string>
-    <string name="compass_off_sr">罗盘刻度关</string>
-    <string name="compass_on_sr">罗盘刻度开：北红、南白</string>
+    <string name="editor_label_compass">天文罗盘</string>
+    <string name="editor_label_rolling">数字滚动</string>
+    <string name="rolling_off_sr">数字滚动关闭</string>
+    <string name="rolling_on_sr">数字滚动开启</string>
+    <string name="compass_off_sr">天文罗盘关</string>
+    <string name="compass_on_sr">天文罗盘开：北红、南白</string>
     <string name="editor_compass_note">北红、南白，仅在屏幕活动时。只要太阳或月亮标记能为表盘定向，刻度就是尖的</string>
 </resources>

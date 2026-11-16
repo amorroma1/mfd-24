@@ -4,6 +4,8 @@
 package com.avdesign.mfd24.data
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.location.Location
 import com.avdesign.mfd24.Diag
 import com.avdesign.mfd24.astro.SolarDay
@@ -12,7 +14,14 @@ import com.avdesign.mfd24.geo.PoiFormat
 import com.avdesign.mfd24.geo.PoiResolver
 import com.avdesign.mfd24.geo.TzGrid
 import com.avdesign.mfd24.geo.ZoneHysteresis
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -54,6 +63,14 @@ class TelemetryRepository private constructor(context: Context) {
 
     private val refreshLock = Mutex()
 
+    /**
+     * Where a refresh the wearer asked for runs, so that it outlives the screen that asked. The
+     * editor's own scope ends when the editor closes — usually a second after the tap — and a
+     * refresh cancelled there left the previous place's site and weather on the dial until the
+     * next screen-on refresh, up to five minutes later, under hands already set to the new place.
+     */
+    private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val solarDay = SolarDay()
 
     /**
@@ -87,13 +104,19 @@ class TelemetryRepository private constructor(context: Context) {
 
     private val placeWindow = PlaceZone.Window()
 
+    /** The weather kept per place; above `init`, which already shows one of them. */
+    private val weatherPlaces: WeatherPlaces = store.loadWeatherPlaces()
+
     init {
         // Populate from the device-protected cache so the very first frame is not blank.
         store.restoreInto(state)
         state.showCoordinates = store.showCoordinates
         state.compassTicks = store.compassTicks
+        state.rollingDigits = store.rollingDigits
         adoptBestPosition()
-        refreshDaylight(System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        refreshDaylight(now)
+        showCachedWeather(activeLatitude, activeLongitude, now)
     }
 
     /**
@@ -188,6 +211,14 @@ class TelemetryRepository private constructor(context: Context) {
         set(value) {
             store.compassTicks = value
             state.compassTicks = value
+        }
+
+    /** `ROLLING DIGITS` in the display section; see [TelemetryStore.rollingDigits]. */
+    var rollingDigits: Boolean
+        get() = store.rollingDigits
+        set(value) {
+            store.rollingDigits = value
+            state.rollingDigits = value
         }
 
     /**
@@ -300,15 +331,161 @@ class TelemetryRepository private constructor(context: Context) {
      * the editor — where the grant happens — is exactly where the user is looking for a position
      * to appear. Any manual fallback stays on file but stops being used as soon as this lands.
      */
-    suspend fun onLocationGranted(): RefreshOutcome =
-        refresh(allowActiveFix = true, nowMillis = System.currentTimeMillis())
+    suspend fun onLocationGranted(): RefreshOutcome = followPositionSource()
+
+    /**
+     * Brings site and weather to the position in force after the wearer changed where it comes
+     * from: a grant, or a flip between automatic and manual. Runs in [background], so leaving the
+     * editor does not cancel it; the caller only waits for the answer.
+     *
+     * First from what is already on file, which re-runs the site search and takes the previous
+     * place's weather off the dial within a second, offline included; then, for a measured
+     * position, one active fix, which can take the GPS most of a minute.
+     */
+    suspend fun followPositionSource(): RefreshOutcome {
+        // A newer choice supersedes an older one still waiting on the GPS.
+        following?.cancel()
+        val job = background.async {
+            // Not behind [refreshLock]: the lock may be held by a refresh waiting most of a minute
+            // on a GPS fix or a network that is not there, and the site row stood on the previous
+            // place for all of it — seen offline as AUTO to MANUAL leaving the old site up.
+            followSiteNow()
+            val onFile = refresh(
+                allowActiveFix = false, nowMillis = System.currentTimeMillis(), askWeatherNow = true,
+            )
+            if (store.manualPositionSelected && store.hasManualPosition) {
+                onFile
+            } else {
+                refresh(allowActiveFix = true, nowMillis = System.currentTimeMillis())
+            }
+        }
+        following = job
+        return job.await()
+    }
+
+    @Volatile
+    private var following: Deferred<RefreshOutcome>? = null
+
+    /**
+     * The site search and the weather for the position in force, from data already on the watch:
+     * no fix, no network, so nothing here can wait.
+     */
+    @Synchronized
+    private fun followSiteNow() {
+        val lat = activeLatitude
+        val lon = activeLongitude
+        if (lat.isNaN() || lon.isNaN()) return
+        maybeResolveSite(lat, lon)
+        showCachedWeather(lat, lon, System.currentTimeMillis())
+    }
+
+    /**
+     * Puts the kept reading for this place on the dial, or empties the row when there is none —
+     * never another place's: offline, KJFK's METAR once stood over Kyiv. Returns the reading.
+     */
+    @Synchronized
+    private fun showCachedWeather(lat: Double, lon: Double, nowMillis: Long): WeatherPlaces.Entry? {
+        val entry = if (weatherEnabled && !lat.isNaN() && !lon.isNaN()) {
+            weatherPlaces.find(lat, lon, nowMillis)
+        } else {
+            null
+        }
+        if (entry == null) {
+            state.clearWeather()
+        } else {
+            state.setWeather(
+                entry.temperatureDeciC, entry.pressureDeciHpa, entry.conditionIndex, entry.fetchedAt,
+            )
+        }
+        return entry
+    }
+
+    /**
+     * A working network has appeared. Worth a refresh only when the weather row is wanted and has
+     * nothing to show, and at most once a minute: the platform reports capability changes on the
+     * same network in bursts, and a Wi-Fi that flaps should not turn into a stream of requests.
+     * It does not reset the retry ladder — a service that keeps failing on a working network is
+     * the case the ladder is for — so a refresh here still waits for its turn.
+     */
+    suspend fun onNetworkValidated(nowMillis: Long) {
+        if (!weatherEnabled || state.weatherValid) return
+        if (nowMillis - lastNetworkRefresh in 0 until NETWORK_REFRESH_FLOOR_MS) return
+        lastNetworkRefresh = nowMillis
+        background.async { refresh(allowActiveFix = false, nowMillis = nowMillis) }.await()
+    }
+
+    /** Minutes between weather requests; see [TelemetryStore.weatherIntervalMinutes]. */
+    var weatherIntervalMinutes: Int
+        get() = store.weatherIntervalMinutes
+        set(value) {
+            store.weatherIntervalMinutes = value
+        }
+
+    // The retry ladder: failures in a row, and when the next try may run. Touched under
+    // [refreshLock] and from the retry job, which itself refreshes under it.
+    @Volatile
+    private var weatherFailures = 0
+
+    @Volatile
+    private var nextWeatherAttempt = 0L
+
+    @Volatile
+    private var weatherRetry: Job? = null
+
+    private fun noteWeatherFailure(nowMillis: Long) {
+        weatherFailures++
+        val wait = WeatherSchedule.retryDelayMillis(weatherFailures)
+        if (wait > 0L) {
+            nextWeatherAttempt = nowMillis + wait
+            weatherRetry?.cancel()
+            weatherRetry = background.launch {
+                delay(wait)
+                refresh(allowActiveFix = false, nowMillis = System.currentTimeMillis())
+            }
+        } else {
+            // The ladder is spent: back to the schedule, and a fresh ladder after that.
+            weatherFailures = 0
+            nextWeatherAttempt = nowMillis + store.weatherIntervalMinutes * 60_000L
+        }
+    }
+
+    /** A network that the platform has checked reaches the internet. */
+    private fun networkUsable(): Boolean = runCatching {
+        val connectivity = appContext.getSystemService(ConnectivityManager::class.java)
+        val network = connectivity?.activeNetwork ?: return@runCatching false
+        connectivity.getNetworkCapabilities(network)
+            ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+    }.getOrDefault(false)
+
+    @Volatile
+    private var lastNetworkRefresh = 0L
 
     /**
      * Whether the weather row is wanted at all. Set from the user style; when off nothing is
      * fetched, so the radio stays asleep as well as the row staying empty.
+     *
+     * A change acts at once. It used to be read only by the next refresh, so switched off the row
+     * stood on the dial for up to five minutes, and switched on it stayed empty for as long —
+     * which looked like a switch that did nothing until it was flipped twice. The style is
+     * applied on every change of any setting, so only a real change of this one does anything.
      */
     @Volatile
     var weatherEnabled: Boolean = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (!value) {
+                state.clearWeather()
+            } else {
+                // The wearer's own tap: one try now, whatever the ladder says.
+                background.launch {
+                    refresh(
+                        allowActiveFix = false, nowMillis = System.currentTimeMillis(),
+                        askWeatherNow = true,
+                    )
+                }
+            }
+        }
 
     // --- Manual position -------------------------------------------------------------------
 
@@ -317,8 +494,10 @@ class TelemetryRepository private constructor(context: Context) {
     /**
      * Whether the hand-typed position is being used in place of the device.
      *
-     * Setting it re-resolves immediately: switching back to automatic asks for a fresh fix rather
-     * than waiting on the half-hourly worker, which is the whole reason anyone flips it back.
+     * Setting it moves the position, the band and the clock at once; the site and the weather
+     * follow through [followPositionSource], which the caller starts — switching back to
+     * automatic asks for a fresh fix rather than waiting on the half-hourly worker, which is the
+     * whole reason anyone flips it back.
      */
     var manualPositionSelected: Boolean
         get() = store.manualPositionSelected
@@ -354,8 +533,11 @@ class TelemetryRepository private constructor(context: Context) {
         adoptBestPosition()
         refreshDaylight(System.currentTimeMillis())
         // Site and weather both follow the position, and both want to be off the main thread: the
-        // first POI query reads a 138 KB asset and the weather call is a network round trip.
-        refresh(allowActiveFix = false, nowMillis = System.currentTimeMillis())
+        // first POI query reads a 138 KB asset and the weather call is a network round trip. In
+        // [background], so pressing apply and leaving at once still brings the new place's weather.
+        background.async {
+            refresh(allowActiveFix = false, nowMillis = System.currentTimeMillis())
+        }.await()
     }
 
     fun clearManualPosition() {
@@ -374,11 +556,17 @@ class TelemetryRepository private constructor(context: Context) {
      *
      * @param allowActiveFix when false only a cached fix is used, so the screen coming on never
      *   wakes the GPS; the periodic worker passes true.
+     * @param askWeatherNow when the wearer has just asked for it — the weather switched on, the
+     *   position source changed — one weather request may run before the retry ladder's turn.
      */
-    suspend fun refresh(allowActiveFix: Boolean, nowMillis: Long): RefreshOutcome =
+    suspend fun refresh(
+        allowActiveFix: Boolean,
+        nowMillis: Long,
+        askWeatherNow: Boolean = false,
+    ): RefreshOutcome =
         refreshLock.withLock {
             withContext(Dispatchers.IO) {
-                val outcome = refreshLocked(allowActiveFix, nowMillis)
+                val outcome = refreshLocked(allowActiveFix, nowMillis, askWeatherNow)
                 Diag.d(
                     TAG,
                     "refresh(activeFix=$allowActiveFix) -> $outcome " +
@@ -388,7 +576,11 @@ class TelemetryRepository private constructor(context: Context) {
             }
         }
 
-    private suspend fun refreshLocked(allowActiveFix: Boolean, nowMillis: Long): RefreshOutcome {
+    private suspend fun refreshLocked(
+        allowActiveFix: Boolean,
+        nowMillis: Long,
+        askWeatherNow: Boolean,
+    ): RefreshOutcome {
         // With manual selected there is nothing to ask the platform for: the position is already
         // decided, and waking the GPS to then ignore the answer is the worst of both.
         val manualChosen = store.manualPositionSelected && store.hasManualPosition
@@ -420,6 +612,11 @@ class TelemetryRepository private constructor(context: Context) {
             store.saveDevicePosition(
                 lat, lon, if (fix.hasAccuracy()) fix.accuracy else Float.NaN, fix.time, speed,
             )
+            if (store.manualPositionSelected && store.hasManualPosition) {
+                // The wearer chose MANUAL while the GPS was being waited for. The fix is kept on
+                // file for the next switch back; the dial stays where it was told to be.
+                return RefreshOutcome.OK
+            }
             setActivePosition(lat, lon, TelemetryState.POSITION_DEVICE)
             maybeResolveSite(lat, lon)
         } else if (!manualChosen && location.hasPermission() && store.hasDevicePosition) {
@@ -459,14 +656,20 @@ class TelemetryRepository private constructor(context: Context) {
             return RefreshOutcome.OK
         }
 
-        // Age *and* distance. A reading is of one place as well as one moment, and the watch can
-        // leave the place a great deal faster than the reading goes off.
-        val stale = WeatherCache.isStale(
-            store.weatherObservedAt, store.weatherLatitude, store.weatherLongitude,
-            nowMillis, lat, lon,
-        )
-        if (!stale && state.weatherValid) {
+        // This place's kept reading goes up first, from the watch alone; the network is asked
+        // only once it is due — after the wearer's interval, or a METAR's next issue.
+        val kept = showCachedWeather(lat, lon, nowMillis)
+        val intervalMillis = store.weatherIntervalMinutes * 60_000L
+        if (kept != null && nowMillis < WeatherSchedule.dueAt(kept, intervalMillis)) {
             return RefreshOutcome.OK
+        }
+        // A failed request waits its turn on the ladder; the wearer's own tap does not.
+        if (!askWeatherNow && nowMillis < nextWeatherAttempt) {
+            return RefreshOutcome.NETWORK_ERROR
+        }
+        // No network is not a failure to count: its return asks again by itself.
+        if (!networkUsable()) {
+            return RefreshOutcome.NETWORK_ERROR
         }
 
         // Locked to an aerodrome, the row shows that field's own METAR — the observation its
@@ -476,22 +679,26 @@ class TelemetryRepository private constructor(context: Context) {
         val sample = metarIcao()?.let { MetarClient.fetch(it, nowMillis) }
             ?: OpenMeteoClient.fetch(lat, lon, nowMillis)
         if (sample == null) {
-            Diag.i(TAG, "Weather refresh failed; keeping the cached observation")
+            Diag.i(TAG, "Weather refresh failed (${weatherFailures + 1} in a row)")
+            noteWeatherFailure(nowMillis)
             return RefreshOutcome.NETWORK_ERROR
+        }
+        weatherFailures = 0
+        nextWeatherAttempt = 0L
+        weatherRetry?.cancel()
+        val entry = WeatherPlaces.Entry(
+            lat, lon, sample.observedAt, sample.issuedAt, sample.metar,
+            sample.temperatureDeciC, sample.pressureDeciHpa, sample.conditionIndex,
+        )
+        synchronized(this) {
+            weatherPlaces.put(entry)
+            store.saveWeatherPlaces(weatherPlaces)
         }
         state.setWeather(
             sample.temperatureDeciC,
             sample.pressureDeciHpa,
             sample.conditionIndex,
             sample.observedAt,
-        )
-        store.saveWeather(
-            sample.temperatureDeciC,
-            sample.pressureDeciHpa,
-            sample.conditionIndex,
-            sample.observedAt,
-            lat,
-            lon,
         )
         return RefreshOutcome.OK
     }
@@ -507,6 +714,7 @@ class TelemetryRepository private constructor(context: Context) {
      * Runs the site search when it could say something new: the position has left the last
      * search's 500 m, or there is no site on the dial to be stale.
      */
+    @Synchronized
     private fun maybeResolveSite(lat: Double, lon: Double) {
         if (resolveOrigin.movedBeyond(lat, lon, RESOLVE_DISTANCE_M) || !state.siteValid) {
             resolveSite(lat, lon)
@@ -585,6 +793,9 @@ class TelemetryRepository private constructor(context: Context) {
 
         /** Re-running the 5 km search below this displacement cannot change the answer much. */
         const val RESOLVE_DISTANCE_M: Double = 500.0
+
+        /** The least time between two refreshes asked for by a returning network. */
+        const val NETWORK_REFRESH_FLOOR_MS: Long = 60 * 1000L
 
         @Volatile
         private var instance: TelemetryRepository? = null

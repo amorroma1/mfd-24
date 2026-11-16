@@ -7,6 +7,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.view.SurfaceHolder
 import androidx.wear.watchface.ComplicationSlot
@@ -81,6 +84,33 @@ class MfdWatchFaceService : WatchFaceService() {
         }
     }
 
+    /**
+     * Asks for the weather again the moment a working network returns, when the row is wanted and
+     * has nothing to show. Without it the row stayed empty after Wi-Fi came back until the next
+     * screen-on refresh, which waits five minutes after the last one, or the half-hourly worker —
+     * seen on the watch as weather switched on, Wi-Fi up, and no weather for twenty minutes.
+     * Registered and released beside [batteryReceiver], for the same headless-preview reason.
+     */
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    private fun followNetwork() {
+        if (networkCallback != null) return
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
+                if (!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) return
+                serviceScope.launch {
+                    runCatching { repository.onNetworkValidated(System.currentTimeMillis()) }
+                        .onFailure { Diag.w(TAG, "Refresh on network return failed", it) }
+                }
+            }
+        }
+        runCatching {
+            connectivity.registerDefaultNetworkCallback(callback)
+            networkCallback = callback
+        }.onFailure { Diag.w(TAG, "Could not follow the network", it) }
+    }
+
     override fun onCreate() {
         super.onCreate()
         repository = TelemetryRepository.get(this)
@@ -116,6 +146,12 @@ class MfdWatchFaceService : WatchFaceService() {
         if (batteryRegistered) {
             runCatching { unregisterReceiver(batteryReceiver) }
             batteryRegistered = false
+        }
+        networkCallback?.let { callback ->
+            runCatching {
+                getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(callback)
+            }
+            networkCallback = null
         }
         sensorSlots.release()
         serviceScope.cancel()
@@ -191,6 +227,7 @@ class MfdWatchFaceService : WatchFaceService() {
         // network or location work, and must not register receivers their teardown will not undo.
         if (!headless) {
             followBatteryLevel()
+            followNetwork()
             // A window's reading, or its expiry, redraws the slot now rather than at the next
             // minute: the whole point of the window is a figure that is current when read.
             sensorSlots.onAmbientReading = { renderer.invalidate() }

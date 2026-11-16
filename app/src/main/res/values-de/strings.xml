@@ -109,7 +109,7 @@
     <string name="editor_vigilance_doze">Im Tiefschlaf kann eine Abfrage bis zu 9 Minuten dauern</string>
     <string name="editor_vigilance_notifications">Benachrichtigungen erlauben, damit der Totmann sichtbar bleibt</string>
     <string name="editor_label_incidents">VORKOMMNISSE</string>
-    <string name="editor_section_sensors">SENSOREN</string>
+    <string name="editor_section_readouts">MESSWERTE</string>
     <string name="editor_label_sensor_left">LINKE ANZEIGE</string>
     <string name="editor_label_sensor_right">RECHTE ANZEIGE</string>
     <string name="editor_sensor_needs_permission">Nochmal tippen, um den Sensor freizugeben</string>
@@ -132,6 +132,13 @@
     <string name="editor_label_dial_top">ZIFFERBLATT OBEN</string>
     <string name="editor_label_nadir">NADIR</string>
     <string name="editor_label_weather">WETTER</string>
+    <string name="editor_label_weather_interval">WETTER ALLE</string>
+    <string name="weather_every_15">15 MIN</string>
+    <string name="weather_every_15_sr">Wetter alle fünfzehn Minuten</string>
+    <string name="weather_every_30">30 MIN</string>
+    <string name="weather_every_30_sr">Wetter alle dreißig Minuten</string>
+    <string name="weather_every_60">60 MIN</string>
+    <string name="weather_every_60_sr">Wetter jede Stunde</string>
     <string name="editor_section_position">POSITION</string>
     <string name="editor_location_device">ORTUNG EIN</string>
     <string name="editor_location_manual">POSITION MANUELL</string>
@@ -177,7 +184,7 @@
     <string name="editor_duration_custom">FREI</string>
     <string name="editor_duration_custom_sr">Eigene Länge, unten in Fünf-Minuten-Schritten</string>
     <string name="editor_label_palette">LEUCHTFARBE</string>
-    <string name="editor_section_units">EINHEITEN</string>
+    <string name="editor_section_sky">HIMMEL</string>
     <string name="editor_location_rationale">Wetter und Standortkennung brauchen deine Position</string>
     <string name="editor_background_location">IMMER ERLAUBEN</string>
     <string name="editor_background_rationale">Die halbstündliche Aktualisierung braucht Ortung „immer“</string>
@@ -215,8 +222,11 @@
     <string name="coordinates_off_sr">Koordinaten aus: NO SITE</string>
     <string name="coordinates_on_sr">Koordinaten ein: die Position, wo kein Ort in der Nähe ist</string>
     <string name="editor_coordinates_note">Steht dort, wo sonst NO SITE stünde. Standardmäßig aus, damit ein Foto des Zifferblatts nicht verrät, wo du bist</string>
-    <string name="editor_label_compass">ACTIVE SN</string>
-    <string name="compass_off_sr">Kompassstriche aus</string>
-    <string name="compass_on_sr">Kompassstriche ein: Nord rot, Süd weiß</string>
+    <string name="editor_label_compass">ASTROKOMPASS</string>
+    <string name="editor_label_rolling">ROLLZIFFERN</string>
+    <string name="rolling_off_sr">Rollziffern aus</string>
+    <string name="rolling_on_sr">Rollziffern ein</string>
+    <string name="compass_off_sr">Astrokompass aus</string>
+    <string name="compass_on_sr">Astrokompass ein: Nord rot, Süd weiß</string>
     <string name="editor_compass_note">Nord rot, Süd weiß, nur bei aktivem Bildschirm. Spitz, solange eine Sonnen- oder Mondmarke das Zifferblatt ausrichten kann</string>
 </resources>

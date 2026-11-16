@@ -76,6 +76,11 @@ internal val COORDINATES_OPTIONS = listOf(
     Segment(SWITCH_OFF, R.string.solar_off, R.string.coordinates_off_sr),
     Segment(SWITCH_ON, R.string.solar_on, R.string.coordinates_on_sr),
 )
+internal val ROLLING_OPTIONS = listOf(
+    Segment(SWITCH_OFF, R.string.solar_off, R.string.rolling_off_sr),
+    Segment(SWITCH_ON, R.string.solar_on, R.string.rolling_on_sr),
+)
+
 internal val COMPASS_OPTIONS = listOf(
     Segment(SWITCH_OFF, R.string.solar_off, R.string.compass_off_sr),
     Segment(SWITCH_ON, R.string.solar_on, R.string.compass_on_sr),
@@ -110,6 +115,12 @@ internal val VIGILANCE_INTERVAL_OPTIONS = listOf(
     Segment("5", R.string.vigilance_5, R.string.vigilance_5_sr),
     Segment("10", R.string.vigilance_10, R.string.vigilance_10_sr),
     Segment("15", R.string.vigilance_15, R.string.vigilance_15_sr),
+)
+/** Minutes between weather requests; ids are the minutes. Not in the style schema. */
+internal val WEATHER_INTERVAL_OPTIONS = listOf(
+    Segment("15", R.string.weather_every_15, R.string.weather_every_15_sr),
+    Segment("30", R.string.weather_every_30, R.string.weather_every_30_sr),
+    Segment("60", R.string.weather_every_60, R.string.weather_every_60_sr),
 )
 internal val SENSOR_OPTIONS = listOf(
     Segment(SensorSlots.Kind.OFF.id, R.string.sensor_off, R.string.sensor_off_sr),

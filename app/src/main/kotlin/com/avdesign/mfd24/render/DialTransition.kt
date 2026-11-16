@@ -21,6 +21,17 @@ package com.avdesign.mfd24.render
  * zero for almost every zone on earth and half a turn for the half-hour ones. Seconds are never
  * affected: no zone offset has ever had a fractional minute in it.
  *
+ * ### A train of gears, not one picture turned
+ * The hands lead, the daylight band follows [BAND_DELAY_MILLIS] behind and the sky marks
+ * [SKY_DELAY_MILLIS] behind (see [SkyGlide]), each on the same curve over [STAGE_MILLIS], so the
+ * whole re-set still fits [DURATION_MILLIS]. Read on a wrist it is a driven wheel taking up its
+ * play. The duty arc is not delayed: it is drawn on the hour hand's own scale, and the rule that
+ * the hand never stands inside a booked arc holds only while the two move as one.
+ *
+ * ### Always-on gets the end, never the middle
+ * An always-on frame stands for a minute. Drawn mid-glide it would hold a dial half-way between
+ * two settings for that whole minute, so [update] with `settle` lands everything on its target.
+ *
  * Holds only primitives and allocates nothing.
  */
 class DialTransition {
@@ -69,6 +80,7 @@ class DialTransition {
         targetOffsetMillis: Long,
         targetDaylightStart: Float,
         targetDaylightSweep: Float,
+        settle: Boolean = false,
     ) {
         if (!initialised) {
             initialised = true
@@ -114,19 +126,16 @@ class DialTransition {
 
         if (progress >= 1f) return
 
-        val elapsed = nowMillis - startedAt
+        val elapsed = if (settle) DURATION_MILLIS else nowMillis - startedAt
         progress = if (elapsed >= DURATION_MILLIS) 1f else elapsed / DURATION_MILLIS.toFloat()
-        val eased = smoothStep(progress).toDouble()
+        val hands = stage(elapsed, 0L).toDouble()
+        val band = stage(elapsed, BAND_DELAY_MILLIS)
 
-        hourOffsetMillis = hourFrom + Math.round((hourTo - hourFrom) * eased)
-        minuteOffsetMillis = minuteFrom + Math.round((minuteTo - minuteFrom) * eased)
-        daylightSweep = sweepFrom + (sweepTo - sweepFrom) * eased.toFloat()
-        daylightStart =
-            normalise(startFrom + shortestAngle(startFrom, startTo) * eased.toFloat())
+        hourOffsetMillis = hourFrom + Math.round((hourTo - hourFrom) * hands)
+        minuteOffsetMillis = minuteFrom + Math.round((minuteTo - minuteFrom) * hands)
+        daylightSweep = sweepFrom + (sweepTo - sweepFrom) * band
+        daylightStart = normalise(startFrom + shortestAngle(startFrom, startTo) * band)
     }
-
-    /** Smoothstep: starts and ends at rest, so the movement reads as deliberate rather than flung. */
-    private fun smoothStep(t: Float): Float = t * t * (3f - 2f * t)
 
     /** Signed distance from [from] to [to] taken modulo [period], in `(-period/2, +period/2]`. */
     private fun shortestDelta(from: Long, to: Long, period: Long): Long {
@@ -150,14 +159,43 @@ class DialTransition {
         return d
     }
 
-    private companion object {
+    companion object {
+        /**
+         * A cubic in and out, so the hands move like something with mass: a slow start that is
+         * plainly a start, the pace building to three times the average at the middle, and a
+         * braking run onto the new setting. Smoothstep came first and peaks at only one and a half
+         * times the average, which on the wrist read as an even slide — the weight was not visible.
+         */
+        fun ease(t: Float): Float {
+            if (t <= 0f) return 0f
+            if (t >= 1f) return 1f
+            if (t < 0.5f) return 4f * t * t * t
+            val u = 2f - 2f * t
+            return 1f - u * u * u / 2f
+        }
+
         /**
          * Slow enough to watch. This is a dial re-setting itself, not a chronograph showing off;
-         * four seconds reads as deliberate where two read as a twitch.
+         * three seconds reads as deliberate where two read as a twitch. Four came first and, with
+         * the stages staggered, dragged; so did pauses of 0.3 s between them, where 0.2 s reads as
+         * play in the gears and no more.
          */
-        const val DURATION_MILLIS = 4000L
+        const val DURATION_MILLIS = 3000L
 
-        const val DAY_MILLIS = 86_400_000L
-        const val HOUR_MILLIS = 3_600_000L
+        /** One stage of the train: the hands, the band, the sky, each this long. */
+        const val STAGE_MILLIS = 2600L
+
+        /** How far the daylight band runs behind the hands. */
+        const val BAND_DELAY_MILLIS = 200L
+
+        /** How far the sky marks run behind the hands; the last stage ends at [DURATION_MILLIS]. */
+        const val SKY_DELAY_MILLIS = 400L
+
+        /** How far a stage starting [delayMillis] into the glide has gone at [elapsedMillis]. */
+        fun stage(elapsedMillis: Long, delayMillis: Long): Float =
+            ease((elapsedMillis - delayMillis) / STAGE_MILLIS.toFloat())
+
+        private const val DAY_MILLIS = 86_400_000L
+        private const val HOUR_MILLIS = 3_600_000L
     }
 }

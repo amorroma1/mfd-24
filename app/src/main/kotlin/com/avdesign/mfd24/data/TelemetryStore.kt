@@ -94,6 +94,16 @@ class TelemetryStore(context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_COMPASS_TICKS, value).apply()
 
     /**
+     * Whether a changed character on the dial's rows rolls into place, see
+     * [com.avdesign.mfd24.render.DrumRow]. Off by default: it is ornament, and it buys its
+     * movement with fast frames, so the wearer chooses it. Outside the style schema so that adding
+     * it reset nothing.
+     */
+    var rollingDigits: Boolean
+        get() = prefs.getBoolean(KEY_ROLLING_DIGITS, false)
+        set(value) = prefs.edit().putBoolean(KEY_ROLLING_DIGITS, value).apply()
+
+    /**
      * Whether a measured position sets the dial's clock, rather than the phone's zone doing so.
      * Off by default: the phone's zone is the one every other screen on the watch shows, and a
      * dial that disagrees with them should be something the wearer asked for. Here and not in the
@@ -155,33 +165,49 @@ class TelemetryStore(context: Context) {
         prefs.edit().remove(KEY_MANUAL_LAT).remove(KEY_MANUAL_LON).apply()
     }
 
-    val weatherObservedAt: Long
-        get() = prefs.getLong(KEY_WX_AT, 0L)
+    /**
+     * The weather readings kept per place, as [WeatherPlaces.encode] wrote them. A store written
+     * before there was more than one reading still has that one under the old keys; it is read as
+     * a place of its own, so an update does not empty the row.
+     */
+    fun loadWeatherPlaces(): WeatherPlaces {
+        val text = prefs.getString(KEY_WX_PLACES, null)
+        if (text != null) return WeatherPlaces.decode(text)
+        val places = WeatherPlaces()
+        val at = prefs.getLong(KEY_WX_AT, 0L)
+        val lat = Double.fromBits(prefs.getLong(KEY_WX_LAT, NO_FIX_BITS))
+        val lon = Double.fromBits(prefs.getLong(KEY_WX_LON, NO_FIX_BITS))
+        if (at > 0L && !lat.isNaN() && !lon.isNaN()) {
+            places.put(
+                WeatherPlaces.Entry(
+                    lat, lon, at, at, false,
+                    prefs.getInt(KEY_WX_TEMP, 0),
+                    prefs.getInt(KEY_WX_PRESSURE, 0),
+                    prefs.getInt(KEY_WX_CONDITION, WeatherCondition.UNKNOWN),
+                ),
+            )
+        }
+        return places
+    }
 
-    /** Where the cached observation was taken. NaN when it predates this being recorded. */
-    val weatherLatitude: Double
-        get() = Double.fromBits(prefs.getLong(KEY_WX_LAT, NO_FIX_BITS))
-
-    val weatherLongitude: Double
-        get() = Double.fromBits(prefs.getLong(KEY_WX_LON, NO_FIX_BITS))
-
-    fun saveWeather(
-        temperatureDeciC: Int,
-        pressureDeciHpa: Int,
-        conditionIndex: Int,
-        observedAt: Long,
-        latitude: Double,
-        longitude: Double,
-    ) {
+    fun saveWeatherPlaces(places: WeatherPlaces) {
         prefs.edit()
-            .putInt(KEY_WX_TEMP, temperatureDeciC)
-            .putInt(KEY_WX_PRESSURE, pressureDeciHpa)
-            .putInt(KEY_WX_CONDITION, conditionIndex)
-            .putLong(KEY_WX_AT, observedAt)
-            .putLong(KEY_WX_LAT, latitude.toRawBits())
-            .putLong(KEY_WX_LON, longitude.toRawBits())
+            .putString(KEY_WX_PLACES, places.encode())
+            .remove(KEY_WX_TEMP).remove(KEY_WX_PRESSURE).remove(KEY_WX_CONDITION)
+            .remove(KEY_WX_AT).remove(KEY_WX_LAT).remove(KEY_WX_LON)
             .apply()
     }
+
+    /**
+     * Minutes between weather requests, one of [WeatherSchedule.INTERVAL_MINUTES]. Outside the
+     * style schema like [zoneFromPosition], so adding it reset nobody's settings.
+     */
+    var weatherIntervalMinutes: Int
+        get() = WeatherSchedule.intervalMinutes(
+            prefs.getInt(KEY_WX_INTERVAL, WeatherSchedule.DEFAULT_INTERVAL_MINUTES),
+        )
+        set(value) = prefs.edit()
+            .putInt(KEY_WX_INTERVAL, WeatherSchedule.intervalMinutes(value)).apply()
 
     fun saveSite(code: String, type: Int, flags: Int, distanceHm: Int) {
         prefs.edit()
@@ -196,17 +222,12 @@ class TelemetryStore(context: Context) {
         prefs.edit().remove(KEY_SITE_CODE).apply()
     }
 
-    /** Repopulates [state] from the cache so the first frame after a reboot is not blank. */
+    /**
+     * Repopulates [state] from the cache so the first frame after a reboot is not blank. The
+     * weather is not among it: which reading belongs on the dial depends on the position, so the
+     * repository picks it from [loadWeatherPlaces] once the position is decided.
+     */
     fun restoreInto(state: TelemetryState) {
-        val observedAt = weatherObservedAt
-        if (observedAt > 0L) {
-            state.setWeather(
-                prefs.getInt(KEY_WX_TEMP, 0),
-                prefs.getInt(KEY_WX_PRESSURE, 0),
-                prefs.getInt(KEY_WX_CONDITION, WeatherCondition.UNKNOWN),
-                observedAt,
-            )
-        }
         val code = prefs.getString(KEY_SITE_CODE, null)
         if (code != null && code.isNotEmpty()) {
             val chars = CharArray(code.length)
@@ -235,6 +256,7 @@ class TelemetryStore(context: Context) {
         const val KEY_SPEED = "speed"
         const val KEY_SHOW_COORDINATES = "show_coordinates"
         const val KEY_COMPASS_TICKS = "compass_ticks"
+        const val KEY_ROLLING_DIGITS = "rolling_digits"
         const val KEY_ZONE_FROM_POSITION = "zone_from_position"
         const val KEY_MEASURED_ZONE = "measured_zone"
         const val KEY_MANUAL_SELECTED = "manual_selected"
@@ -246,6 +268,8 @@ class TelemetryStore(context: Context) {
         const val KEY_WX_AT = "wx_at"
         const val KEY_WX_LAT = "wx_lat"
         const val KEY_WX_LON = "wx_lon"
+        const val KEY_WX_PLACES = "wx_places"
+        const val KEY_WX_INTERVAL = "wx_interval"
         const val KEY_SITE_CODE = "site_code"
         const val KEY_SITE_TYPE = "site_type"
         const val KEY_SITE_FLAGS = "site_flags"

@@ -39,6 +39,7 @@ import com.avdesign.mfd24.render.DutyArcLayer
 import com.avdesign.mfd24.render.Geometry
 import com.avdesign.mfd24.render.HandsLayer
 import com.avdesign.mfd24.render.SecondsMarker
+import com.avdesign.mfd24.render.SkyGlide
 import com.avdesign.mfd24.render.TelemetryLayer
 import com.avdesign.mfd24.render.WakeTransition
 import com.avdesign.mfd24.style.Palette
@@ -174,6 +175,10 @@ class MfdRenderer(
 
     /** Scratch for the moon model, refilled in place; render() allocates nothing. */
     private val moonState = MoonState()
+
+    /** The sky marks' passage from one place's sky to another's when the position jumps. */
+    private val sunGlide = SkyGlide(SkyGlide.SUN_DEGREES_PER_HOUR)
+    private val moonGlide = SkyGlide(SkyGlide.MOON_DEGREES_PER_HOUR)
 
     /**
      * Whether the readout uses a reference-frame symbol. It does not on Earth: with one world on
@@ -370,12 +375,16 @@ class MfdRenderer(
         // once. Easing the offset carries the hour hand, both ends of the duty arc and the
         // daylight band together, so the dial re-sets itself the way a good chronograph does
         // instead of teleporting.
-        transition.update(epochMillis, realOffsetMillis, targetDaylightStart, targetDaylightSweep)
+        // Always-on lands it at once: an ambient frame stands for a minute, and a dial frozen
+        // half-way between two settings for that long is a broken dial.
+        val ambientNow = renderParameters.drawMode == DrawMode.AMBIENT
+        transition.update(
+            epochMillis, realOffsetMillis, targetDaylightStart, targetDaylightSweep, ambientNow,
+        )
         val utcOffsetMillis = transition.hourOffsetMillis
 
         // Full rate while the dial is gliding, and while the face is sweeping out of always-on.
         // See [IDLE_FRAME_PERIOD_MS].
-        val ambientNow = renderParameters.drawMode == DrawMode.AMBIENT
         wake.update(epochMillis, ambientNow)
 
         // Reported once per minute, not once per frame: a window's own invalidate() draws a second
@@ -390,7 +399,7 @@ class MfdRenderer(
             lastAmbientMinute = -1L
         }
         setFrameRate(
-            if (transition.animating || wake.active) {
+            if (transition.animating || wake.active || telemetryLayer.rolling) {
                 ANIMATING_FRAME_PERIOD_MS
             } else {
                 IDLE_FRAME_PERIOD_MS
@@ -564,6 +573,7 @@ class MfdRenderer(
         var sunTrueAngle = Float.NaN
         var sunUp = false
         var sunHourAngle = 0.0
+        var sunLevel = 0f
         val latitude = telemetry.positionLatDeg
         val sunDeclination = MoonSky.sunDeclinationDeg(wallMillis)
         val marksWanted = nadirEnabled && mode == PlanetMode.EARTH &&
@@ -577,33 +587,54 @@ class MfdRenderer(
             if (sunHourAngle > 180.0) sunHourAngle -= 360.0
             if (sunHourAngle < -180.0) sunHourAngle += 360.0
             val mirror = !latitude.isNaN() && CompassTicks.mirrored(latitude, sunDeclination)
+            sunUp = wallMillis in telemetry.sunriseMillis..telemetry.sunsetMillis
+            // A move carries the mark through the sky, out from under the horizon on the side
+            // the wearer travelled towards, rather than teleporting it: see [SkyGlide].
+            val halfDay = (telemetry.sunsetMillis - telemetry.sunriseMillis) / 2.0 / 3_600_000.0 * 15.0
+            sunGlide.update(wallMillis, sunHourAngle, halfDay, mirror, sunUp, ambientNow)
+            val shownHours = 12.0 + sunGlide.hourAngle / 15.0
             sunTrueAngle = AstroTime.hourHandAngle(
-                if (mirror) 24.0 - solarHours else solarHours,
+                if (mirror) 24.0 - shownHours else shownHours,
                 flipped,
             )
-            sunUp = wallMillis in telemetry.sunriseMillis..telemetry.sunsetMillis
+            sunLevel = sunGlide.level
+        } else if (!nadirEnabled || mode != PlanetMode.EARTH) {
+            // Switched off, not merely between readings: a frame or two without a sky while the
+            // position and the dial's clock catch up with each other must not cost the glide.
+            sunGlide.reset()
         }
-        val sunAngle = if (solarMarkEnabled && sunUp) sunTrueAngle else Float.NaN
+        val sunAngle = if (solarMarkEnabled && sunLevel > 0f) sunTrueAngle else Float.NaN
 
         // The moon needs an observer, and its lit side needs the sun's direction even at night —
         // which is why sunTrueAngle is computed above regardless of the solar setting.
         var moonAngle = Float.NaN
         var moonFraction = 0f
+        var moonLevel = 0f
+        var moonUp = false
         if (lunarMarkEnabled && marksWanted && !sunTrueAngle.isNaN() &&
             !telemetry.positionLatDeg.isNaN()
         ) {
             MoonSky.compute(
                 wallMillis, telemetry.positionLatDeg, telemetry.positionLonDeg, moonState,
             )
-            if (moonState.altitudeDeg > 0.0) {
-                val moonHours = 12.0 + moonState.hourAngleDeg / 15.0
-                val mirror = CompassTicks.mirrored(latitude, moonState.declinationDeg)
+            moonUp = moonState.altitudeDeg > 0.0
+            val mirror = CompassTicks.mirrored(latitude, moonState.declinationDeg)
+            moonGlide.update(
+                wallMillis, SkyGlide.wrap(moonState.hourAngleDeg),
+                SkyGlide.horizonOf(latitude, moonState.declinationDeg), mirror, moonUp,
+                ambientNow,
+            )
+            moonLevel = moonGlide.level
+            if (moonLevel > 0f) {
+                val moonHours = 12.0 + moonGlide.hourAngle / 15.0
                 moonAngle = AstroTime.hourHandAngle(
                     if (mirror) 24.0 - moonHours else moonHours,
                     flipped,
                 )
                 moonFraction = moonState.illuminatedFraction.toFloat()
             }
+        } else if (!lunarMarkEnabled || !nadirEnabled || mode != PlanetMode.EARTH) {
+            moonGlide.reset()
         }
 
         positionAge = PositionAge.of(
@@ -616,11 +647,11 @@ class MfdRenderer(
             !telemetry.positionLatDeg.isNaN()
         if (compassVisible) {
             when {
-                !sunAngle.isNaN() -> {
+                solarMarkEnabled && sunUp -> {
                     compassNorthAtMidnight = CompassTicks.northAtMidnight(latitude, sunDeclination)
                     compassPointed = CompassTicks.pointed(latitude, sunDeclination, sunHourAngle)
                 }
-                !moonAngle.isNaN() -> {
+                moonUp -> {
                     val declination = moonState.declinationDeg
                     compassNorthAtMidnight = CompassTicks.northAtMidnight(latitude, declination)
                     compassPointed =
@@ -682,7 +713,7 @@ class MfdRenderer(
                 dutySpanStart, dutySpanSweep, dutyRemainingStart, dutyRemainingSweep,
                 vigilanceCore, vigilanceAlarm, vigilanceSuspended, vigilanceUncovered,
                 incidentMillis, incidentElapsedMillis, showClearHint,
-                sunAngle, moonAngle, moonFraction, sunTrueAngle,
+                sunAngle, moonAngle, moonFraction, sunTrueAngle, sunLevel, moonLevel,
                 ambient = true,
                 halfDensity = halfDensity,
             )
@@ -694,10 +725,15 @@ class MfdRenderer(
             dutySpanStart, dutySpanSweep, dutyRemainingStart, dutyRemainingSweep,
             vigilanceCore, vigilanceAlarm, vigilanceSuspended, vigilanceUncovered,
             incidentMillis, incidentElapsedMillis, showClearHint,
-            sunAngle, moonAngle, moonFraction, sunTrueAngle,
+            sunAngle, moonAngle, moonFraction, sunTrueAngle, sunLevel, moonLevel,
             ambient = false,
             halfDensity = false,
         )
+        // A drum that started on this frame needs the next one at full rate; the library reads
+        // the period after render() returns, so setting it here is in time.
+        if (telemetryLayer.rolling || sunGlide.animating || moonGlide.animating) {
+            setFrameRate(ANIMATING_FRAME_PERIOD_MS)
+        }
 
         // Seconds are one triangular cursor stepping from tick to tick — no hand, no filled ring.
         // Taken off the minute offset, which never has a fractional minute in it, so the cursor
@@ -757,6 +793,8 @@ class MfdRenderer(
         moonAngle: Float,
         moonFraction: Float,
         moonLimbToward: Float,
+        sunLevel: Float,
+        moonLevel: Float,
         ambient: Boolean,
         halfDensity: Boolean,
     ) {
@@ -773,11 +811,13 @@ class MfdRenderer(
                 transition.daylightStart, transition.daylightSweep,
             )
             if (!sunAngle.isNaN()) {
-                daylightLayer.drawSun(canvas, geometry, p.sunMark, p.background, sunAngle)
+                daylightLayer.drawSun(
+                    canvas, geometry, Palette.dim(p.sunMark, sunLevel), p.background, sunAngle,
+                )
             }
             if (!moonAngle.isNaN()) {
                 daylightLayer.drawMoon(
-                    canvas, geometry, p.moonMark, p.background,
+                    canvas, geometry, Palette.dim(p.moonMark, moonLevel), p.background,
                     moonAngle, moonFraction, moonLimbToward,
                 )
             }
@@ -792,11 +832,13 @@ class MfdRenderer(
                 transition.daylightStart, transition.daylightSweep,
             )
             if (!sunAngle.isNaN()) {
-                daylightLayer.drawSun(canvas, geometry, p.sunMark, p.background, sunAngle)
+                daylightLayer.drawSun(
+                    canvas, geometry, Palette.dim(p.sunMark, sunLevel), p.background, sunAngle,
+                )
             }
             if (!moonAngle.isNaN()) {
                 daylightLayer.drawMoon(
-                    canvas, geometry, p.moonMark, p.background,
+                    canvas, geometry, Palette.dim(p.moonMark, moonLevel), p.background,
                     moonAngle, moonFraction, moonLimbToward,
                 )
             }
@@ -831,7 +873,7 @@ class MfdRenderer(
             canvas, geometry, p, telemetry, mode, epochMillis,
             fahrenheit, mmHg, dutyState, dutyMillis, vigilance.status, showClearHint,
             incidentMillis, incidentElapsedMillis, sensorLeft, sensorRight, layoutGeneration,
-            frameSymbol, dialOffsetMillis, positionAge,
+            frameSymbol, dialOffsetMillis, positionAge, ambient,
         )
 
         handsLayer.drawHourMinute(canvas, geometry, p, hourAngle, minuteAngle, layoutGeneration)

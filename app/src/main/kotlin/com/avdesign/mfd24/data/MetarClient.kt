@@ -28,8 +28,10 @@ object MetarClient {
 
     private const val TAG = "MetarClient"
     private const val ENDPOINT = "https://aviationweather.gov/api/data/metar"
-    private const val CONNECT_TIMEOUT_MS = 15_000
-    private const val READ_TIMEOUT_MS = 15_000
+    // Short, because a METAR that does not answer is followed by Open-Meteo in the same try,
+    // and fifteen seconds apiece held one try for most of a minute on a network that was not there.
+    private const val CONNECT_TIMEOUT_MS = 5_000
+    private const val READ_TIMEOUT_MS = 10_000
 
     /**
      * A METAR is an hourly product; at 75 minutes it is one missed issue old and the model's
@@ -99,6 +101,8 @@ object MetarClient {
                 metar.optString("wxString"), metar.optString("cover"),
             ),
             observedAt = nowMillis,
+            issuedAt = observedMillis,
+            metar = true,
         )
     }
 }

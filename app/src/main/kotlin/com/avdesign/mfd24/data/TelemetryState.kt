@@ -163,6 +163,10 @@ class TelemetryState {
     @Volatile
     var compassTicks: Boolean = false
 
+    /** `ROLLING DIGITS`: a changed character on the dial's rows turns like a drum. */
+    @Volatile
+    var rollingDigits: Boolean = false
+
     // --- The place's own clock --------------------------------------------------------------
 
     /**

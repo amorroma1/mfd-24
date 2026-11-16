@@ -187,6 +187,7 @@ private fun ConfigScreen(
         session, StyleSchema.LOG_HEART_RATE, StyleSchema.LOG_HR_OFF
     )
     var weather by rememberOption(session, StyleSchema.WEATHER, StyleSchema.WEATHER_ON)
+    var weatherInterval by remember { mutableStateOf(repository.weatherIntervalMinutes) }
     var ambientDensity by rememberOption(
         session, StyleSchema.AMBIENT_DENSITY, StyleSchema.AMBIENT_FULL
     )
@@ -198,6 +199,7 @@ private fun ConfigScreen(
     var zoneFromPosition by remember { mutableStateOf(repository.zoneFromPosition) }
     var showCoordinates by remember { mutableStateOf(repository.showCoordinates) }
     var compassTicks by remember { mutableStateOf(repository.compassTicks) }
+    var rollingDigits by remember { mutableStateOf(repository.rollingDigits) }
     // Seeded from whatever position is in force when there is no manual one on file yet: even
     // with the hold-to-repeat, starting from 0.00 is the Gulf of Guinea and seconds of travel.
     var manualLat by remember {
@@ -352,7 +354,7 @@ private fun ConfigScreen(
         // Both actions in this section spend the same duration, so it is chosen once at the top and
         // neither START NOW nor ARM TIMER carries a length of its own. Scheduling used to be a
         // section two screens further down, which put the figure it spends out of sight of the rows
-        // that set it.
+        // that set it. START NOW comes first of the two because it is the one used most.
         item(key = headerKey(SECTION_DUTY)) {
             SectionHeader(
                 text = stringResource(R.string.editor_section_watch),
@@ -398,6 +400,42 @@ private fun ConfigScreen(
                 }
             }
 
+            // Straight under the length it spends: starting and ending a watch is what this list
+            // is opened for most, and it used to sit last, below the booking rows, a scroll away.
+            item {
+                val running = dutyState == WatchShiftState.DUTY_ACTIVE ||
+                    dutyState == WatchShiftState.DUTY_PENDING
+                val secondary = dutySecondaryText(dutyState, watchShift, nowMillis)
+                Chip(
+                    onClick = {
+                        if (running) watchShift.cancel() else watchShift.start(selectedMillis)
+                        nowMillis = System.currentTimeMillis()
+                        dutyState = watchShift.state.dutyState(nowMillis)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = if (running) {
+                        // Terracotta rather than the palette's alarm red: ending a duty on purpose is
+                        // a decision, not an emergency.
+                        ChipDefaults.primaryChipColors(backgroundColor = Terracotta)
+                    } else {
+                        ChipDefaults.primaryChipColors()
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(
+                                if (running) R.string.editor_end_watch else R.string.editor_start_watch
+                            ),
+                            maxLines = 1,
+                        )
+                    },
+                    secondaryLabel = if (secondary != null) {
+                        { Text(text = secondary, maxLines = 1) }
+                    } else {
+                        null
+                    },
+                )
+            }
+
             item { Label(stringResource(R.string.editor_label_schedule)) }
             // Both steppers floor at the next bookable instant, read off a live clock rather
             // than the 20-second `nowMillis`: stepping below "now" would arm a start that
@@ -440,40 +478,6 @@ private fun ConfigScreen(
                         watchShift.schedule(bookedStart, selectedMillis)
                         nowMillis = System.currentTimeMillis()
                         dutyState = watchShift.state.dutyState(nowMillis)
-                    },
-                )
-            }
-            // The section's conclusion, and so its last row: everything above decides what it will do.
-            item {
-                val running = dutyState == WatchShiftState.DUTY_ACTIVE ||
-                    dutyState == WatchShiftState.DUTY_PENDING
-                val secondary = dutySecondaryText(dutyState, watchShift, nowMillis)
-                Chip(
-                    onClick = {
-                        if (running) watchShift.cancel() else watchShift.start(selectedMillis)
-                        nowMillis = System.currentTimeMillis()
-                        dutyState = watchShift.state.dutyState(nowMillis)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = if (running) {
-                        // Terracotta rather than the palette's alarm red: ending a duty on purpose is
-                        // a decision, not an emergency.
-                        ChipDefaults.primaryChipColors(backgroundColor = Terracotta)
-                    } else {
-                        ChipDefaults.primaryChipColors()
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(
-                                if (running) R.string.editor_end_watch else R.string.editor_start_watch
-                            ),
-                            maxLines = 1,
-                        )
-                    },
-                    secondaryLabel = if (secondary != null) {
-                        { Text(text = secondary, maxLines = 1) }
-                    } else {
-                        null
                     },
                 )
             }
@@ -635,54 +639,10 @@ private fun ConfigScreen(
         }
 
 
-        // ---- Sensors ---------------------------------------------------------------------------
-        // Between the monitor and the position, not at the bottom of the list: everything from
-        // here up is about what hardware watches or reads the wearer, which is one family of
-        // decision — and the headers now taper down the screen, so a swipe reads as one shape
-        // instead of a long word snagging the eye below the fold.
-        item(key = headerKey(SECTION_SENSORS)) {
-            SectionHeader(
-                text = stringResource(R.string.editor_section_sensors),
-                expanded = openSection == SECTION_SENSORS,
-                onClick = { toggleSection(SECTION_SENSORS) },
-            )
-        }
-        if (openSection == SECTION_SENSORS) {
-            item {
-                SensorSlotSetting(
-                    label = stringResource(R.string.editor_label_sensor_left),
-                    selectedId = sensorLeft,
-                    otherId = sensorRight,
-                    grants = grants,
-                    onRequestPermission = onRequestPermission,
-                    onSelect = { id ->
-                        session.select(StyleSchema.SENSOR_LEFT, id)
-                        sensorLeft = id
-                    },
-                )
-            }
-            item {
-                SensorSlotSetting(
-                    label = stringResource(R.string.editor_label_sensor_right),
-                    selectedId = sensorRight,
-                    otherId = sensorLeft,
-                    grants = grants,
-                    onRequestPermission = onRequestPermission,
-                    onSelect = { id ->
-                        session.select(StyleSchema.SENSOR_RIGHT, id)
-                        sensorRight = id
-                    },
-                )
-            }
-            if (missingSensorPermission(editorContext, sensorLeft, sensorRight, grants)) {
-                item { Hint(stringResource(R.string.editor_sensor_needs_permission), hints) }
-            }
-        }
-
         // ---- Position --------------------------------------------------------------------------
-        // Ahead of the display settings because NADIR and WEATHER both need a position: this was the
-        // last section on the screen, so the line saying one is required pointed at rows the user
-        // had not scrolled to yet.
+        // Ahead of the readouts and the sky because the weather and all of the astronomy need a
+        // position: this was the last section on the screen, so the line saying one is required
+        // pointed at rows the user had not scrolled to yet.
         item(key = headerKey(SECTION_POSITION)) {
             SectionHeader(
                 text = stringResource(R.string.editor_section_position),
@@ -710,13 +670,12 @@ private fun ConfigScreen(
                             manualActive = manual
                             hasPosition = repository.state.hasPosition
                             positionSource = repository.state.positionSource
-                            if (!manual) {
-                                // Go and get one now; the point of switching back is to see it happen.
-                                scope.launch {
-                                    runCatching { repository.onLocationGranted() }
-                                    hasPosition = repository.state.hasPosition
-                                    positionSource = repository.state.positionSource
-                                }
+                            // Site and weather follow now, either way: the point of switching is to
+                            // see it happen. Back to automatic also goes and gets a fresh fix.
+                            scope.launch {
+                                runCatching { repository.followPositionSource() }
+                                hasPosition = repository.state.hasPosition
+                                positionSource = repository.state.positionSource
                             }
                         }
                     },
@@ -855,6 +814,11 @@ private fun ConfigScreen(
                                 manualActive = false
                                 hasPosition = repository.state.hasPosition
                                 positionSource = repository.state.positionSource
+                                scope.launch {
+                                    runCatching { repository.followPositionSource() }
+                                    hasPosition = repository.state.hasPosition
+                                    positionSource = repository.state.positionSource
+                                }
                             },
                         )
                     }
@@ -863,51 +827,111 @@ private fun ConfigScreen(
         }
 
 
-        // ---- Display ---------------------------------------------------------------------------
-        // Seven settings that only change how the face looks, under one heading. They were seven
-        // sections of a header and two full-width chips each: fifteen rows to say seven things, and
-        // nothing in the list to show which of them belonged together.
-        item(key = headerKey(SECTION_DISPLAY)) {
+        // ---- Readouts --------------------------------------------------------------------------
+        // What the dial reads out and in which units: the weather and how often it is asked for,
+        // the two slots by the hub, and the units both are printed in. These were three sections
+        // — sensors, part of display, units — and a wearer looking for one readout had three
+        // places to try. After the position, because the weather needs one.
+        item(key = headerKey(SECTION_READOUTS)) {
             SectionHeader(
-                text = stringResource(R.string.editor_section_display),
-                expanded = openSection == SECTION_DISPLAY,
-                onClick = { toggleSection(SECTION_DISPLAY) },
+                text = stringResource(R.string.editor_section_readouts),
+                expanded = openSection == SECTION_READOUTS,
+                onClick = { toggleSection(SECTION_READOUTS) },
             )
         }
-        if (openSection == SECTION_DISPLAY) {
+        if (openSection == SECTION_READOUTS) {
             item {
                 SegmentedSetting(
-                    label = stringResource(R.string.editor_label_palette),
-                    options = PALETTE_OPTIONS,
-                    selectedId = palette,
+                    label = stringResource(R.string.editor_label_weather),
+                    options = WEATHER_OPTIONS,
+                    selectedId = weather,
                     onSelect = { id ->
-                        session.select(StyleSchema.PALETTE, id)
-                        palette = id
+                        session.select(StyleSchema.WEATHER, id)
+                        weather = id
+                    },
+                    isEnabled = { id -> hasPosition || id == StyleSchema.WEATHER_OFF },
+                )
+            }
+            // Only while there is weather to ask for: an interval for a row that is off is a
+            // setting that changes nothing, which reads as broken rather than as optional.
+            if (weather == StyleSchema.WEATHER_ON) {
+                item {
+                    SegmentedSetting(
+                        label = stringResource(R.string.editor_label_weather_interval),
+                        options = WEATHER_INTERVAL_OPTIONS,
+                        selectedId = weatherInterval.toString(),
+                        onSelect = { id ->
+                            val minutes = id.toInt()
+                            repository.weatherIntervalMinutes = minutes
+                            weatherInterval = minutes
+                        },
+                    )
+                }
+            }
+            item {
+                SensorSlotSetting(
+                    label = stringResource(R.string.editor_label_sensor_left),
+                    selectedId = sensorLeft,
+                    otherId = sensorRight,
+                    grants = grants,
+                    onRequestPermission = onRequestPermission,
+                    onSelect = { id ->
+                        session.select(StyleSchema.SENSOR_LEFT, id)
+                        sensorLeft = id
+                    },
+                )
+            }
+            item {
+                SensorSlotSetting(
+                    label = stringResource(R.string.editor_label_sensor_right),
+                    selectedId = sensorRight,
+                    otherId = sensorLeft,
+                    grants = grants,
+                    onRequestPermission = onRequestPermission,
+                    onSelect = { id ->
+                        session.select(StyleSchema.SENSOR_RIGHT, id)
+                        sensorRight = id
+                    },
+                )
+            }
+            if (missingSensorPermission(editorContext, sensorLeft, sensorRight, grants)) {
+                item { Hint(stringResource(R.string.editor_sensor_needs_permission), hints) }
+            }
+            item {
+                SegmentedSetting(
+                    label = stringResource(R.string.editor_label_temperature),
+                    options = TEMP_OPTIONS,
+                    selectedId = tempUnit,
+                    onSelect = { id ->
+                        session.select(StyleSchema.TEMP_UNIT, id)
+                        tempUnit = id
                     },
                 )
             }
             item {
                 SegmentedSetting(
-                    label = stringResource(R.string.editor_label_dial_top),
-                    options = DIAL_TOP_OPTIONS,
-                    selectedId = dialTop,
+                    label = stringResource(R.string.editor_label_pressure),
+                    options = PRESSURE_OPTIONS,
+                    selectedId = pressureUnit,
                     onSelect = { id ->
-                        session.select(StyleSchema.DIAL_TOP, id)
-                        dialTop = id
+                        session.select(StyleSchema.PRESSURE_UNIT, id)
+                        pressureUnit = id
                     },
                 )
             }
-            item {
-                SegmentedSetting(
-                    label = stringResource(R.string.editor_label_midnight),
-                    options = MIDNIGHT_OPTIONS,
-                    selectedId = midnightLabel,
-                    onSelect = { id ->
-                        session.select(StyleSchema.MIDNIGHT_LABEL, id)
-                        midnightLabel = id
-                    },
-                )
-            }
+        }
+
+        // ---- Sky -------------------------------------------------------------------------------
+        // The astronomy, each row drawing on the one above: the band, the two marks on it, and
+        // the compass they make. All of it needs a position, so it follows the position.
+        item(key = headerKey(SECTION_SKY)) {
+            SectionHeader(
+                text = stringResource(R.string.editor_section_sky),
+                expanded = openSection == SECTION_SKY,
+                onClick = { toggleSection(SECTION_SKY) },
+            )
+        }
+        if (openSection == SECTION_SKY) {
             item {
                 // Nothing to shade without a position, so the choice is not offered as if it were live.
                 SegmentedSetting(
@@ -981,16 +1005,50 @@ private fun ConfigScreen(
             if (compassTicks) {
                 item { Hint(stringResource(R.string.editor_compass_note), hints) }
             }
+        }
+
+        // ---- Display ---------------------------------------------------------------------------
+        // How the face looks, and nothing else: it was twelve rows in three kinds — looks, sky and
+        // data — and is now the first kind only.
+        item(key = headerKey(SECTION_DISPLAY)) {
+            SectionHeader(
+                text = stringResource(R.string.editor_section_display),
+                expanded = openSection == SECTION_DISPLAY,
+                onClick = { toggleSection(SECTION_DISPLAY) },
+            )
+        }
+        if (openSection == SECTION_DISPLAY) {
             item {
                 SegmentedSetting(
-                    label = stringResource(R.string.editor_label_weather),
-                    options = WEATHER_OPTIONS,
-                    selectedId = weather,
+                    label = stringResource(R.string.editor_label_palette),
+                    options = PALETTE_OPTIONS,
+                    selectedId = palette,
                     onSelect = { id ->
-                        session.select(StyleSchema.WEATHER, id)
-                        weather = id
+                        session.select(StyleSchema.PALETTE, id)
+                        palette = id
                     },
-                    isEnabled = { id -> hasPosition || id == StyleSchema.WEATHER_OFF },
+                )
+            }
+            item {
+                SegmentedSetting(
+                    label = stringResource(R.string.editor_label_dial_top),
+                    options = DIAL_TOP_OPTIONS,
+                    selectedId = dialTop,
+                    onSelect = { id ->
+                        session.select(StyleSchema.DIAL_TOP, id)
+                        dialTop = id
+                    },
+                )
+            }
+            item {
+                SegmentedSetting(
+                    label = stringResource(R.string.editor_label_midnight),
+                    options = MIDNIGHT_OPTIONS,
+                    selectedId = midnightLabel,
+                    onSelect = { id ->
+                        session.select(StyleSchema.MIDNIGHT_LABEL, id)
+                        midnightLabel = id
+                    },
                 )
             }
             // Always-on wears the lume palette, dimmed -- there is no separate colour to choose, and
@@ -1010,54 +1068,16 @@ private fun ConfigScreen(
             if (ambientDensity == StyleSchema.AMBIENT_AUTO) {
                 item { Hint(stringResource(R.string.editor_ambient_auto_note), hints) }
             }
-            // Last in the section that decides how things look, because this decides how *this
-            // list* looks. Not a style setting for all that: it changes nothing the renderer
-            // draws, and a schema change must not cost somebody their palette to reset it.
+            // How a change is shown, so beside how the dial is lit.
             item {
                 SegmentedSetting(
-                    label = stringResource(R.string.editor_label_hints),
-                    options = HINT_OPTIONS,
-                    selectedId = if (hints) HINTS_ON else HINTS_OFF,
+                    label = stringResource(R.string.editor_label_rolling),
+                    options = ROLLING_OPTIONS,
+                    selectedId = if (rollingDigits) SWITCH_ON else SWITCH_OFF,
                     onSelect = { id ->
-                        hints = id == HINTS_ON
-                        EditorPrefs.setHintsShown(editorContext, hints)
-                    },
-                )
-            }
-            item { Hint(stringResource(R.string.editor_hints_note), hints) }
-        }
-
-
-        // ---- Units -----------------------------------------------------------------------------
-        // Both rows labelled: unlabelled, the four chips ran together and the second pair read as
-        // more of the first.
-        item(key = headerKey(SECTION_UNITS)) {
-            SectionHeader(
-                text = stringResource(R.string.editor_section_units),
-                expanded = openSection == SECTION_UNITS,
-                onClick = { toggleSection(SECTION_UNITS) },
-            )
-        }
-        if (openSection == SECTION_UNITS) {
-            item {
-                SegmentedSetting(
-                    label = stringResource(R.string.editor_label_temperature),
-                    options = TEMP_OPTIONS,
-                    selectedId = tempUnit,
-                    onSelect = { id ->
-                        session.select(StyleSchema.TEMP_UNIT, id)
-                        tempUnit = id
-                    },
-                )
-            }
-            item {
-                SegmentedSetting(
-                    label = stringResource(R.string.editor_label_pressure),
-                    options = PRESSURE_OPTIONS,
-                    selectedId = pressureUnit,
-                    onSelect = { id ->
-                        session.select(StyleSchema.PRESSURE_UNIT, id)
-                        pressureUnit = id
+                        val on = id == SWITCH_ON
+                        repository.rollingDigits = on
+                        rollingDigits = on
                     },
                 )
             }
@@ -1131,6 +1151,21 @@ private fun ConfigScreen(
                 )
             }
             item { Hint(stringResource(R.string.editor_about_update_note), hints) }
+            // The list's own setting, so it lives with the list's own business rather than among
+            // the dial's: it changes nothing the renderer draws. Not a style setting either, and a
+            // schema change must not cost somebody their palette to reset it.
+            item {
+                SegmentedSetting(
+                    label = stringResource(R.string.editor_label_hints),
+                    options = HINT_OPTIONS,
+                    selectedId = if (hints) HINTS_ON else HINTS_OFF,
+                    onSelect = { id ->
+                        hints = id == HINTS_ON
+                        EditorPrefs.setHintsShown(editorContext, hints)
+                    },
+                )
+            }
+            item { Hint(stringResource(R.string.editor_hints_note), hints) }
         }
 
 
@@ -1164,15 +1199,17 @@ private fun ConfigScreen(
  *
  * Identity, not position: a header's item index moves when a section above it expands, which is
  * why the headers are keyed by [headerKey] and the pinning in `toggleSection` looks items up by
- * key rather than by index.
+ * key rather than by index. The numbers do follow the order on screen, though, and must: once a
+ * header is tapped nothing above it is open, so its index is its number, and the pin scrolls to it
+ * by that.
  */
 private const val SECTION_NONE = -1
 private const val SECTION_DUTY = 0
 private const val SECTION_VIGILANCE = 1
-private const val SECTION_SENSORS = 2
-private const val SECTION_POSITION = 3
-private const val SECTION_DISPLAY = 4
-private const val SECTION_UNITS = 5
+private const val SECTION_POSITION = 2
+private const val SECTION_READOUTS = 3
+private const val SECTION_SKY = 4
+private const val SECTION_DISPLAY = 5
 private const val SECTION_ABOUT = 6
 
 /** Stable identity for a section header in the lazy list, whatever its index this frame. */

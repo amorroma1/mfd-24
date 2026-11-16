@@ -39,10 +39,11 @@ quadranti di questo tipo** — vedi [Compatibilità](#compatibilità).
 | **Uomo morto** | Spento per impostazione predefinita. Ogni 5/10/15 min fa una richiesta da tacitare; trenta secondi dopo suona l'SOS a raffiche e lascia `MAN DOWN` — uomo a terra — con l'istante Zulu sul quadrante. In opzione annota il polso alla richiesta non tacitata, accanto all'ultima lettura in movimento. |
 | **Esportazione del giornale** | Il giornale di bordo lascia l'orologio come **codice QR** per la fotocamera di un telefono o come **suono** — Bell 202 AFSK, decodificato da `minimodem`. Il suono porta tutto; il QR porta ciò che entra, e lo dice. [Canali e limiti ↓](#export) |
 | **Zulu + gruppo data-orario** | `Z 11NOV 13:05 -5`, l'ora in cui si scrive una voce di giornale, seguita dallo scarto del quadrante. |
-| **Meteo** | Temperatura, condizione in stile METAR e QNH. In un aeroporto è il **METAR proprio** di quel campo; ovunque altrove Open-Meteo. Aggiornato ogni 30 minuti. |
+| **Meteo** | Temperatura, condizione in stile METAR e QNH. In un aeroporto è il **METAR proprio** di quel campo; ovunque altrove Open-Meteo. Richiesto ogni 15, 30 o 60 minuti, a scelta, e un METAR appena esce il successivo. Ogni lettura resta legata al suo luogo: andate e tornate, e il meteo di casa è subito lì, offline. Nulla di più vecchio di un'ora viene mostrato. |
 | **Aggancio sito a 5 km** | Nomina l'aeroporto, il porto, l'eliporto o la base di lancio più vicini fra 9 649 siti in un indice di bordo da 194 KB. I siti militari sono disegnati nel colore d'accento. |
-| **Nadir, sole e luna** | L'arco diurno — le ore di luce ombreggiate sull'anello delle ore — calcolato offline. Il segno solare e il segno lunare stanno al vero angolo orario dell'astro — puntate un segno verso l'astro stesso e il quadrante è una **bussola** — anche a sud dell'equatore, dove i segni girano contro le lancette come il cielo. `ACTIVE SN` colora il meridiano di rosso a nord e di bianco a sud, a punta finché l'orologio sa il quadrante giusto entro 15°. La luna porta la sua fase reale. |
+| **Nadir, sole e luna** | L'arco diurno — le ore di luce ombreggiate sull'anello delle ore — calcolato offline. Il segno solare e il segno lunare stanno al vero angolo orario dell'astro — puntate un segno verso l'astro stesso e il quadrante è una **bussola** — anche a sud dell'equatore, dove i segni girano contro le lancette come il cielo. `ASTROBUSSOLA` colora il meridiano di rosso a nord e di bianco a sud, a punta finché l'orologio sa il quadrante giusto entro 15°. La luna porta la sua fase reale. |
 | **Slot sensori** | Due letture opzionali accanto al mozzo: frequenza cardiaca, i passi del giorno, o pressione di stazione. Spenti per impostazione predefinita; girano a schermo acceso, e in always-on il polso viene riletto una volta al minuto finché l'orologio è indossato. [Come quella finestra si regola ↓](#pulse-window) |
+| **Movimento** | Un fuso attraversato o un lungo spostamento, e lancette, arco di guardia e arco diurno si rimettono in tre secondi, uno dopo l'altro come ingranaggi che recuperano il gioco, come un oggetto con una massa: partenza lenta, più veloci a metà corsa, frenata sulla nuova posizione. Dopo un lungo spostamento il segno solare e quello lunare raggiungono il cielo del nuovo luogo e superano l'orizzonte dal lato verso cui avete viaggiato. `CIFRE A RULLO`, spento di default, gira su un rullo ogni carattere cambiato delle righe: meteo, luogo, Zulu, guardia, polso, pressione, batteria. Solo a schermo acceso. |
 | **Always-on** | Lo stesso quadrante, attenuato. `AUTO` lo riduce a un pixel su due dopo il tramonto — mai durante una guardia di notte. |
 | **Direct boot** | Si disegna già popolato prima che l'orologio venga sbloccato. |
 
@@ -132,7 +133,7 @@ La posizione viene chiesta dalla schermata delle impostazioni, perché un quadra
 | `WAKE_LOCK`, `FOREGROUND_SERVICE_HEALTH` | l'uomo morto, che deve continuare a sentire a schermo spento | solo quella funzione |
 | `VIBRATE` | i confini della guardia e l'SOS | confini silenziosi |
 | `SCHEDULE_EXACT_ALARM` | confini che cadono sul minuto | richiesto ma **non** necessario; senza, un confine può slittare di qualche minuto |
-| `INTERNET` | Open-Meteo e METAR ogni 30 min, più il controllo quotidiano delle release | niente meteo, niente controllo delle release |
+| `INTERNET` | Open-Meteo e METAR ogni 15–60 min, più il controllo quotidiano delle release | niente meteo, niente controllo delle release |
 | `BODY_SENSORS` | lo slot della frequenza cardiaca e il polso in un evento | trattini; la riga `POLSO NEL GIORNALE` non viene offerta |
 | `ACTIVITY_RECOGNITION` | lo slot dei passi; su Wear 5+ anche ciò che permette al servizio uomo morto di avviarsi | trattini; sui Wear più recenti, niente uomo morto |
 | `POST_NOTIFICATIONS` | l'avviso persistente dell'uomo morto, e l'avviso di aggiornamento una volta per release | l'uomo morto gira senza annunciarsi |
@@ -175,21 +176,22 @@ nomenclatura da strumento, non prosa.
 |---|---|---|---|---|
 | ![](../screenshots/settings-sections.png) | ![](../screenshots/settings-duty.png) | ![](../screenshots/settings-schedule.png) | ![](../screenshots/settings-display.png) | ![](../screenshots/settings-about.png) |
 
-- **Guardia** — durata `4h` `8h` `12h` `PERS`, una guardia prenotata, e un chip che legge
-  `MONTA DI GUARDIA` oppure, in terracotta, `SMONTA DI GUARDIA`. Non si può montare di guardia nel passato.
+- **Guardia** — durata `4h` `8h` `12h` `PERS`, poi un chip che legge `MONTA DI GUARDIA` oppure, in
+  terracotta, `SMONTA DI GUARDIA`, poi una guardia prenotata. Non si può montare di guardia nel
+  passato.
 - **Uomo morto** — on/off, intervallo di richiesta, `VIBRAZIONE`, `SEGNALE SOS` (OFF/MIN/MED/MAX),
   `POLSO NEL GIORNALE`, e il giornale di bordo con la sua esportazione.
-- **Sensori** — cosa legge ciascuno slot del mozzo.
 - **Punto** — GPS, o coordinate inserite a mano. Un punto inserito mette il quadrante all'ora di
   quel luogo; un punto GPS può farlo anch'esso, con `ORA LOCALE` → `LUOGO`. Lo Zulu è seguito dallo
   scarto del quadrante (`Z 13NOV 13:58 -5`): quale orologio vale non è mai da indovinare. La riga
   della posizione, sopra il meteo, termina con uno spillo da mappa per un punto inserito, o con un satellite per un punto GPS: attenuato appena, in movimento, può essersi
   spostato di oltre 5 km, barrato dopo mezz'ora in movimento senza fix — l'ultima posizione resta
   comunque sul quadrante. `COORDINATE` la scrive dove comparirebbe `NO SITE`: `50°27N 30°31E`.
-- **Display** — colore luminoso, alto del quadrante, segno di mezzanotte, Nadir, segno solare e lunare,
-  `ACTIVE SN`, meteo, always-on, e `SUGGERIMENTI` per le note in piccolo sotto ogni riga.
-- **Unità** — °C/°F, hPa/mmHg.
-- **Info** — versione, il repository come QR, il controllo delle release.
+- **Letture** — meteo e `METEO OGNI`, cosa legge ciascuno slot del mozzo, °C/°F e hPa/mmHg.
+- **Cielo** — Nadir, segno solare e lunare, `ASTROBUSSOLA`.
+- **Display** — colore luminoso, alto del quadrante, segno di mezzanotte, always-on, `CIFRE A RULLO`.
+- **Info** — versione, il controllo delle release, il repository come QR, e `SUGGERIMENTI` per le
+  note in piccolo sotto ogni riga.
 
 **[Ogni riga, con il ragionamento →](../DESIGN.md#settings)**
 
@@ -236,7 +238,7 @@ a toccare i numerali delle ore.
 piattaforma — Wear OS 5 è l'eccezione, vedi [Compatibilità](#compatibilità);
 nessuna funzione GPU oltre un canvas ordinario. `render()` non alloca nulla, quindi non c'è alcuna
 pausa del garbage collector da cui guardarsi, e il frame rate è a richiesta: **un fotogramma al
-secondo a riposo**, 16 ms solo mentre una transizione è in animazione, e un fotogramma al minuto
+secondo a riposo**, 16 ms solo mentre qualcosa si muove — uno scivolamento, un segno celeste, un rullo — e un fotogramma al minuto
 in always-on. I sensori opzionali sono l'unico costo reale — la frequenza cardiaca è un LED, e il
 dispositivo uomo morto tiene l'accelerometro in batch nel sensor hub anziché svegliare il
 processore. Tutto il resto gira su valori in cache.
@@ -304,7 +306,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ e l'SDK Android. 248 test JVM: `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ e l'SDK Android. 285 test JVM: `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Come è stato costruito
 

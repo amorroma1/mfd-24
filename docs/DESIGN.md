@@ -23,13 +23,13 @@ mfd-24/
     render/                       Geometry, DialLayer, HandsLayer, SecondsMarker, DutyArcLayer,
                                   DaylightLayer, TelemetryLayer, AmbientLayer, AmbientAuto,
                                   SiteGlyph, Glyphs, DialTransition, DialZone, WakeTransition,
-                                  CompassLayer, CompassTicks
+                                  CompassLayer, CompassTicks, DrumRow, SkyGlide
     astro/                        AstroTime (dial angles, the UTC date-time group), SolarTime
                                   (sunrise/sunset), MoonSky (phase and hour angle)
     geo/                          PoiDatabase (Morton range query), PoiResolver, Geo (haversine),
                                   TzGrid (zone lookup), ZoneHysteresis (the border band)
     data/                         TelemetryRepository/State/Store, ResolveOrigin, LocationRepository,
-                                  OpenMeteoClient, MetarClient, WeatherCache, TelemetryWorker,
+                                  OpenMeteoClient, MetarClient, WeatherPlaces, WeatherSchedule, TelemetryWorker,
                                   WatchShift (timer state + alarm), Alerts (beep and buzz),
                                   PlaceZone, PositionAge, SensorSlots, DailySteps, MotionFilter,
                                   VigilanceService/Monitor/
@@ -69,13 +69,23 @@ once — hour hand, both ends of the watch arc, the edges of the daylight band �
 the same amount and the intervals between them never change. `TimeZoneShiftTest` pins that,
 including half-hour zones.
 
-The slide is eased over four seconds rather than snapped, and the interesting part is *what* gets
+The slide is eased over three seconds rather than snapped, and the interesting part is *what* gets
 eased. The obvious move is to ease the offset and let it carry the dial, which works — and also
 drags the minute hand through a full revolution per hour of change, because the minute hand is the
 fractional part of the same number. So the offset is eased twice at two different moduli: the hour
 scale takes the whole change the short way round a day, the minute hand takes only what is left
 inside an hour, which is nothing at all for most of the world and half a turn for the half-hour
 zones. Seconds never move; no zone offset has a fractional minute in it.
+
+The curve is a cubic in and out, so the hands move like something with mass: almost still for the
+first tenth, three times the average pace through the middle, and a braking run onto the new
+setting. Smoothstep came first and peaks at only one and a half times the average, which on the
+wrist read as an even slide; the weight was not visible. And it moves as a train of gears: the
+hands lead, the daylight band follows 0.2 s behind and the sky marks 0.4 s behind, each on that
+curve over 2.6 s, so the whole re-set lands inside the three seconds. The duty arc moves with the
+hands, because the rule that the hand never stands inside a booked arc holds only while they move
+as one. An always-on frame gets the end of a glide at once, never its middle: it stands for a
+minute.
 
 Going the short way round a day is what keeps the date line honest. Apia to Pago Pago is a
 twenty-four hour change that leaves the dial reading the same hour, and easing the raw difference
@@ -213,6 +223,18 @@ degraded reading, it is no reading. Both also leave the dial whenever its clock 
 own — see [Whose clock the dial keeps](#whose-clock-the-dial-keeps) — because a compass drawn
 against another place's hours points somewhere false.
 
+**A move carries the marks; a zone change does not.** An hour angle is known whether the body is
+up or not, and moving changes it by the difference in longitude and nothing else. So when the
+position jumps (`SkyGlide`: more than a degree beyond the body's own motion between frames), each
+mark glides in hour angle as the last wheel of the same train, on the same curve as the hands, the short
+way, which is the way the wearer went: east and it goes forwards, west and it goes back. The
+horizon is eased beside it, half the body's day arc, since latitude changes that too, and the mark
+is drawn while it stands inside it. A sun that had not risen therefore rolls up out of the night on
+the sunrise side when the wearer jumps east, and one that had set comes back over the sunset side
+when they jump west, fading in over 0.4 s at the edge. The one case that is not glided is a move
+across the body's declination, where its mark changes direction on the dial: it would sweep half
+the circle the wrong way, so it is set in place and brought up by brightness instead.
+
 **South of the sun, the marks run backwards.** The trick needs the mark to cross the dial the way
 the body crosses the sky. Seen from above, a body that culminates south of the wearer runs east,
 south, west — clockwise, with the hands. One that culminates north — the southern hemisphere, and
@@ -226,7 +248,7 @@ errors are then the northern ones mirrored. Decided per body from its own declin
 (`CompassTicks`), since in the tropics the sun and the moon can culminate on opposite sides. The
 cost is visible and accepted: there the sun mark meets the hour hand only at noon.
 
-**`ACTIVE SN` paints the compass the marks make.** While the screen is on, the meridian's two
+**`ASTRO COMPASS` paints the compass the marks make** — named after the navigator's instrument that takes a true heading from a celestial body. While the screen is on, the meridian's two
 cardinal ticks are drawn red at the north end and white at the south — the midnight tick is north
 where the body culminates south, the noon tick where it culminates north. The ticks are **pointed**
 only while aiming a mark really orients the dial: the watch knows the body's true azimuth, so it
@@ -633,7 +655,8 @@ milliseconds are derived from its fields rather than by building an `Instant`.
 
 The dial rests at **one frame a second** and goes to 16 ms only while something is genuinely
 animating — a time-zone glide or the Nadir band sliding to a new position, both of which run
-through `DialTransition`, which is asked once a frame whether it is still easing.
+through `DialTransition`, a sky mark travelling to a new place's sky (`SkyGlide`), or a drum
+turning on one of the rows (`DrumRow`). Each is asked once a frame whether it is still moving.
 
 One frame a second is not a compromise here, it is the honest rate: the seconds cursor steps once a
 second by construction, and the library rounds any period of 500 ms or more onto its own boundary,
@@ -642,7 +665,7 @@ element is the minute hand, and at a tenth of a degree per second it covers abou
 between frames. The system keeps the last word — the library clamps the rate further when the
 battery is low and not charging.
 
-A transition therefore begins up to a second after the zone change that caused it. It runs for four
+A transition therefore begins up to a second after the zone change that caused it. It runs for three
 seconds, so the delay is invisible; the alternative was sixty redraws a second, permanently, to
 animate nothing.
 
@@ -794,17 +817,24 @@ one.** Whole regions publish nothing — a field in a war zone stops transmittin
 fallback is the local norm in exactly the places this face is most likely to be worn. Open-Meteo
 needs no key either; `pressure_msl` is mean-sea-level pressure, which is QNH by definition, and WMO
 codes map onto the same METAR-style tokens (`CLR/SCT/OVC/RA/SN/TS…`) so the row reads identically
-whichever answered. Both are polled by one `WorkManager` job every 30 minutes, constrained to
-`NetworkType.CONNECTED`.
+whichever answered.
 
-One subtlety in the cache: it ages from the **fetch**, not from the observation. A METAR can be an
-hour old the moment it is issued, and a cache keyed to the observation time would refetch on every
-screen-on for the back half of every hour.
+**When it is asked for** is `WeatherSchedule`. Open-Meteo is asked again after the wearer's
+interval, `WEATHER EVERY` 15, 30 or 60 minutes (30 by default): neither source changes faster than
+a quarter of an hour. A METAR is asked for when the next issue should be out, an hour and five
+minutes after its own observation time, and never sooner than the interval or later than an hour.
+The check runs on every screen-on and from one `WorkManager` job every 30 minutes, constrained to
+`NetworkType.CONNECTED`. A failure does not hammer the service: four more tries after 5 s, 30 s,
+3 min and 5 min, then back to the schedule. No network is not counted as a failure.
 
-An observation is cached against **where** it was taken as well as when: half an hour old is fine,
-half an hour old and two thousand kilometres away is not. `WeatherCache` refetches beyond 25 km —
-a couple of Open-Meteo grid cells — so a flight, or a hand-typed jump across the world, brings the
-right weather with it instead of leaving the last country on the dial.
+**What it keeps** is `WeatherPlaces`: the last few readings, each against the place it was asked
+for. A reading is reused within **5 km** of that place for **an hour** after the fetch, with no
+network involved, and beyond either the row is empty rather than wrong. One reading used to be the
+whole cache, so a hand-typed jump to KJFK and back threw home's reading away twice and, offline,
+left the row empty though the watch had held a good observation a minute earlier; worse, the old
+25 km rule let KJFK's METAR stand over Kyiv with the watch offline. The cache ages from the
+**fetch**, not the observation: a METAR can be an hour old the moment it is issued, and a cache
+keyed to the observation time would refetch on every screen-on for the back half of every hour.
 
 Location uses the framework `LocationManager` rather than Play Services — one less dependency, and
 direct control over when the GPS is woken. Nothing holds a continuous subscription: a cached fix is
@@ -954,13 +984,16 @@ a watch updated by hand went on advertising the version it had just replaced.
 ## Settings
 
 **Long-press the face, then tap the pencil.** Everything is one list of seven sections — **duty
-control**, **vigilance**, **sensors**, **position**, **display**, **units** and **about** — each a button that
-opens to show its rows, with one open at a time and duty control open to begin with.
+control**, **vigilance**, **position**, **readouts**, **sky**, **display** and **about** — each a button
+that opens to show its rows, with one open at a time and duty control open to begin with.
 
-The sensor slots are a section rather than a tail on the display list because everything under
-**display** is how the face looks and costs nothing, while these two decide what hardware runs and
-two of the three ask for a permission. A list that mixed them would read as though they were the
-same kind of choice.
+Each section answers one question: the watch, the monitor over it, where the dial is, what it reads
+out, what it shows of the sky, how it looks, and what it is. Until 2.11.1 **display** held twelve
+rows of three kinds — looks, astronomy and data — and the slots and the units were sections of two
+rows each, so a wearer after one readout had three places to try. Now no section is longer than six
+rows. **Position** comes before **readouts** and **sky** because the weather and all of the
+astronomy need one. In **duty control**, `START NOW` sits straight under the duration it spends and
+above the booking rows: it is what the list is opened for most, and it used to be a scroll away.
 
 The open section is outlined, and the outline **brightens into place over the same half-second the
 face uses when it wakes** — the editor's own amber, ramped by scaling its channels rather than by
@@ -973,7 +1006,7 @@ Half of these rows control something whose consequences are invisible until they
 `AUTO` will not thin the face during a night watch, why the log covers one watch, what the platform
 will and will not let an update do. So each carries a line of small print. Read once, that is what
 makes the list navigable; read the ninth time, it is what you scroll past to reach the row you came
-for. **`DISPLAY > HINTS` turns the small print off**, and nothing else with it: an incident, a version,
+for. **`ABOUT > HINTS` turns the small print off**, and nothing else with it: an incident, a version,
 the watch a log belongs to are readings, not commentary, and they stay.
 
 The sections collapse because the list is thirty-odd rows and the screen shows three. Reaching the
@@ -997,50 +1030,52 @@ length you always work reset by an unrelated update is a poor price for a live p
 Both live in device-protected storage alongside the telemetry cache.
 
 Settings that fit side by side are drawn as one segmented row rather than as a stack of full-width
-chips: a binary choice does not deserve two screens of scrolling, and grouping the ten appearance
-settings under a single **display** heading is what makes the list short enough to find things in.
+chips: a binary choice does not deserve two screens of scrolling, and grouping the rows by the
+question they answer is what makes the list short enough to find things in.
 The open/closed marker on a section is drawn rather than set in type — the triangles that would do
 the job are not reliably in the system font on Wear, and an icon pack is a dependency to carry for
 one glyph.
 
-| Sections | Duty control | Scheduling and the primary action | Display | About |
+| Sections | Duty control | Scheduling | Display | About |
 |---|---|---|---|---|
 | ![](screenshots/settings-sections.png) | ![](screenshots/settings-duty.png) | ![](screenshots/settings-schedule.png) | ![](screenshots/settings-display.png) | ![](screenshots/settings-about.png) |
-| Collapsed, the whole editor is a screen and a half. | Duration first, because both actions below spend it. | `START NOW` becomes a terracotta `END DUTY` once a shift is running, and carries the countdown. The steppers floor at the next five-minute boundary — a past start cannot be booked. | Each palette segment wears its own hue. | Version, the repository as a QR, and the update path. |
+| Collapsed, the whole editor is a screen and a half. | Duration first, because both actions below spend it; `START NOW` straight under it, a terracotta `END DUTY` once a shift is running. | The steppers floor at the next five-minute boundary — a past start cannot be booked. | Each palette segment wears its own hue. | Version, the release check, the repository as a QR, and `HINTS`. |
 
 | Section | Row | Options | Notes |
 |---|---|---|---|
 | **Duty control** | Duration | `4h` `8h` `12h` `CST` | `CST` reveals an `HH:MM` stepper in five-minute steps up to sixteen hours, and comes back to the figure it was left at. Both actions below spend whatever is chosen here, which is why it is first. |
-| | Schedule | date, `HH:MM`, **ARM TIMER** | Defaults to the next round five minutes an hour ahead, and will not step below the next five-minute boundary: a start in the past cannot be booked — it used to fall through into an immediate, chiming start. |
 | | **START NOW** / **END DUTY** | | One chip in two states, carrying the countdown on its second line. It turns terracotta once a duty is running or booked — ending one on purpose is a decision, not an emergency. Cancelling clears the arc outright; letting a shift run out keeps it in grey for an hour, then the dial clears itself. |
+| | Schedule | date, `HH:MM`, **ARM TIMER** | Defaults to the next round five minutes an hour ahead, and will not step below the next five-minute boundary: a start in the past cannot be booked — it used to fall through into an immediate, chiming start. |
 | **Vigilance** | off / on | interval 5 / 10 / 15 min, `VIBE STRENGTH` low / med / high | Needs a duty actually under way — it exists to watch someone on duty. Runs the accelerometer, hence off by default. Everything below this row appears only while it is on, including the two permission requests it needs on newer Wear. `VIBE STRENGTH` sets how hard the nudge and the SOS buzz: low is felt on a bare wrist, high through a sleeve. |
 | | `SOS SOUND` | OFF / LOW / MED / HIGH | How loudly an unanswered check calls out. High by default: the tone is not for the wearer but for whoever has to find them, and a signal that must be strained for is one that is missed. It does not ramp. |
 | | `LOG PULSE` | off / on | Offered only once `BODY_SENSORS` is granted — otherwise it would be a switch that switches nothing. Off by default: it lights an LED against the skin and writes a physiological reading into a record, and both are things to be asked for. |
 | | The incident log | | Every unanswered check on file, newest first, under a caption naming the watch they belong to. The only way in: the record is in device-protected storage and a release build cannot be `run-as`'d. |
 | | **EXPORT LOG · QR + ♪** | | Puts the log on the two channels a watch has — a QR for a camera, and Bell 202 tones for a radio or a phone microphone. Read-only: there is no import path. |
 | | **CLEAR LOG** | | Empties it now. It empties itself when the next watch begins, so this is for emptying it *before* that. |
-| **Sensors** | Left of hub / right of hub | `OFF` `HR` `STP` `QFE` | Two readouts flanking the hub: heart rate, steps since local midnight, station pressure. The two that need a runtime permission ask for it the moment the slot is set, and the reading the other slot has already taken is greyed out. |
-| **Position** | automatic / manual | | Ahead of the display section because two of its settings depend on having a position. Shows the choice and, separately, what is **in force** — the two differ while a fix is still being acquired. A typed position always sets the dial to that place's time. |
+| **Position** | automatic / manual | | Ahead of the readouts and the sky, because the weather and all of the astronomy need a position. Shows the choice and, separately, what is **in force** — the two differ while a fix is still being acquired. A typed position always sets the dial to that place's time. |
 | | `LOCAL TIME` | `PHONE` / `POSITION` | Automatic and located only. `POSITION` puts the dial on the time zone the watch is in, with a three-kilometre border band; `PHONE` keeps the phone's zone and takes the sun and moon off wherever the two disagree. Off — `PHONE` — by default. Kept outside the style schema, so adding it reset nobody's settings. |
 | | Coordinates | `LAT` / `LON` steppers | Manual only, in hundredths of a degree — about 1.1 km, inside the 5 km site radius, so a typed position earns the site lock too. |
 | | `COORDINATES` | off / on | What the site row says when there is no site: `NO SITE`, or the position as `50°27N 30°31E`. Off by default — a screenshot would otherwise carry where the wearer is. Outside the style schema. |
 | | Background location | | A request row, and only while it is missing: automatic position holds fine location but not the background grant the half-hourly refresh needs, which is the one failure that looks exactly like no signal. |
+| **Readouts** | Weather | on / off | Off means nothing is fetched, not merely that the row is blank; the radio stays asleep. |
+| | `WEATHER EVERY` | 15 / 30 / 60 MIN | How often Open-Meteo is asked again; a METAR is asked for when its next issue is out, never sooner than this. Shown only while the weather is on. 30 by default. Outside the style schema. |
+| | Left of hub / right of hub | `OFF` `HR` `STP` `QFE` | Two readouts flanking the hub: heart rate, steps since local midnight, station pressure. The two that need a runtime permission ask for it the moment the slot is set, and the reading the other slot has already taken is greyed out. |
+| | Temperature | °C / °F | |
+| | Pressure | hPa / mmHg | |
+| **Sky** | Nadir | off / on | Greyed out until there is a position. |
+| | Solar mark | off / on | The sun at its hour angle — the solar compass. Needs Nadir and a position; leaves the dial while the sun is down. |
+| | Lunar mark | off / on | The moon, grey with its honest phase, same compass by night. Same gating. |
+| | `ASTRO COMPASS` | off / on | The meridian's cardinal ticks as a compass while the screen is on: red north, white south, pointed while a sky mark orients the dial to within 15°. Needs a position. Outside the style schema. |
 | **Display** | Lume palette | AMBER `#FFB000`, GREEN `#00FF00`, RED `#FF0000` | Each chip wears its own hue. Three hues, none containing blue — always-on wears the same one, dimmed. The accent used for the seconds cursor, the duty arc and military sites is always the other hue, so the two never merge. |
 | | Dial top | NOON / MIDNIGHT | Flips the whole 24-hour axis. The minute ring does not move — its zero is a minute, not an hour. |
 | | Midnight mark | `00` / `24` | |
-| | Nadir | off / on | Greyed out until there is a position. |
-| | Solar mark | off / on | The sun at its hour angle — the solar compass. Needs Nadir and a position; leaves the dial while the sun is down. |
-| | Lunar mark | off / on | The moon, grey with its honest phase, same compass by night. Same gating. |
-| | `ACTIVE SN` | off / on | The meridian's cardinal ticks as a compass while the screen is on: red north, white south, pointed while a sky mark orients the dial to within 15°. Needs a position. Outside the style schema. |
-| | Weather | on / off | Off means nothing is fetched, not merely that the row is blank; the radio stays asleep. |
 | | Always-on | SOLID / HALVED / AUTO | Halved thins the face to every other pixel, on an alternating checkerboard. Auto thins only after sunset, and never during an active watch. |
-| | `HINTS` | on / off | The small print under each row. On for a first read, off once you know the list: the explanations are what make a dense menu navigable the first time and what you scroll past the ninth. Only the explanations go — every *reading* stays, because switching off the commentary must never switch off the record. |
-| **Units** | Temperature | °C / °F | |
-| | Pressure | hPa / mmHg | |
-| **About** | Version | | `MFD-24 2.7.0 · build 19` — what to quote in an issue. |
+| | `ROLLING DIGITS` | off / on | Each changed character on the dial's rows turns over on a drum, the way a mechanical counter's does: only what changed moves, a figure that rose rolls up and one that fell rolls down, and the clock always rolls forwards. Weather, location, Zulu and the zone offset, the duty row, pulse, pressure and battery; never the step count, which changes with every stride. Screen on only: a change met in always-on, or after more than 90 s away, is simply set. Off by default: it is ornament, and it spends fast frames. Outside the style schema. |
+| **About** | Version | | `MFD-24 2.11.1 · build 29` — what to quote in an issue. |
 | | `RELEASE CHECK` | on / off | The one thing here that touches the network unasked, so the one thing that can be refused outright — and it sits above what it controls. |
 | | **GITHUB · QR** | | The repository as a QR for the phone's camera: a watch has no browser, and a URL retyped off a 1.2-inch screen is a URL with a typo in it. |
 | | **RELEASES** | | Reads `UPDATE AVAILABLE` when the daily check has found one. Tapping it shows the release page as a QR — the notes, the SHA-256 and the APK are all there, at a readable size. It does not install: Wear OS does not let an app install an app. |
+| | `HINTS` | on / off | The small print under each row. On for a first read, off once you know the list: the explanations are what make a dense menu navigable the first time and what you scroll past the ninth. Only the explanations go — every *reading* stays, because switching off the commentary must never switch off the record. |
 
 
 ---
@@ -1064,7 +1099,7 @@ The face never prints placeholder dashes; a row simply is not there. So:
 
 ## Tests
 
-`gradlew :app:testEarthDebugUnitTest` — **248 JVM tests** in 40 classes. Everything with arithmetic
+`gradlew :app:testEarthDebugUnitTest` — **285 JVM tests** in 44 classes. Everything with arithmetic
 in it sits behind a pure, Android-free function so it can be pinned here rather than eyeballed on a
 wrist, and several of these tests exist to stop a specific bug coming back rather than to describe a
 feature:
@@ -1091,7 +1126,7 @@ feature:
   Goertzel detector, the log packet's own format, and the callsign against a golden value computed
   outside this codebase.
 - **The face's own budgets** — the readout width arithmetic from the shipped constants, the
-  half-density rule, the wake sweep, the compass ticks, the dial's zone, and `TextBuf` and
+  half-density rule, the wake sweep, the drums and the sky marks' passage, the compass ticks, the dial's zone, and `TextBuf` and
   coordinate formatting.
 
 ---

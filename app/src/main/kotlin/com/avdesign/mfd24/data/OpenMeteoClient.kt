@@ -11,12 +11,18 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import org.json.JSONObject
 
-/** One observation, already scaled into the integer units the renderer works in. */
+/**
+ * One observation, already scaled into the integer units the renderer works in. [observedAt] is
+ * when it was fetched, which the cache ages from; [issuedAt] is the source's own observation time
+ * where it has one — a METAR's — which says when the next report will be out.
+ */
 data class WeatherSample(
     val temperatureDeciC: Int,
     val pressureDeciHpa: Int,
     val conditionIndex: Int,
     val observedAt: Long,
+    val issuedAt: Long = observedAt,
+    val metar: Boolean = false,
 )
 
 /**
@@ -33,8 +39,10 @@ object OpenMeteoClient {
 
     private const val TAG = "OpenMeteoClient"
     private const val ENDPOINT = "https://api.open-meteo.com/v1/forecast"
-    private const val CONNECT_TIMEOUT_MS = 15_000
-    private const val READ_TIMEOUT_MS = 15_000
+    // Short, because a METAR that does not answer is followed by Open-Meteo in the same try,
+    // and fifteen seconds apiece held one try for most of a minute on a network that was not there.
+    private const val CONNECT_TIMEOUT_MS = 5_000
+    private const val READ_TIMEOUT_MS = 10_000
 
     /** Blocking; call from a background dispatcher. Returns null on any failure. */
     fun fetch(latitude: Double, longitude: Double, nowMillis: Long): WeatherSample? {

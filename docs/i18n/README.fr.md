@@ -39,10 +39,11 @@ cadrans de ce type** — voir [Compatibilité](#compatibilité).
 | **Homme mort** | Désactivé par défaut. Toutes les 5/10/15 min il lance un appel à acquitter ; trente secondes plus tard il sonne le SOS en salves et laisse `MAN DOWN` — homme à terre — avec l'instant Zulu sur le cadran. En option, il note votre pouls à l'appel non acquitté, à côté de votre dernière lecture en mouvement. |
 | **Export du journal** | Le journal de bord quitte la montre en **code QR** pour l'appareil photo d'un téléphone ou en **son** — Bell 202 AFSK, décodé par `minimodem`. Le son emporte tout ; le QR emporte ce qui tient, et le dit. [Canaux et limites ↓](#export) |
 | **Zulu + groupe date-heure** | `Z 11NOV 13:05 -5`, l'heure dans laquelle s'écrit une entrée de journal, suivie du décalage du cadran. |
-| **Météo** | Température, conditions en abrégés METAR et QNH. Sur un aérodrome, c'est le **METAR du terrain lui-même** ; partout ailleurs, Open-Meteo. Rafraîchie toutes les 30 minutes. |
+| **Météo** | Température, conditions en abrégés METAR et QNH. Sur un aérodrome, c'est le **METAR du terrain lui-même** ; partout ailleurs, Open-Meteo. Demandée toutes les 15, 30 ou 60 minutes, au choix, et un METAR dès que le suivant est émis. Chaque relevé reste attaché à son lieu : partez et revenez, la météo de chez vous est là aussitôt, hors ligne. Rien de plus d'une heure n'est affiché. |
 | **Accrochage de site à 5 km** | Nomme l'aérodrome, le port, l'héliport ou la base de lancement le plus proche parmi 9 649 sites d'un index embarqué de 194 Ko. Les sites militaires sont dessinés en couleur d'accent. |
-| **Nadir, soleil et lune** | L'arc diurne ombré sur l'anneau des heures, calculé hors ligne. La marque solaire et la marque lunaire sont à leur véritable angle horaire — pointez une marque vers l'astre lui-même et le cadran devient un **compas** — au sud de l'équateur aussi, où les marques tournent contre les aiguilles comme le ciel. `ACTIVE SN` peint le méridien en rouge au nord et en blanc au sud, pointu tant que la montre sait le cadran juste à 15°. La lune porte sa phase réelle. |
+| **Nadir, soleil et lune** | L'arc diurne ombré sur l'anneau des heures, calculé hors ligne. La marque solaire et la marque lunaire sont à leur véritable angle horaire — pointez une marque vers l'astre lui-même et le cadran devient un **compas** — au sud de l'équateur aussi, où les marques tournent contre les aiguilles comme le ciel. `ASTROCOMPAS` peint le méridien en rouge au nord et en blanc au sud, pointu tant que la montre sait le cadran juste à 15°. La lune porte sa phase réelle. |
 | **Lectures capteurs** | Deux lectures optionnelles de part et d'autre du moyeu : fréquence cardiaque, les pas du jour, ou pression de station. Désactivées par défaut ; elles tournent écran allumé, et en always-on le pouls est relu une fois par minute tant que la montre est portée. [Comment cette fenêtre se règle ↓](#pulse-window) |
+| **Mouvement** | Un fuseau franchi ou un long déplacement, et les aiguilles, l'arc de quart et l'arc diurne se recalent en trois secondes, l'un après l'autre comme des engrenages qui rattrapent leur jeu, comme un objet qui a une masse : départ lent, au plus vite à mi-course, freinage jusqu'au nouveau réglage. Après un long déplacement, les marques solaire et lunaire gagnent le ciel du nouveau lieu et passent l'horizon du côté vers lequel vous êtes allé. `CHIFFRES ROULANTS`, désactivé par défaut, fait tourner sur un tambour chaque caractère modifié des lignes : météo, lieu, Zulu, quart, pouls, pression, batterie. Écran allumé seulement. |
 | **Always-on** | Le même cadran, atténué. `AUTO` le réduit à un pixel sur deux après le coucher du soleil — jamais pendant un quart de nuit. |
 | **Démarrage direct** | S'affiche déjà rempli avant que la montre soit déverrouillée. |
 
@@ -133,7 +134,7 @@ La localisation est demandée depuis l'écran des réglages, parce qu'un cadran 
 | `WAKE_LOCK`, `FOREGROUND_SERVICE_HEALTH` | l'homme mort, qui doit continuer à mesurer écran éteint | cette fonction seulement |
 | `VIBRATE` | la prise et la relève du quart, et le SOS | une prise et une relève silencieuses |
 | `SCHEDULE_EXACT_ALARM` | une prise et une relève qui tombent à la minute | demandée mais **pas** requise ; sans elle, la prise ou la relève peut glisser de quelques minutes |
-| `INTERNET` | Open-Meteo et METAR toutes les 30 min, plus le contrôle quotidien des versions | pas de météo, pas de contrôle des versions |
+| `INTERNET` | Open-Meteo et METAR toutes les 15 à 60 min, plus le contrôle quotidien des versions | pas de météo, pas de contrôle des versions |
 | `BODY_SENSORS` | la lecture fréquence cardiaque et le pouls dans un incident | des tirets ; la ligne `POULS AU JOURNAL` n'est pas proposée |
 | `ACTIVITY_RECOGNITION` | la lecture pas ; sur Wear 5+, aussi ce qui permet au service d'homme mort de démarrer | des tirets ; sur les Wear récents, pas d'homme mort |
 | `POST_NOTIFICATIONS` | la notification permanente de l'homme mort, et l'avis de nouvelle version, une fois par version | l'homme mort tourne sans s'annoncer |
@@ -178,21 +179,23 @@ chinois — dans le vocabulaire du service, pas celui du magasin d'applications 
 |---|---|---|---|---|
 | ![](../screenshots/settings-sections.png) | ![](../screenshots/settings-duty.png) | ![](../screenshots/settings-schedule.png) | ![](../screenshots/settings-display.png) | ![](../screenshots/settings-about.png) |
 
-- **Quart** — durée `4h` `8h` `12h` `LIBRE`, une prise planifiée, et une seule puce qui
-  lit `PRENDRE LE QUART` ou un `FIN DE QUART` terre cuite. Une prise dans le passé ne peut pas être planifiée.
+- **Quart** — durée `4h` `8h` `12h` `LIBRE`, puis une seule puce qui lit `PRENDRE LE QUART` ou un
+  `FIN DE QUART` terre cuite, puis une prise planifiée. Une prise dans le passé ne peut pas être
+  planifiée.
 - **Homme mort** — marche/arrêt, intervalle d'appel, `VIBRATION`, `SIGNAL SOS`
   (MUET/MIN/MED/MAX), `POULS AU JOURNAL`, et le journal de bord avec son export.
-- **Capteurs** — ce que montre chaque lecture, de part et d'autre du moyeu.
 - **Position** — point GPS, ou point manuel aux coordonnées saisies à la main. Un point saisi met le
   cadran à l'heure de ce lieu ; un point GPS le peut aussi, avec `HEURE LOCALE` → `POSITION`. Le
   Zulu est suivi du décalage du cadran (`Z 13NOV 13:58 -5`) : l'horloge en vigueur n'est jamais à
   deviner. La ligne de position, au-dessus de la météo, se termine par une épingle de carte pour un point saisi, ou par un satellite pour un point GPS : atténué dès qu'en route il a
   pu dériver de plus de 5 km, barré après une demi-heure en route sans point — la dernière position
   reste affichée dans tous les cas. `COORDONNÉES` l'écrit à la place de `NO SITE` : `50°27N 30°31E`.
-- **Affichage** — couleur lumineuse, haut du cadran, marque de minuit, Nadir, marques solaire et lunaire,
-  `ACTIVE SN`, météo, always-on, et `AIDE` pour les petits caractères sous chaque ligne.
-- **Unités** — °C/°F, hPa/mmHg.
-- **À propos** — version, le dépôt en QR code, le contrôle des versions.
+- **Relevés** — météo et `MÉTÉO TOUTES LES`, ce que montre chaque lecture de part et d'autre du
+  moyeu, °C/°F et hPa/mmHg.
+- **Ciel** — Nadir, marques solaire et lunaire, `ASTROCOMPAS`.
+- **Affichage** — couleur lumineuse, haut du cadran, marque de minuit, always-on, `CHIFFRES ROULANTS`.
+- **À propos** — version, le contrôle des versions, le dépôt en QR code, et `AIDE` pour les petits
+  caractères sous chaque ligne.
 
 **[Chaque ligne, avec le raisonnement (en anglais) →](../DESIGN.md#settings)**
 
@@ -240,7 +243,7 @@ atteindre les chiffres des heures.
 tourne — Wear OS 5 fait exception, voir [Compatibilité](#compatibilité) ;
 aucune fonction GPU au-delà d'un canvas ordinaire. `render()` n'alloue rien, il n'y a donc aucune
 pause du ramasse-miettes à contourner, et la cadence d'images suit la demande : **une image par
-seconde au repos**, 16 ms seulement pendant qu'une transition s'anime, et une image par minute en
+seconde au repos**, 16 ms seulement quand quelque chose bouge — un glissement, une marque céleste, un tambour — et une image par minute en
 always-on. Les capteurs optionnels sont le seul coût réel — la fréquence cardiaque est une
 LED, et l'homme mort laisse l'accéléromètre accumuler ses lots dans le hub de capteurs
 plutôt que de réveiller le processeur. Tout le reste tourne sur des valeurs en cache.
@@ -308,7 +311,7 @@ cd mfd-24
 ./gradlew :app:assembleEarthDebug
 ```
 
-JDK 17+ et le SDK Android. 248 tests JVM : `./gradlew :app:testEarthDebugUnitTest`.
+JDK 17+ et le SDK Android. 285 tests JVM : `./gradlew :app:testEarthDebugUnitTest`.
 
 ## Comment il a été construit
 

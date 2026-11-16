@@ -132,4 +132,37 @@ class DialTransitionTest {
         assertTrue(!transition.animating)
         assertEquals(3 * hour, transition.hourOffsetMillis)
     }
+
+    @Test
+    fun `the hands start slowly, run fastest at the middle and brake onto the setting`() {
+        val step = 0.01f
+        fun speed(t: Float) = (DialTransition.ease(t + step) - DialTransition.ease(t)) / step
+        assertEquals(0f, DialTransition.ease(0f))
+        assertEquals(1f, DialTransition.ease(1f))
+        assertEquals(0.5f, DialTransition.ease(0.5f), 1e-6f)
+        // The first and the last tenth each cover under one per cent of the way.
+        assertTrue(DialTransition.ease(0.1f) < 0.01f)
+        assertTrue(DialTransition.ease(0.9f) > 0.99f)
+        // The middle runs at more than two and a half times the average pace.
+        assertTrue(speed(0.495f) > 2.5f)
+        var last = 0f
+        for (k in 1..100) {
+            val v = DialTransition.ease(k / 100f)
+            assertTrue(v >= last)
+            last = v
+        }
+    }
+
+    @Test
+    fun `the band follows the hands and everything lands inside the four seconds`() {
+        val d = DialTransition.DURATION_MILLIS
+        assertEquals(0f, DialTransition.stage(DialTransition.BAND_DELAY_MILLIS, DialTransition.BAND_DELAY_MILLIS))
+        assertTrue(DialTransition.stage(200L, 0L) > DialTransition.stage(200L, DialTransition.BAND_DELAY_MILLIS))
+        assertTrue(
+            DialTransition.stage(1_000L, DialTransition.BAND_DELAY_MILLIS) >
+                DialTransition.stage(1_000L, DialTransition.SKY_DELAY_MILLIS),
+        )
+        assertEquals(1f, DialTransition.stage(d, DialTransition.SKY_DELAY_MILLIS))
+        assertEquals(DialTransition.SKY_DELAY_MILLIS + DialTransition.STAGE_MILLIS, d)
+    }
 }

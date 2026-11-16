@@ -449,13 +449,16 @@ class SensorSlots(context: Context) : SensorEventListener {
                 // event after registering can carry something that is not a reading at all. This
                 // watch produced 2048 hPa, which is not a pressure that exists anywhere on Earth --
                 // Everest is about 330 and the highest ever recorded at sea level about 1084. A
-                // number the dial cannot mean is worse than dashes.
+                // number the dial cannot mean is worse than dashes — but not worse than the good
+                // reading already shown, which it keeps; and the figure only follows the sensor
+                // once it has really moved. See PressureHold.
                 val hpa = event.values[0]
-                state.localPressureTenths = if (hpa in MIN_PRESSURE_HPA..MAX_PRESSURE_HPA) {
+                val raw = if (hpa in MIN_PRESSURE_HPA..MAX_PRESSURE_HPA) {
                     Math.round(hpa * 10f)
                 } else {
                     NO_READING
                 }
+                state.localPressureTenths = PressureHold.next(state.localPressureTenths, raw)
             }
         }
     }

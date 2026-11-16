@@ -109,7 +109,7 @@
     <string name="editor_vigilance_doze">In sonno profondo una richiesta può allungarsi fino a 9 minuti</string>
     <string name="editor_vigilance_notifications">Consenti le notifiche per tenere visibile l\'uomo morto</string>
     <string name="editor_label_incidents">EVENTI</string>
-    <string name="editor_section_sensors">SENSORI</string>
+    <string name="editor_section_readouts">LETTURE</string>
     <string name="editor_label_sensor_left">LETTURA SINISTRA</string>
     <string name="editor_label_sensor_right">LETTURA DESTRA</string>
     <string name="editor_sensor_needs_permission">Tocca di nuovo per consentire il sensore</string>
@@ -132,6 +132,13 @@
     <string name="editor_label_dial_top">ALTO DEL QUADRANTE</string>
     <string name="editor_label_nadir">NADIR</string>
     <string name="editor_label_weather">METEO</string>
+    <string name="editor_label_weather_interval">METEO OGNI</string>
+    <string name="weather_every_15">15 MIN</string>
+    <string name="weather_every_15_sr">Meteo ogni quindici minuti</string>
+    <string name="weather_every_30">30 MIN</string>
+    <string name="weather_every_30_sr">Meteo ogni trenta minuti</string>
+    <string name="weather_every_60">60 MIN</string>
+    <string name="weather_every_60_sr">Meteo ogni ora</string>
     <string name="editor_section_position">PUNTO</string>
     <string name="editor_location_device">PUNTO GPS</string>
     <string name="editor_location_manual">PUNTO MANUALE</string>
@@ -177,7 +184,7 @@
     <string name="editor_duration_custom">PERS</string>
     <string name="editor_duration_custom_sr">Durata personalizzata, sotto a passi di cinque minuti</string>
     <string name="editor_label_palette">COLORE</string>
-    <string name="editor_section_units">UNITÀ</string>
+    <string name="editor_section_sky">CIELO</string>
     <string name="editor_location_rationale">Meteo e sito richiedono il tuo punto</string>
     <string name="editor_background_location">CONSENTI SEMPRE</string>
     <string name="editor_background_rationale">L\'aggiornamento ogni mezz\'ora richiede la posizione «sempre»</string>
@@ -215,8 +222,11 @@
     <string name="coordinates_off_sr">Coordinate spente: NO SITE</string>
     <string name="coordinates_on_sr">Coordinate accese: la posizione quando nessun sito è vicino</string>
     <string name="editor_coordinates_note">Scritte dove comparirebbe NO SITE. Spente di serie, così una foto del quadrante non dice dove sei</string>
-    <string name="editor_label_compass">ACTIVE SN</string>
-    <string name="compass_off_sr">Indici bussola spenti</string>
-    <string name="compass_on_sr">Indici bussola accesi: nord rosso, sud bianco</string>
+    <string name="editor_label_compass">ASTROBUSSOLA</string>
+    <string name="editor_label_rolling">CIFRE A RULLO</string>
+    <string name="rolling_off_sr">Cifre a rullo disattivate</string>
+    <string name="rolling_on_sr">Cifre a rullo attivate</string>
+    <string name="compass_off_sr">Astrobussola spenta</string>
+    <string name="compass_on_sr">Astrobussola accesa: nord rosso, sud bianco</string>
     <string name="editor_compass_note">Nord rosso, sud bianco, solo a schermo attivo. A punta finché un segno del sole o della luna può orientare il quadrante</string>
 </resources>
