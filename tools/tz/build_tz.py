@@ -27,7 +27,7 @@ Deterministic: the same release and the same zone list give the same bytes.
 
 Usage:
     python tools/tz/build_tz.py --fetch          # download the pinned release into tools/tz/raw/
-    python tools/tz/build_tz.py                  # build app/src/main/assets/tz_v1.tzg from it
+    python tools/tz/build_tz.py                  # build app/src/earth/assets/tz_v1.tzg from it
 """
 
 import argparse
@@ -47,7 +47,7 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "raw")
 DATA = os.path.join(HERE, "data")
-OUT = os.path.normpath(os.path.join(HERE, "..", "..", "app", "src", "main", "assets", "tz_v1.tzg"))
+OUT = os.path.normpath(os.path.join(HERE, "..", "..", "app", "src", "earth", "assets", "tz_v1.tzg"))
 
 RELEASE = "2026f"
 ASSET = "timezones-with-oceans.geojson.zip"

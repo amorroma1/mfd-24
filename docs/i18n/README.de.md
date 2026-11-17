@@ -52,9 +52,9 @@ Art ab** — siehe [Kompatibilität](#kompatibilität).
 | Eine versäumte Abfrage, spät quittiert | JFK nach Heathrow, der ganze Flug | Aufwachen |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| Das SOS blieb unquittiert: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Wachbogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 43 Sekunden, mit `ORTSZEIT` auf `STANDORT`: eine Acht-Stunden-Wache, am Gate angetreten, der Standort und sein METAR fünf Minuten nach dem Abheben weg, die Kabine bei 790 hPa, die Zeiger gleitend durch die Zonen darunter — −4 vor Neuschottland, −3:30 eine Viertelstunde lang über Neufundland, 0 über Irland —, Sonnenuntergang über dem Atlantik und `EGLL` zurück im Endanflug. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
+| Das SOS blieb unquittiert: `MAN DOWN`, der Zulu-Moment, eine Marke auf dem Wachbogen. Ein Tippen antwortet mit `TAP AGAIN`; ein zweites, innerhalb einer Sekunde, löscht es — ein Ärmel kann das nicht. | BA 178 am 11. November 2026, nach dem echten Flugplan, in 54 Sekunden, mit `ORTSZEIT` auf `STANDORT` sowie `KOORDINATEN` und `ROLLZIFFERN` an: eine Acht-Stunden-Wache, am Gate angetreten, jede geänderte Ziffer auf ihrer Trommel gedreht, der Standort und sein METAR fünf Minuten nach dem Abheben weg und an ihrer Stelle die Position in Grad, die Kabine bei 790 hPa, die Zeiger gleitend wie ein Räderwerk durch die Zonen darunter — −4 vor Neuschottland, −3:30 eine Viertelstunde lang über Neufundland, 0 über Irland —, Sonnenuntergang über dem Atlantik und `EGLL` zurück im Endanflug. | Nur das Licht kommt. Always-on trägt dieselben Farbtöne, also gibt es nichts zu überblenden. |
 
-*Der Flug dauert mit Absicht 43 Sekunden — ein ganzer Tag für alle, die einem zusehen wollen; am
+*Der Flug dauert mit Absicht 54 Sekunden — ein ganzer Tag für alle, die einem zusehen wollen; am
 Boden geht es langsam, über dem Ozean schnell.*
 
 <details>
@@ -77,7 +77,8 @@ stehen.
 **Was daran ist echt?** Der Flugplan ist der von BA 178 an jenem Tag, und die Positionen folgen
 seiner üblichen Nordatlantikroute, dem Zifferblatt als GPS-Fixes zugespielt; die Astronomie ist
 daraus die eigene Arbeit des Zifferblatts. Das Wetter am Gate ist der METAR von KJFK jenes Morgens,
-in den Speicher des Zifferblatts gelegt, denn kein Dienst liefert eine vergangene Beobachtung. Puls, Kabinendruck und Akku sind auf dem Emulator
+in den Speicher des Zifferblatts gelegt, denn kein Dienst liefert eine vergangene Beobachtung; nach dem Abheben hat das Zifferblatt sein
+Wetter während der Aufnahme selbst geholt, diese Werte sind also vom Tag der Aufnahme. Puls, Kabinendruck und Akku sind auf dem Emulator
 inszeniert, denn ein Emulator hat kein Handgelenk.
 
 </details>
@@ -184,7 +185,7 @@ sind Instrumentenbeschriftung, keine Prosa.
 - **Totmann** — ein/aus, Abfrageintervall, `VIBRATION`, `SOS-SIGNAL` (AUS/MIN/MED/MAX),
   `PULS INS LOGBUCH` und das Logbuch samt Senden.
 - **Position** — Ortung oder von Hand eingegebene Koordinaten. Eine eingegebene Position stellt das
-  Blatt auf die Zeit dieses Ortes; eine geortete kann es auch, mit `ORTSZEIT` → `STANDORT`. Hinter
+  Blatt auf die Zeit dieses Ortes; eine geortete kann es auch, mit `ORTSZEIT` → `STANDORT`. Zu Hause liefern beide dieselbe Zone, das Umschalten bewegt also nichts; sie gehen erst auseinander, wenn die Uhr des Telefons und der Boden nicht übereinstimmen — ein Telefon nach dem Flug noch auf Heimatzeit, im Flugmodus oder nahe einer Zonengrenze. Hinter
   Zulu steht die Abweichung des Blatts (`Z 13NOV 13:58 -5`), welche Uhr gilt, ist also nie geraten.
   Die Standortzeile, über dem Wetter, endet bei einer eingegebenen Position mit einer Kartennadel, bei einer georteten mit einem Satelliten: gedimmt, sobald sie
   unterwegs mehr als 5 km abgedriftet sein kann, durchgestrichen nach einer halben Stunde unterwegs

@@ -23,8 +23,8 @@ class TzGridTest {
 
     private val grid: TzGrid by lazy {
         val file = listOf(
-            File("src/main/assets/${TzGrid.ASSET_NAME}"),
-            File("app/src/main/assets/${TzGrid.ASSET_NAME}"),
+            File("src/earth/assets/${TzGrid.ASSET_NAME}"),
+            File("app/src/earth/assets/${TzGrid.ASSET_NAME}"),
         ).first { it.exists() }
         TzGrid.fromBytes(file.readBytes()) ?: error("the shipped grid does not parse")
     }
@@ -119,7 +119,7 @@ class TzGridTest {
     fun `rejects bytes that are not a grid`() {
         assertNull(TzGrid.fromBytes(ByteArray(8)))
         assertNull(TzGrid.fromBytes(ByteArray(64)))
-        val truncated = File("src/main/assets/${TzGrid.ASSET_NAME}").takeIf { it.exists() }
+        val truncated = File("src/earth/assets/${TzGrid.ASSET_NAME}").takeIf { it.exists() }
             ?.readBytes()?.copyOf(4096)
         if (truncated != null) assertNull(TzGrid.fromBytes(truncated))
     }

@@ -52,9 +52,9 @@ cadrans de ce type** — voir [Compatibilité](#compatibilité).
 | Un appel manqué, acquitté tard | De JFK à Heathrow, le vol entier | Réveil |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| Le SOS est resté sans acquittement : `MAN DOWN`, l'instant Zulu, une marque sur l'arc. Un toucher répond par `TAP AGAIN` ; un second, dans la seconde, l'efface — une manche de veste ne le peut pas. | BA 178 le 11 novembre 2026, l'horaire réel, en 43 secondes, avec `HEURE LOCALE` sur `POSITION` : un quart de huit heures pris à la porte d'embarquement, le site et son METAR disparus cinq minutes après la rotation, la cabine à 790 hPa, les aiguilles glissant d'un fuseau à l'autre sous l'avion — −4 au large de la Nouvelle-Écosse, −3:30 un quart d'heure au-dessus de Terre-Neuve, 0 au-dessus de l'Irlande —, le coucher du soleil sur l'Atlantique, et `EGLL` de retour en courte finale. | Seule la lumière arrive. L'always-on porte les mêmes teintes, il n'y a donc rien à fondre. |
+| Le SOS est resté sans acquittement : `MAN DOWN`, l'instant Zulu, une marque sur l'arc. Un toucher répond par `TAP AGAIN` ; un second, dans la seconde, l'efface — une manche de veste ne le peut pas. | BA 178 le 11 novembre 2026, l'horaire réel, en 54 secondes, avec `HEURE LOCALE` sur `POSITION` et `COORDONNÉES` et `CHIFFRES ROULANTS` activés : un quart de huit heures pris à la porte d'embarquement, chaque chiffre changé tournant sur son tambour, le site et son METAR disparus cinq minutes après la rotation et la position en degrés à leur place, la cabine à 790 hPa, les aiguilles glissant comme un train d'engrenages d'un fuseau à l'autre sous l'avion — −4 au large de la Nouvelle-Écosse, −3:30 un quart d'heure au-dessus de Terre-Neuve, 0 au-dessus de l'Irlande —, le coucher du soleil sur l'Atlantique, et `EGLL` de retour en courte finale. | Seule la lumière arrive. L'always-on porte les mêmes teintes, il n'y a donc rien à fondre. |
 
-*Le vol dure 43 secondes à dessein — une journée entière pour qui veut en regarder une ; le sol
+*Le vol dure 54 secondes à dessein — une journée entière pour qui veut en regarder une ; le sol
 passe lentement et l'océan vite.*
 
 <details>
@@ -77,7 +77,8 @@ que de se tenir des heures hors de l'arc diurne.
 **Qu'y a-t-il de réel ?** L'horaire est celui du BA 178 de ce jour-là et les positions suivent sa
 route habituelle de l'Atlantique Nord, données au cadran comme des points GPS ; l'astronomie
 est le travail du cadran lui-même à partir de ces points. La météo à la porte est le METAR de KJFK
-de ce matin-là, placé dans le cache du cadran, car aucun service ne livre une observation passée. Le pouls, la pression
+de ce matin-là, placé dans le cache du cadran, car aucun service ne livre une observation passée ; après la rotation, le cadran a cherché sa
+météo lui-même pendant le tournage, ces valeurs sont donc celles du jour du tournage. Le pouls, la pression
 cabine et la batterie sont mis en scène sur l'émulateur, parce qu'un émulateur n'a pas de poignet.
 
 </details>
@@ -185,7 +186,7 @@ chinois — dans le vocabulaire du service, pas celui du magasin d'applications 
 - **Homme mort** — marche/arrêt, intervalle d'appel, `VIBRATION`, `SIGNAL SOS`
   (MUET/MIN/MED/MAX), `POULS AU JOURNAL`, et le journal de bord avec son export.
 - **Position** — point GPS, ou point manuel aux coordonnées saisies à la main. Un point saisi met le
-  cadran à l'heure de ce lieu ; un point GPS le peut aussi, avec `HEURE LOCALE` → `POSITION`. Le
+  cadran à l'heure de ce lieu ; un point GPS le peut aussi, avec `HEURE LOCALE` → `POSITION`. Chez soi, les deux donnent le même fuseau : basculer ne déplace rien. Ils ne divergent que lorsque l'heure du mobile et le sol ne s'accordent plus — un mobile resté à l'heure de chez soi après un vol, en mode avion, ou près d'une limite de fuseau. Le
   Zulu est suivi du décalage du cadran (`Z 13NOV 13:58 -5`) : l'horloge en vigueur n'est jamais à
   deviner. La ligne de position, au-dessus de la météo, se termine par une épingle de carte pour un point saisi, ou par un satellite pour un point GPS : atténué dès qu'en route il a
   pu dériver de plus de 5 km, barré après une demi-heure en route sans point — la dernière position

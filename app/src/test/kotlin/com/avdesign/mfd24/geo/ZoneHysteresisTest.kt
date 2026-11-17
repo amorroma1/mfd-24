@@ -20,8 +20,8 @@ class ZoneHysteresisTest {
 
     private val grid: TzGrid by lazy {
         val file = listOf(
-            File("src/main/assets/${TzGrid.ASSET_NAME}"),
-            File("app/src/main/assets/${TzGrid.ASSET_NAME}"),
+            File("src/earth/assets/${TzGrid.ASSET_NAME}"),
+            File("app/src/earth/assets/${TzGrid.ASSET_NAME}"),
         ).first { it.exists() }
         TzGrid.fromBytes(file.readBytes())!!
     }

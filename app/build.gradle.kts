@@ -63,8 +63,8 @@ android {
         // Bump both for every published release. versionCode is what the platform compares when
         // deciding whether an APK is an update, so a release that forgets it cannot be installed
         // over its predecessor.
-        versionCode = 29
-        versionName = "2.11.1"
+        versionCode = 30
+        versionName = "2.11.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // The app's own strings exist in these locales and no others. Without this the APK carries
@@ -156,9 +156,10 @@ android {
     productFlavors {
         create("earth") {
             dimension = "world"
-            // The updater looks for its own releases only: the tag prefix and the asset name are
-            // build fields rather than constants so a build can never offer itself an APK that
-            // is not the one it was compiled as.
+            // The updater looks for its own releases only: the repository, the tag prefix and the
+            // asset name are build fields rather than constants, so a build can never offer itself
+            // an APK that is not the one it was compiled as.
+            buildConfigField("String", "UPDATE_REPO", "\"amorroma1/mfd-24\"")
             buildConfigField("String", "UPDATE_TAG_PREFIX", "\"v\"")
             buildConfigField("String", "UPDATE_ASSET", "\"app-earth-release.apk\"")
         }

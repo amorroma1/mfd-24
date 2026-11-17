@@ -51,9 +51,9 @@ see [Compatibility](#compatibility).
 | A missed check, answered late | JFK to Heathrow, the whole flight | Waking |
 |---|---|---|
 | ![](docs/media/mandown.gif) | ![](docs/media/flight.gif) | ![](docs/media/wake.gif) |
-| The SOS went unanswered: `MAN DOWN`, the Zulu moment, a mark on the arc. One tap answers with `TAP AGAIN`; a second, inside a second, clears it — a sleeve cannot. | BA 178 on 11 November 2026, the real timetable, in 43 seconds, with `LOCAL TIME` at `POSITION`: an eight-hour watch started at the gate, the site and its METAR gone five minutes after rotation, the cabin at 790 hPa, the hands gliding through the zones below — −4 off Nova Scotia, −3:30 for a quarter of an hour over Newfoundland, 0 over Ireland — sunset over the Atlantic, and `EGLL` back on short final. | Only the light arrives. Always-on wears the same hues, so there is nothing to cross-fade. |
+| The SOS went unanswered: `MAN DOWN`, the Zulu moment, a mark on the arc. One tap answers with `TAP AGAIN`; a second, inside a second, clears it — a sleeve cannot. | BA 178 on 11 November 2026, the real timetable, in 54 seconds, with `LOCAL TIME` at `POSITION` and `COORDINATES` and `ROLLING DIGITS` on: an eight-hour watch started at the gate, every changed figure turning over on its drum, the site and its METAR gone five minutes after rotation and the position in degrees in their place, the cabin at 790 hPa, the hands gliding like a gear train through the zones below — −4 off Nova Scotia, −3:30 for a quarter of an hour over Newfoundland, 0 over Ireland — sunset over the Atlantic, and `EGLL` back on short final. | Only the light arrives. Always-on wears the same hues, so there is nothing to cross-fade. |
 
-*The flight runs 43 seconds on purpose — a whole day for whoever wants to watch one; the ground
+*The flight runs 54 seconds on purpose — a whole day for whoever wants to watch one; the ground
 goes slowly and the ocean fast.*
 
 <details>
@@ -75,7 +75,8 @@ daylight band.
 **What is real in it?** The timetable is BA 178's of that day and the positions follow its usual
 North Atlantic routing, fed to the face as GPS fixes; the astronomy is the face's own work from
 them. The weather at the gate is KJFK's own METAR of that morning, placed in the face's cache
-because no feed hands out an observation from the past. Pulse, cabin pressure and battery are
+because no feed hands out an observation from the past; after rotation the face fetched its
+own weather while it was filmed, so those readings are of the filming day. Pulse, cabin pressure and battery are
 staged on the emulator, because an emulator has no wrist.
 
 </details>
@@ -177,7 +178,7 @@ nomenclature, not prose.
 - **Vigilance** — on/off, check interval, `VIBE STRENGTH`, `SOS SOUND` (OFF/LOW/MED/HIGH),
   `LOG PULSE`, and the incident log with its export.
 - **Position** — automatic, or coordinates typed by hand. A typed position sets the dial to that
-  place's time; an automatic one can too, with `LOCAL TIME` → `POSITION`. Zulu is followed by the
+  place's time; an automatic one can too, with `LOCAL TIME` → `POSITION`. At home the two give the same zone, so switching moves nothing; they part only once the phone's clock and the ground disagree — a phone still on home time after a flight, in flight mode, or near a zone border. Zulu is followed by the
   dial's offset (`Z 13NOV 13:58 -5`), so which clock is in force is never a guess. The location row
   sits above the weather and ends with where the position came from: a map pin for a typed one, a
   satellite for a measured one — dimmed once, on the move, it may have drifted past 5 km, struck

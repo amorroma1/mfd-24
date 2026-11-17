@@ -1053,7 +1053,7 @@ one glyph.
 | | **EXPORT LOG · QR + ♪** | | Puts the log on the two channels a watch has — a QR for a camera, and Bell 202 tones for a radio or a phone microphone. Read-only: there is no import path. |
 | | **CLEAR LOG** | | Empties it now. It empties itself when the next watch begins, so this is for emptying it *before* that. |
 | **Position** | automatic / manual | | Ahead of the readouts and the sky, because the weather and all of the astronomy need a position. Shows the choice and, separately, what is **in force** — the two differ while a fix is still being acquired. A typed position always sets the dial to that place's time. |
-| | `LOCAL TIME` | `PHONE` / `POSITION` | Automatic and located only. `POSITION` puts the dial on the time zone the watch is in, with a three-kilometre border band; `PHONE` keeps the phone's zone and takes the sun and moon off wherever the two disagree. Off — `PHONE` — by default. Kept outside the style schema, so adding it reset nobody's settings. |
+| | `LOCAL TIME` | `PHONE` / `POSITION` | Automatic and located only. `POSITION` puts the dial on the time zone the watch is in, with a three-kilometre border band; `PHONE` keeps the phone's zone and takes the sun and moon off wherever the two disagree. Where the wearer lives the two give the same zone and the switch moves nothing, which reads as a dead control until the phone and the ground part company. Off — `PHONE` — by default. Kept outside the style schema, so adding it reset nobody's settings. |
 | | Coordinates | `LAT` / `LON` steppers | Manual only, in hundredths of a degree — about 1.1 km, inside the 5 km site radius, so a typed position earns the site lock too. |
 | | `COORDINATES` | off / on | What the site row says when there is no site: `NO SITE`, or the position as `50°27N 30°31E`. Off by default — a screenshot would otherwise carry where the wearer is. Outside the style schema. |
 | | Background location | | A request row, and only while it is missing: automatic position holds fine location but not the background grant the half-hourly refresh needs, which is the one failure that looks exactly like no signal. |
@@ -1071,7 +1071,7 @@ one glyph.
 | | Midnight mark | `00` / `24` | |
 | | Always-on | SOLID / HALVED / AUTO | Halved thins the face to every other pixel, on an alternating checkerboard. Auto thins only after sunset, and never during an active watch. |
 | | `ROLLING DIGITS` | off / on | Each changed character on the dial's rows turns over on a drum, the way a mechanical counter's does: only what changed moves, a figure that rose rolls up and one that fell rolls down, and the clock always rolls forwards. Weather, location, Zulu and the zone offset, the duty row, pulse, pressure and battery; never the step count, which changes with every stride. Screen on only: a change met in always-on, or after more than 90 s away, is simply set. Off by default: it is ornament, and it spends fast frames. Outside the style schema. |
-| **About** | Version | | `MFD-24 2.11.1 · build 29` — what to quote in an issue. |
+| **About** | Version | | `MFD-24 2.11.2 · build 30` — what to quote in an issue. |
 | | `RELEASE CHECK` | on / off | The one thing here that touches the network unasked, so the one thing that can be refused outright — and it sits above what it controls. |
 | | **GITHUB · QR** | | The repository as a QR for the phone's camera: a watch has no browser, and a URL retyped off a 1.2-inch screen is a URL with a typo in it. |
 | | **RELEASES** | | Reads `UPDATE AVAILABLE` when the daily check has found one. Tapping it shows the release page as a QR — the notes, the SHA-256 and the APK are all there, at a readable size. It does not install: Wear OS does not let an app install an app. |
@@ -1172,7 +1172,7 @@ feature:
 - Spaceports — curated by hand; no usable public dataset exists.
 - Time-zone boundaries — [timezone-boundary-builder](https://github.com/evansiroky/timezone-boundary-builder)
   release 2026f, built from [OpenStreetMap](https://www.openstreetmap.org/copyright) and therefore
-  [ODbL](https://opendatacommons.org/licenses/odbl/); the grid in `app/src/main/assets/tz_v1.tzg` is
+  [ODbL](https://opendatacommons.org/licenses/odbl/); the grid in `app/src/earth/assets/tz_v1.tzg` is
   cut from it by `tools/tz/build_tz.py` and carries that licence.
 - Weather — [aviationweather.gov](https://aviationweather.gov/) METAR (US NOAA, public domain) at an
   aerodrome, [Open-Meteo](https://open-meteo.com/) (CC BY 4.0) everywhere else.

@@ -60,6 +60,11 @@ object OpenMeteoClient {
                 connectTimeout = CONNECT_TIMEOUT_MS
                 readTimeout = READ_TIMEOUT_MS
                 setRequestProperty("Accept", "application/json")
+                // Named, as the METAR and release requests already were. Open-Meteo answers
+                // the platform's own `Dalvik/2.1.0` agent with HTTP 403 whenever the query asks
+                // for pressure_msl (seen from 2026-11-17), which emptied the weather row
+                // everywhere but an aerodrome with a METAR.
+                setRequestProperty("User-Agent", "MFD-24 watch face (github.com/amorroma1/mfd-24)")
             }
             val status = connection.responseCode
             if (status !in 200..299) {

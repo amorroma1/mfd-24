@@ -20,12 +20,12 @@ import org.json.JSONObject
  * no library: the same bare `HttpURLConnection` + platform `org.json` shape as `MetarClient` and
  * `OpenMeteoClient`, because a JSON body this small does not justify a dependency.
  *
- * The three faces share the repository but not the releases: each flavor carries its tag prefix
- * and asset name in `BuildConfig`, so the Earth face never offers itself a Mars build.
+ * Each face has its own repository, tag prefix and asset name in `BuildConfig`, so the Earth face
+ * never offers itself a Mars build and neither face's newest can hide the other's.
  */
 object ReleaseCheck {
 
-    const val REPO: String = "amorroma1/mfd-24"
+    const val REPO: String = BuildConfig.UPDATE_REPO
     const val REPO_URL: String = "https://github.com/$REPO"
 
     /** One release, reduced to what a watch can use.

@@ -52,9 +52,9 @@ quadranti di questo tipo** — vedi [Compatibilità](#compatibilità).
 | Una richiesta mancata, tacitata tardi | Da JFK a Heathrow, tutto il volo | Il risveglio |
 |---|---|---|
 | ![](../media/mandown.gif) | ![](../media/flight.gif) | ![](../media/wake.gif) |
-| L'SOS è rimasto senza risposta: `MAN DOWN`, l'istante Zulu, un segno sull'arco. Un tocco risponde con `TAP AGAIN`; un secondo, entro un secondo, lo cancella — una manica non può. | BA 178 dell'11 novembre 2026, l'orario reale, in 43 secondi, con `ORA LOCALE` su `LUOGO`: una guardia di otto ore montata al gate, il sito e il suo METAR spariti cinque minuti dopo la rotazione, la cabina a 790 hPa, le lancette che scivolano di fuso in fuso sotto l'aereo — −4 al largo della Nuova Scozia, −3:30 per un quarto d'ora sopra Terranova, 0 sopra l'Irlanda —, il tramonto sull'Atlantico, e `EGLL` di ritorno in finale corto. | Arriva solo la luce. L'always-on porta le stesse tinte, quindi non c'è nulla da dissolvere. |
+| L'SOS è rimasto senza risposta: `MAN DOWN`, l'istante Zulu, un segno sull'arco. Un tocco risponde con `TAP AGAIN`; un secondo, entro un secondo, lo cancella — una manica non può. | BA 178 dell'11 novembre 2026, l'orario reale, in 54 secondi, con `ORA LOCALE` su `LUOGO` e `COORDINATE` e `CIFRE A RULLO` attivi: una guardia di otto ore montata al gate, ogni cifra cambiata che gira sul suo rullo, il sito e il suo METAR spariti cinque minuti dopo la rotazione e al loro posto la posizione in gradi, la cabina a 790 hPa, le lancette che scivolano come un treno di ingranaggi di fuso in fuso sotto l'aereo — −4 al largo della Nuova Scozia, −3:30 per un quarto d'ora sopra Terranova, 0 sopra l'Irlanda —, il tramonto sull'Atlantico, e `EGLL` di ritorno in finale corto. | Arriva solo la luce. L'always-on porta le stesse tinte, quindi non c'è nulla da dissolvere. |
 
-*Il volo dura 43 secondi di proposito — una giornata intera per chi vuole vederne una; il suolo
+*Il volo dura 54 secondi di proposito — una giornata intera per chi vuole vederne una; il suolo
 va lento e l'oceano veloce.*
 
 <details>
@@ -76,7 +76,8 @@ la traversata invece di stare per ore fuori dall'arco diurno.
 **Cosa c'è di vero?** L'orario è quello del BA 178 di quel giorno e le posizioni seguono la sua
 rotta abituale sul Nord Atlantico, date al quadrante come punti GPS; l'astronomia è lavoro del
 quadrante stesso a partire da quelli. Il meteo al gate è il METAR di KJFK di quella mattina, messo
-nella cache del quadrante, perché nessun servizio fornisce un'osservazione passata. Polso, pressione di cabina e batteria sono messi
+nella cache del quadrante, perché nessun servizio fornisce un'osservazione passata; dopo la rotazione il quadrante ha preso il
+meteo da sé durante le riprese, quindi quei valori sono del giorno delle riprese. Polso, pressione di cabina e batteria sono messi
 in scena sull'emulatore, perché un emulatore non ha un polso.
 
 </details>
@@ -182,7 +183,7 @@ nomenclatura da strumento, non prosa.
 - **Uomo morto** — on/off, intervallo di richiesta, `VIBRAZIONE`, `SEGNALE SOS` (OFF/MIN/MED/MAX),
   `POLSO NEL GIORNALE`, e il giornale di bordo con la sua esportazione.
 - **Punto** — GPS, o coordinate inserite a mano. Un punto inserito mette il quadrante all'ora di
-  quel luogo; un punto GPS può farlo anch'esso, con `ORA LOCALE` → `LUOGO`. Lo Zulu è seguito dallo
+  quel luogo; un punto GPS può farlo anch'esso, con `ORA LOCALE` → `LUOGO`. A casa le due danno lo stesso fuso, quindi il cambio non sposta nulla; si separano solo quando l'orologio del telefono e il suolo non concordano — un telefono ancora sull'ora di casa dopo un volo, in modalità aereo o vicino al confine di un fuso. Lo Zulu è seguito dallo
   scarto del quadrante (`Z 13NOV 13:58 -5`): quale orologio vale non è mai da indovinare. La riga
   della posizione, sopra il meteo, termina con uno spillo da mappa per un punto inserito, o con un satellite per un punto GPS: attenuato appena, in movimento, può essersi
   spostato di oltre 5 km, barrato dopo mezz'ora in movimento senza fix — l'ultima posizione resta
